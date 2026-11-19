@@ -117,6 +117,57 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
   const [inputAuthToken, setInputAuthToken] = useState("");
   const [inputCt0, setInputCt0] = useState("");
 
+  // Modal 8: Ritmo Humano, Intervalos & Pausas Biológicas
+  const [cadenceModalOpen, setCadenceModalOpen] = useState(false);
+  const [cadence, setCadence] = useState({
+    sessionDurationMinMinutes: 7.5,
+    sessionDurationMaxMinutes: 14.0,
+    pocketCooldownMinMinutes: 18.5,
+    pocketCooldownMaxMinutes: 42.0,
+    actionJitterMinSeconds: 11.2,
+    actionJitterMaxSeconds: 23.8,
+    likeCadenceMinMinutes: 3.5,
+    likeCadenceMaxMinutes: 7.8,
+    retweetCadenceMinMinutes: 28.5,
+    retweetCadenceMaxMinutes: 58.0,
+    lunchPause: {
+      enabled: true,
+      start: "12:15",
+      end: "13:40",
+    },
+    nightSleep: {
+      enabled: true,
+      start: "23:45",
+      end: "07:15",
+    },
+    timezone: "America/Sao_Paulo",
+  });
+  const [bioState, setBioState] = useState<{
+    state: string;
+    label: string;
+    description: string;
+    allowsAction: boolean;
+    nextResume?: string;
+    nextJitterSeconds?: number;
+  }>({
+    state: "ACTIVE_SESSION",
+    label: "🟢 Sessão Ativa (Celular na Mão)",
+    description: "Navegação orgânica com jitter quebrado",
+    allowsAction: true,
+    nextJitterSeconds: 13.4,
+  });
+
+  const fetchCadence = useCallback(async () => {
+    try {
+      const res = await fetch("/api/automation/cadence", { cache: "no-store" });
+      const data = await res.json();
+      if (data.ok && data.cadence) {
+        setCadence(data.cadence);
+        if (data.biologicalState) setBioState(data.biologicalState);
+      }
+    } catch {}
+  }, []);
+
   // Polling automático
   const refresh = useCallback(async () => {
     try {
@@ -138,8 +189,12 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
 
   useEffect(() => {
     refresh();
+    fetchCadence();
     const poll = setInterval(() => {
-      if (document.visibilityState === "visible") refresh();
+      if (document.visibilityState === "visible") {
+        refresh();
+        fetchCadence();
+      }
     }, 8_000);
     const tick = setInterval(() => setNow(Date.now()), 15_000);
     return () => {
@@ -380,6 +435,30 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       setFiltersOpen(false);
     } catch (e) {
       toast.show(e instanceof Error ? e.message : "Erro ao salvar filtros.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // SALVAR RITMO HUMANO & INTERVALOS BIOLÓGICOS
+  async function handleSaveCadence(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy("save_cadence");
+    try {
+      const res = await fetch("/api/automation/cadence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cadence }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      toast.show("⏰ Configurações de Ritmo Humano & Pausas salvas!");
+      setCadenceModalOpen(false);
+      await fetchCadence();
+      await refresh();
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Erro ao salvar cadência.");
     } finally {
       setBusy(null);
     }
@@ -641,6 +720,15 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             🎯 Filtros de Alvo & Interação
           </button>
 
+          <button
+            type="button"
+            className="btn btn-glass"
+            onClick={() => setCadenceModalOpen(true)}
+            title="Configurar intervalos quebrados, pausas de almoço e sono biológico"
+          >
+            ⏰ Ritmo & Pausas
+          </button>
+
           {/* BOTÃO MASTER ON/OFF */}
           <button
             type="button"
@@ -726,18 +814,18 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
           </div>
 
           {/* Card 2: Ação em Tempo Real */}
-          <div className="bg-[var(--sunken)]/60 rounded-xl p-3 border border-[var(--line)] flex flex-col justify-between md:col-span-2">
+          <div className="bg-[var(--sunken)]/60 rounded-xl p-3 border border-[var(--line)] flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
-                  O que o robô está fazendo agora
+                  Ação ao Vivo
                 </div>
-                <span className={`text-[10.5px] font-[750] px-2.5 py-0.5 rounded border uppercase tracking-wider ${actionBadge.bg}`}>
+                <span className={`text-[10px] font-[750] px-2 py-0.5 rounded border uppercase tracking-wider ${actionBadge.bg}`}>
                   {actionBadge.label}
                 </span>
               </div>
 
-              <div className="mt-2 text-[14px] font-[650] text-[var(--ink)] leading-snug">
+              <div className="mt-2 text-[13px] font-[650] text-[var(--ink)] leading-snug line-clamp-2">
                 {currentActionText}
               </div>
             </div>
@@ -754,24 +842,56 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                 />
               </div>
 
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--muted)] font-mono">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[var(--ink-2)]">Alvo do Nicho:</span>
-                  <span className="text-sky-400 font-semibold truncate max-w-[160px]">
-                    {filters.targetProfiles.split(",")[0] || "@elonmusk"}
-                  </span>
+              <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--muted)] font-mono">
+                <span className="truncate text-sky-400">{filters.targetProfiles.split(",")[0] || "@elonmusk"}</span>
+                <span className="text-emerald-400 font-bold">Jitter Ativo</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Ritmo Humano & Pausas Biológicas */}
+          <div className="bg-[var(--sunken)]/60 rounded-xl p-3 border border-[var(--line)] flex flex-col justify-between">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                <span>Ciclo Circadiano & Ritmo</span>
+                <span className="text-emerald-400 font-mono text-[10.5px]">SP (GMT-3)</span>
+              </div>
+
+              <div className="mt-1.5">
+                <div className="text-[12.5px] font-[700] text-[var(--ink)] flex items-center gap-1.5 truncate">
+                  {bioState.label}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[var(--ink-2)]">Palavra-chave:</span>
-                  <span className="text-purple-400 font-semibold truncate max-w-[140px]">
-                    {filters.keywords.split(",")[0] || "marketing"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-emerald-400 font-bold">100% Humano</span>
-                  <span>(Anti-Detection Spoofing)</span>
+                <div className="text-[11px] text-[var(--muted)] mt-0.5 truncate" title={bioState.description}>
+                  {bioState.description}
                 </div>
               </div>
+            </div>
+
+            <div className="mt-2.5 pt-2 border-t border-[var(--line)] space-y-1 text-[11px]">
+              <div className="flex items-center justify-between text-[var(--ink-2)]">
+                <span>Likes:</span>
+                <span className="font-mono text-rose-400 font-semibold">1 a cada ~{cadence.likeCadenceMinMinutes}m - {cadence.likeCadenceMaxMinutes}m</span>
+              </div>
+              <div className="flex items-center justify-between text-[var(--ink-2)]">
+                <span>Retweets:</span>
+                <span className="font-mono text-teal-400 font-semibold">1 a cada ~{cadence.retweetCadenceMinMinutes}m - {cadence.retweetCadenceMaxMinutes}m</span>
+              </div>
+              <div className="flex items-center justify-between text-[var(--ink-2)]">
+                <span>Almoço:</span>
+                <span className="font-mono text-amber-400">{cadence.lunchPause.enabled ? `${cadence.lunchPause.start} às ${cadence.lunchPause.end}` : "Off"}</span>
+              </div>
+              <div className="flex items-center justify-between text-[var(--ink-2)]">
+                <span>Sono:</span>
+                <span className="font-mono text-indigo-400">{cadence.nightSleep.enabled ? `${cadence.nightSleep.start} às ${cadence.nightSleep.end}` : "Off"}</span>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-xs btn-glass w-full mt-1.5 text-[11px] font-[600]"
+                onClick={() => setCadenceModalOpen(true)}
+              >
+                ⏰ Ajustar Ritmo & Intervalos
+              </button>
             </div>
           </div>
         </div>
@@ -1831,6 +1951,297 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                 </div>
               </div>
             </div>
+          </div>
+        </dialog>
+      )}
+
+      {/* ============================================================== */}
+      {/* 8. MODAL: RITMO HUMANO, INTERVALOS & PAUSAS BIOLÓGICAS        */}
+      {/* ============================================================== */}
+      {cadenceModalOpen && (
+        <dialog open className="sheet">
+          <div className="panel-pad max-w-[620px] w-full">
+            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
+              <div>
+                <h2 className="h2 text-[17px] flex items-center gap-2">
+                  <span>⏰</span> Ritmo Humano, Intervalos & Pausas Biológicas
+                </h2>
+                <p className="text-[12px] text-[var(--muted)] mt-0.5">
+                  Configure tempos quebrados, pausas de almoço e descanso noturno para simular comportamento 100% humano indetectável.
+                </p>
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setCadenceModalOpen(false)}>
+                <IconX size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCadence} className="mt-4 flex flex-col gap-4 text-[13px] max-h-[75vh] overflow-y-auto pr-1">
+              {/* Seção 1: Intervalos Quebrados Entre Ações */}
+              <div className="p-3.5 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                <div className="font-[700] text-[13.5px] text-[var(--ink)] flex items-center justify-between">
+                  <span>⏱️ Intervalos Quebrados entre Ações (Jitter)</span>
+                  <span className="text-[11px] font-mono text-emerald-400 font-semibold">Números Quebrados</span>
+                </div>
+                <p className="text-[11.5px] text-[var(--muted)] mt-0.5">
+                  Nenhum ser humano age de 30 em 30 segundos exatos. O bot varia com frações decimais orgânicas.
+                </p>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="label text-[11.5px]">Intervalo Mínimo (segundos)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="5"
+                      max="60"
+                      className="input mt-1"
+                      value={cadence.actionJitterMinSeconds}
+                      onChange={(e) => setCadence({ ...cadence, actionJitterMinSeconds: parseFloat(e.target.value) || 10 })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label text-[11.5px]">Intervalo Máximo (segundos)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="10"
+                      max="120"
+                      className="input mt-1"
+                      value={cadence.actionJitterMaxSeconds}
+                      onChange={(e) => setCadence({ ...cadence, actionJitterMaxSeconds: parseFloat(e.target.value) || 25 })}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção 2: Cadência de Curtidas e Retweets */}
+              <div className="p-3.5 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                <div className="font-[700] text-[13.5px] text-[var(--ink)]">
+                  🎯 Frequência de Curtidas & Retweets
+                </div>
+                <p className="text-[11.5px] text-[var(--muted)] mt-0.5">
+                  Tempo espaçado entre cada like e repost para evitar bloqueios do algoritmo do X.
+                </p>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="label text-[11.5px]">Curtir a cada (minutos)</label>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="1"
+                        className="input"
+                        value={cadence.likeCadenceMinMinutes}
+                        onChange={(e) => setCadence({ ...cadence, likeCadenceMinMinutes: parseFloat(e.target.value) || 3 })}
+                        placeholder="Mín"
+                        required
+                      />
+                      <span className="text-[var(--muted)] text-[11px]">até</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="2"
+                        className="input"
+                        value={cadence.likeCadenceMaxMinutes}
+                        onChange={(e) => setCadence({ ...cadence, likeCadenceMaxMinutes: parseFloat(e.target.value) || 8 })}
+                        placeholder="Máx"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="label text-[11.5px]">Retweet a cada (minutos)</label>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="10"
+                        className="input"
+                        value={cadence.retweetCadenceMinMinutes}
+                        onChange={(e) => setCadence({ ...cadence, retweetCadenceMinMinutes: parseFloat(e.target.value) || 25 })}
+                        placeholder="Mín"
+                        required
+                      />
+                      <span className="text-[var(--muted)] text-[11px]">até</span>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="20"
+                        className="input"
+                        value={cadence.retweetCadenceMaxMinutes}
+                        onChange={(e) => setCadence({ ...cadence, retweetCadenceMaxMinutes: parseFloat(e.target.value) || 60 })}
+                        placeholder="Máx"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção 3: Sessões de Uso (Burst & Cooldown) */}
+              <div className="p-3.5 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                <div className="font-[700] text-[13.5px] text-[var(--ink)]">
+                  📱 Sessões de Uso & Celular no Bolso
+                </div>
+                <p className="text-[11.5px] text-[var(--muted)] mt-0.5">
+                  Simula o ato natural de abrir o app por alguns minutos e depois guardar o aparelho.
+                </p>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="label text-[11.5px]">Sessão Ativa (minutos na mão)</label>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="3"
+                        className="input"
+                        value={cadence.sessionDurationMinMinutes}
+                        onChange={(e) => setCadence({ ...cadence, sessionDurationMinMinutes: parseFloat(e.target.value) || 7 })}
+                        required
+                      />
+                      <span className="text-[var(--muted)] text-[11px]">a</span>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="5"
+                        className="input"
+                        value={cadence.sessionDurationMaxMinutes}
+                        onChange={(e) => setCadence({ ...cadence, sessionDurationMaxMinutes: parseFloat(e.target.value) || 14 })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="label text-[11.5px]">Pausa no Bolso (minutos de descanso)</label>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="10"
+                        className="input"
+                        value={cadence.pocketCooldownMinMinutes}
+                        onChange={(e) => setCadence({ ...cadence, pocketCooldownMinMinutes: parseFloat(e.target.value) || 18 })}
+                        required
+                      />
+                      <span className="text-[var(--muted)] text-[11px]">a</span>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="15"
+                        className="input"
+                        value={cadence.pocketCooldownMaxMinutes}
+                        onChange={(e) => setCadence({ ...cadence, pocketCooldownMaxMinutes: parseFloat(e.target.value) || 45 })}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção 4: Pausas Biológicas (Almoço & Sono Noturno) */}
+              <div className="p-3.5 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                <div className="font-[700] text-[13.5px] text-[var(--ink)]">
+                  🍽️ Pausas Biológicas Humanas
+                </div>
+
+                {/* Pausa de Almoço */}
+                <div className="mt-3 p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)]">
+                  <div className="flex items-center justify-between">
+                    <label className="font-[600] text-[12.5px] flex items-center gap-2 cursor-pointer" htmlFor="toggle-lunch">
+                      <span>🍽️</span> Pausa de Almoço
+                    </label>
+                    <input
+                      id="toggle-lunch"
+                      type="checkbox"
+                      checked={cadence.lunchPause.enabled}
+                      onChange={(e) => setCadence({ ...cadence, lunchPause: { ...cadence.lunchPause, enabled: e.target.checked } })}
+                      className="size-4 cursor-pointer"
+                    />
+                  </div>
+                  {cadence.lunchPause.enabled && (
+                    <div className="grid grid-cols-2 gap-3 mt-2.5 pt-2 border-t border-[var(--line)]">
+                      <div>
+                        <span className="text-[11px] text-[var(--muted)]">Início do Almoço</span>
+                        <input
+                          type="time"
+                          className="input mt-1"
+                          value={cadence.lunchPause.start}
+                          onChange={(e) => setCadence({ ...cadence, lunchPause: { ...cadence.lunchPause, start: e.target.value } })}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-[var(--muted)]">Fim do Almoço</span>
+                        <input
+                          type="time"
+                          className="input mt-1"
+                          value={cadence.lunchPause.end}
+                          onChange={(e) => setCadence({ ...cadence, lunchPause: { ...cadence.lunchPause, end: e.target.value } })}
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sono Noturno */}
+                <div className="mt-3 p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)]">
+                  <div className="flex items-center justify-between">
+                    <label className="font-[600] text-[12.5px] flex items-center gap-2 cursor-pointer" htmlFor="toggle-sleep">
+                      <span>🌙</span> Sono Noturno (Conta Dormindo)
+                    </label>
+                    <input
+                      id="toggle-sleep"
+                      type="checkbox"
+                      checked={cadence.nightSleep.enabled}
+                      onChange={(e) => setCadence({ ...cadence, nightSleep: { ...cadence.nightSleep, enabled: e.target.checked } })}
+                      className="size-4 cursor-pointer"
+                    />
+                  </div>
+                  {cadence.nightSleep.enabled && (
+                    <div className="grid grid-cols-2 gap-3 mt-2.5 pt-2 border-t border-[var(--line)]">
+                      <div>
+                        <span className="text-[11px] text-[var(--muted)]">Horário de Dormir</span>
+                        <input
+                          type="time"
+                          className="input mt-1"
+                          value={cadence.nightSleep.start}
+                          onChange={(e) => setCadence({ ...cadence, nightSleep: { ...cadence.nightSleep, start: e.target.value } })}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-[var(--muted)]">Horário de Acordar</span>
+                        <input
+                          type="time"
+                          className="input mt-1"
+                          value={cadence.nightSleep.end}
+                          onChange={(e) => setCadence({ ...cadence, nightSleep: { ...cadence.nightSleep, end: e.target.value } })}
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-[var(--line)] mt-2">
+                <span className="text-[11px] text-[var(--muted)]">
+                  Fuso horário ativo: <strong>{cadence.timezone}</strong>
+                </span>
+                <div className="flex items-center gap-2">
+                  <button type="button" className="btn btn-ghost" onClick={() => setCadenceModalOpen(false)}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={busy !== null}>
+                    {busy === "save_cadence" ? "Salvando..." : "Salvar Configurações de Ritmo"}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </dialog>
       )}

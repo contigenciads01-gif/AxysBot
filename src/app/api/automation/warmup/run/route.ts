@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSession, fail } from "@/lib/http";
 import { db } from "@/lib/supabase";
 import { MetricsCollector } from "@/engine/metrics/collector";
+import { getActiveCadence, calculateBiologicalState } from "../../cadence/route";
 
 export async function POST(req: Request) {
   const denied = await requireSession();
@@ -12,6 +13,9 @@ export async function POST(req: Request) {
       accountIds?: string[];
       action?: "step" | "start" | "stop";
     };
+
+    const cadence = getActiveCadence();
+    const bioState = calculateBiologicalState(cadence);
 
     // 1. Carrega os filtros de nicho configurados (palavras-chave e perfis alvos)
     const { data: settingsData } = await db()
@@ -55,6 +59,35 @@ export async function POST(req: Request) {
       });
     }
 
+    // Se estiver em horário de Sono Noturno ou Pausa de Almoço, entra em pausa biológica natural
+    if (!bioState.allowsAction) {
+      for (const acc of accounts) {
+        await db()
+          .from("platform_accounts")
+          .update({
+            status: "live",
+            current_action: bioState.description,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", acc.id);
+
+        await MetricsCollector.recordAction({
+          accountId: acc.id,
+          actionType: bioState.state,
+          status: "PAUSED",
+          detail: `@${acc.username}: ${bioState.label} — ${bioState.description}`,
+          durationMs: 1000,
+        });
+      }
+
+      return NextResponse.json({
+        ok: true,
+        paused: true,
+        biologicalState: bioState,
+        message: bioState.description,
+      });
+    }
+
     const executedSteps: Array<{
       account: string;
       actionType: string;
@@ -68,56 +101,64 @@ export async function POST(req: Request) {
       const targetProfile = profiles[Math.floor(Math.random() * profiles.length)] || "@elonmusk";
       const targetKeyword = keywords[Math.floor(Math.random() * keywords.length)] || "tecnologia";
       const randomTweetId = Math.floor(1800000000000000000 + Math.random() * 9000000000000000);
-      const scrollPx = Math.floor(Math.random() * 650) + 250;
-      const readSeconds = Math.floor(Math.random() * 22) + 8;
-      const jitterSeconds = Math.floor(Math.random() * 15) + 5;
 
-      // Gerador dinâmico de passos orgânicos humanos baseados no nicho
-      const possibleActions = [
-        {
+      // Intervalos quebrados e profundidade quebrada
+      const scrollPx = Math.floor(Math.random() * 580) + 213; // ex: 347px
+      const readSeconds = (Math.random() * 14.5 + 8.2).toFixed(1); // ex: 14.3s
+      const jitterSeconds = (
+        Math.random() * (cadence.actionJitterMaxSeconds - cadence.actionJitterMinSeconds) +
+        cadence.actionJitterMinSeconds
+      ).toFixed(1); // ex: 13.8s
+
+      // Sorteio com pesos biológicos: scroll e leitura são frequentes; like e retweet são espaçados
+      const roll = Math.random();
+      let chosen: { type: string; text: string; detail: string };
+
+      if (roll < 0.35) {
+        // 35% de chance de scroll no feed
+        chosen = {
           type: "SCROLL_FEED",
-          text: `📜 Rolando feed 'Para Você' — profundidade ${scrollPx}px (analisando tweets recentes)`,
+          text: `📜 Rolando feed 'Para Você' — profundidade ${scrollPx}px (intervalo quebrado de ${jitterSeconds}s)`,
           detail: `[SCROLL] Rolou ${scrollPx}px no feed 'Para Você'`,
-        },
-        {
-          type: "VISIT_PROFILE",
-          text: `👀 Acessando perfil de ${targetProfile} — inspecionando biografia e últimos tweets`,
-          detail: `[PERFIL] Acessou perfil de ${targetProfile}`,
-        },
-        {
+        };
+      } else if (roll < 0.60) {
+        // 25% de chance de ler um post com tempo quebrado
+        chosen = {
           type: "READ_TWEET",
-          text: `📖 Lendo publicação de ${targetProfile} sobre "${targetKeyword}" (retenção: ${readSeconds}s)`,
+          text: `📖 Lendo publicação de ${targetProfile} sobre "${targetKeyword}" (tempo de retenção: ${readSeconds}s)`,
           detail: `[LEITURA] Leu post de ${targetProfile} sobre "${targetKeyword}" (${readSeconds}s)`,
-        },
-        {
+        };
+      } else if (roll < 0.75) {
+        // 15% de chance de visitar perfil
+        chosen = {
+          type: "VISIT_PROFILE",
+          text: `👀 Acessando perfil de ${targetProfile} — inspecionando biografia e últimos 4 tweets`,
+          detail: `[PERFIL] Acessou perfil de ${targetProfile}`,
+        };
+      } else if (roll < 0.88) {
+        // 13% de chance de auto-like orgânico
+        chosen = {
           type: "AUTO_LIKE",
-          text: `❤️ Curtindo post de ${targetProfile} sobre "${targetKeyword}" [ID #${String(randomTweetId).slice(-6)}]`,
+          text: `❤️ Curtindo post de ${targetProfile} sobre "${targetKeyword}" [ID #${String(randomTweetId).slice(-6)}] (cadência de ~${cadence.likeCadenceMinMinutes}m)`,
           detail: `[LIKE] Curtiu tweet #${String(randomTweetId).slice(-6)} de ${targetProfile}`,
-        },
-        {
+        };
+      } else if (roll < 0.95) {
+        // 7% de chance de salvar/bookmark
+        chosen = {
           type: "AUTO_BOOKMARK",
-          text: `🔖 Salvando tweet nos itens salvos de ${targetProfile} para referência`,
+          text: `🔖 Salvando tweet nos itens salvos de ${targetProfile} para referência futura`,
           detail: `[SALVAR] Guardou link do post de ${targetProfile}`,
-        },
-        {
+        };
+      } else {
+        // 5% de chance de retweet orgânico estratégico
+        chosen = {
           type: "AUTO_RETWEET",
-          text: `🔁 Retweet orgânico realizado na publicação em alta de ${targetProfile}`,
+          text: `🔁 Retweet orgânico realizado na publicação em alta de ${targetProfile} (cadência de ~${cadence.retweetCadenceMinMinutes}m)`,
           detail: `[RETWEET] Retweetou publicação de ${targetProfile}`,
-        },
-        {
-          type: "SEARCH_NICHE",
-          text: `🔍 Pesquisando termo "${targetKeyword}" no explore do X...`,
-          detail: `[BUSCA] Buscou por "${targetKeyword}" no Explore`,
-        },
-        {
-          type: "HUMAN_PAUSE",
-          text: `⏳ Pausa natural de leitura e inatividade humana (jitter de ${jitterSeconds}s)...`,
-          detail: `[PAUSA] Descanso humano inteligente (${jitterSeconds}s)`,
-        },
-      ];
+        };
+      }
 
-      const chosen = possibleActions[Math.floor(Math.random() * possibleActions.length)];
-      const durationMs = Math.floor(Math.random() * 2200) + 1000;
+      const durationMs = Math.round(parseFloat(jitterSeconds) * 1000);
 
       // Atualiza a conta no banco com status 'warming' e a ação descritiva rica
       await db()
@@ -152,6 +193,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       count: accounts.length,
+      biologicalState: bioState,
       steps: executedSteps,
     });
   } catch (e) {

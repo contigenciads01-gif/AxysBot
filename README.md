@@ -60,10 +60,31 @@ No plano Pro do Vercel, troque os horários do `vercel.json` para `*/5 * * * *`
 e `17 */2 * * *` e desligue o workflow.
 
 ### 5. No painel
-1. Entre com a `ADMIN_PASSWORD`. Se faltar algo, a primeira tela mostra a lista
+1. Entre com usuário `admin` (ou `ADMIN_USER`) e a `ADMIN_PASSWORD`. Se faltar algo, a primeira tela mostra a lista
    do que falta configurar, item por item.
 2. **Ajustes > Conectar conta do X**.
 3. Escreva um post, agende, e acompanhe no Painel.
+
+### Variáveis do projeto antigo
+
+O painel aceita os nomes que o `axysbotpuro` já tinha no Vercel:
+`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e
+`ENCRYPTION_MASTER_KEY` (de onde derivam a chave de sessão e a dos tokens).
+Faltam só `ADMIN_PASSWORD`, as do app do X, `CRON_SECRET` e, opcional,
+`ANTHROPIC_API_KEY`.
+
+Se o Supabase for o mesmo do painel antigo e já tiver tabelas com os nomes
+usados aqui (`posts`, `settings`…), a tela inicial avisa qual tabela conflita.
+
+## Visual
+
+Fundo Branco, Bege ou Escuro e densidade Compacto ou Amplo. Efeito Liquid Glass
+(adaptado de [stormaref/LiquidGlassSkill](https://github.com/stormaref/LiquidGlassSkill),
+refração MIT de [liquid-glass-js](https://github.com/dashersw/liquid-glass-js))
+em pontos escolhidos: botões principais em vidro azul, barra do agendador,
+cartão de login, barras do celular, seletores e avisos. Cards com gráfico e
+texto ficam sólidos para leitura. A refração roda no Chrome e no Edge; no
+Safari e no Firefox fica um vidro fosco.
 
 ## Rodar localmente
 
@@ -76,9 +97,9 @@ npm run dev
 ## Testes
 
 ```bash
-npm test            # 26 testes unitarios: custo, thread, cifragem, sessao, OAuth, IA
+npm test            # 35 testes unitarios: custo, thread, cifragem, sessao, OAuth, IA
 npm run typecheck
-npm run test:e2e    # ponta a ponta (40 verificacoes), ver abaixo
+npm run test:e2e    # ponta a ponta (46 verificacoes), ver abaixo
 ```
 
 O ponta a ponta sobe o app em modo produção com o servidor em UTC (como o Vercel),

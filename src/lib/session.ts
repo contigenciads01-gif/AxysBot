@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { safeEqual } from "./crypto";
+import { adminPassword, adminUser, sessionSecret } from "./env";
 
 /**
  * Sessao do painel: cookie assinado com HMAC-SHA256.
@@ -8,11 +9,7 @@ import { safeEqual } from "./crypto";
 export const SESSION_COOKIE = "axys_session";
 export const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 dias
 
-function secret(): string {
-  const s = process.env.SESSION_SECRET ?? "";
-  if (s.length < 32) throw new Error("SESSION_SECRET precisa de pelo menos 32 caracteres");
-  return s;
-}
+const secret = sessionSecret;
 
 function sign(payload: string): string {
   return createHmac("sha256", secret()).update(payload).digest("base64url");
@@ -37,8 +34,15 @@ export function isValidSession(value: string | undefined, now = Date.now()): boo
   }
 }
 
-export function checkPassword(input: string): boolean {
-  const expected = process.env.ADMIN_PASSWORD ?? "";
+/** Usuario (padrao "admin") + senha de ADMIN_PASSWORD. Os dois sempre comparados. */
+export function checkLogin(user: string, password: string): boolean {
+  const expected = adminPassword();
   if (expected.length < 8) return false; // painel fechado ate configurar senha
-  return safeEqual(input, expected);
+  const userOk = safeEqual(user.trim().toLowerCase(), adminUser().toLowerCase());
+  const passOk = safeEqual(password, expected);
+  return userOk && passOk;
+}
+
+export function checkPassword(input: string): boolean {
+  return checkLogin(adminUser(), input);
 }

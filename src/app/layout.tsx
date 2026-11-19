@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import "./glass.css";
+import { GlassRuntime } from "@/components/glass-runtime";
 
 const instrument = localFont({
   src: [
@@ -36,7 +38,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: prefsScript }} />
       </head>
-      <body>{children}</body>
+      <body className="liquid-glass-backdrop">
+        {children}
+        <GlassRuntime />
+      </body>
     </html>
   );
 }

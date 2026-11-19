@@ -1,18 +1,12 @@
 import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { tokenKey } from "./env";
 
 /**
  * AES-256-GCM para os tokens do X antes de irem ao banco.
  * Formato gravado: iv.tag.payload (base64url). Chave: TOKEN_ENCRYPTION_KEY,
  * 32 bytes em hex (openssl rand -hex 32).
  */
-function key(): Buffer {
-  const raw = process.env.TOKEN_ENCRYPTION_KEY ?? "";
-  const buf = Buffer.from(raw, "hex");
-  if (buf.length !== 32) {
-    throw new Error("TOKEN_ENCRYPTION_KEY precisa ter 64 caracteres hex (openssl rand -hex 32)");
-  }
-  return buf;
-}
+const key = tokenKey;
 
 export function encrypt(plain: string): string {
   const iv = randomBytes(12);

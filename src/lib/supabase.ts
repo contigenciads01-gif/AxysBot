@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { supabaseSecretKey, supabaseUrl } from "./env";
 
 /**
  * Cliente de servidor com a chave secreta. `server-only` faz o build FALHAR
@@ -10,10 +11,10 @@ let cached: SupabaseClient | null = null;
 
 export function db(): SupabaseClient {
   if (cached) return cached;
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SECRET_KEY;
+  const url = supabaseUrl();
+  const key = supabaseSecretKey();
   if (!url || !key) {
-    throw new ConfigError("Supabase nao configurado: defina SUPABASE_URL e SUPABASE_SECRET_KEY");
+    throw new ConfigError("Supabase nao configurado: defina SUPABASE_URL e SUPABASE_SECRET_KEY (ou SUPABASE_SERVICE_ROLE_KEY)");
   }
   cached = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },

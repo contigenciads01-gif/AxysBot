@@ -77,7 +77,7 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
   return (
     <div className="flex flex-col gap-[var(--gap)]">
       {/* ---------------- controle do agendador ---------------- */}
-      <section className="panel panel-pad flex flex-wrap items-center gap-x-5 gap-y-3" aria-label="Agendador">
+      <section className="liquid-glass glass-card panel-pad flex flex-wrap items-center gap-x-5 gap-y-3" aria-label="Agendador" data-glass>
         <div className="flex items-center gap-3 min-w-0">
           <span className={`dot ${paused ? "" : "dot-live"}`} style={{ color: paused ? "var(--warn)" : "var(--ok)" }} />
           <div className="min-w-0">
@@ -88,13 +88,13 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
           </div>
         </div>
         <div className="flex flex-wrap gap-2 md:ml-auto">
-          <button type="button" className={`btn ${paused ? "btn-primary" : ""}`} onClick={() => act("pause")} disabled={busy !== null} aria-pressed={!paused}>
+          <button type="button" className={`btn ${paused ? "btn-primary" : "btn-glass"}`} onClick={() => act("pause")} disabled={busy !== null} aria-pressed={!paused}>
             {paused ? <IconPlay size={15} /> : <IconPause size={15} />}{paused ? "Ligar agendador" : "Pausar"}
           </button>
-          <button type="button" className="btn" onClick={() => act("publish")} disabled={busy !== null || paused}>
+          <button type="button" className="btn btn-glass" onClick={() => act("publish")} disabled={busy !== null || paused}>
             {busy === "publish" ? "Publicando…" : "Publicar vencidos"}
           </button>
-          <button type="button" className="btn btn-ghost" onClick={() => act("sync")} disabled={busy !== null} title="Busca métricas e menções novas no X">
+          <button type="button" className="btn btn-ghost btn-glass" onClick={() => act("sync")} disabled={busy !== null} title="Busca métricas e menções novas no X">
             <IconSync size={15} className={busy === "sync" ? "animate-spin" : ""} />Sincronizar
           </button>
         </div>

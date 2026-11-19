@@ -148,6 +148,27 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     };
   }, [refresh]);
 
+  // Loop de Execução Contínua em Background (Quando o Bot está Ligado)
+  useEffect(() => {
+    if (!status.enabled || accounts.length === 0) return;
+
+    const runWarmupStep = async () => {
+      try {
+        await fetch("/api/automation/warmup/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "step" }),
+        });
+        await refresh();
+      } catch {
+        // ignora falhas temporárias
+      }
+    };
+
+    const interval = setInterval(runWarmupStep, 8000);
+    return () => clearInterval(interval);
+  }, [status.enabled, accounts.length, refresh]);
+
   // Carrega filtros salvos
   useEffect(() => {
     fetch("/api/automation/filters", { cache: "no-store" })
@@ -521,6 +542,39 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     setCopySubmenuOpen(false);
   }
 
+  const activeAccount = accounts.find((a) => a.status === "warming") || accounts[0] || null;
+  const currentActionText = activeAccount?.current_action || (status.enabled ? "Inicializando esteira de aquecimento humano..." : "Robô pausado.");
+
+  function getActionBadge(text: string) {
+    if (text.includes("Rolando feed") || text.includes("Scroll")) {
+      return { label: "📜 SCROLL FEED", bg: "bg-sky-500/20 text-sky-400 border-sky-500/40" };
+    }
+    if (text.includes("Acessando perfil") || text.includes("Visitando")) {
+      return { label: "👀 VISITANDO PERFIL", bg: "bg-purple-500/20 text-purple-400 border-purple-500/40" };
+    }
+    if (text.includes("Lendo publicação")) {
+      return { label: "📖 LENDO POST", bg: "bg-amber-500/20 text-amber-400 border-amber-500/40" };
+    }
+    if (text.includes("Curtindo")) {
+      return { label: "❤️ AUTO-LIKE", bg: "bg-rose-500/20 text-rose-400 border-rose-500/40" };
+    }
+    if (text.includes("Salvando tweet") || text.includes("Bookmark")) {
+      return { label: "🔖 BOOKMARK", bg: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" };
+    }
+    if (text.includes("Retweet")) {
+      return { label: "🔁 AUTO-RETWEET", bg: "bg-teal-500/20 text-teal-400 border-teal-500/40" };
+    }
+    if (text.includes("Pesquisando") || text.includes("Busca")) {
+      return { label: "🔍 BUSCA NICHO", bg: "bg-indigo-500/20 text-indigo-400 border-indigo-500/40" };
+    }
+    if (text.includes("Pausa") || text.includes("Descanso")) {
+      return { label: "⏳ DESCANSO NATURAL", bg: "bg-zinc-500/20 text-zinc-400 border-zinc-500/40" };
+    }
+    return { label: "⚡ EM OPERAÇÃO", bg: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" };
+  }
+
+  const actionBadge = getActionBadge(currentActionText);
+
   return (
     <div className="flex flex-col gap-4">
       {/* ============================================================== */}
@@ -612,6 +666,114 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </>
             )}
           </button>
+        </div>
+      </section>
+
+      {/* ============================================================== */}
+      {/* 1.5 CONSOLE VISUAL DE OPERAÇÕES EM TEMPO REAL (MISSION CONTROL) */}
+      {/* ============================================================== */}
+      <section className="liquid-glass glass-card panel-pad relative overflow-hidden border border-[var(--line)]" data-glass>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`size-2.5 rounded-full ${
+                status.enabled ? "bg-emerald-500 shadow-[0_0_10px_#10b981] animate-ping" : "bg-zinc-600"
+              }`}
+            />
+            <h3 className="text-[15px] font-[750] tracking-tight text-[var(--ink)] flex items-center gap-2">
+              <span>🖥️</span> Console de Missão do Bot — Ações em Tempo Real
+            </h3>
+            <span className="liquid-glass-chip px-2.5 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
+              {status.enabled ? "LIVE TELEMETRY" : "IDLE"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-[12px] text-[var(--ink-2)]">
+            <span className="font-mono text-[var(--muted)]">Ciclo contínuo:</span>
+            <span className="font-semibold text-emerald-400">8s (Anti-Detection Jitter)</span>
+          </div>
+        </div>
+
+        {/* Grade de Telemetria ao Vivo */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mt-3.5">
+          {/* Card 1: Conta em Foco */}
+          <div className="bg-[var(--sunken)]/60 rounded-xl p-3 border border-[var(--line)] flex flex-col justify-between">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                <span>Conta em Operação</span>
+                <span className={`size-2 rounded-full ${status.enabled ? "bg-emerald-500" : "bg-zinc-600"}`} />
+              </div>
+              <div className="mt-2 flex items-center gap-2.5">
+                <div className="size-9 rounded-full bg-[var(--surface)] border border-[var(--line)] flex items-center justify-center font-bold text-[13px] text-[var(--accent)]">
+                  {activeAccount ? activeAccount.username.slice(0, 2).toUpperCase() : "X"}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-[700] text-[13.5px] truncate text-[var(--ink)]">
+                    {activeAccount ? `@${activeAccount.username}` : "Nenhuma conta"}
+                  </div>
+                  <div className="text-[11px] text-[var(--muted)] truncate">
+                    {activeAccount?.display_name || "Perfil Ativo"}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-[var(--line)] text-[11px] flex items-center justify-between text-[var(--ink-2)]">
+              <span>Proxy / Rede:</span>
+              <span className="font-mono text-emerald-400 font-semibold truncate max-w-[150px]">
+                {activeAccount?.proxy_active && activeAccount?.proxy ? activeAccount.proxy : "IP Residencial Direto"}
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Ação em Tempo Real */}
+          <div className="bg-[var(--sunken)]/60 rounded-xl p-3 border border-[var(--line)] flex flex-col justify-between md:col-span-2">
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                  O que o robô está fazendo agora
+                </div>
+                <span className={`text-[10.5px] font-[750] px-2.5 py-0.5 rounded border uppercase tracking-wider ${actionBadge.bg}`}>
+                  {actionBadge.label}
+                </span>
+              </div>
+
+              <div className="mt-2 text-[14px] font-[650] text-[var(--ink)] leading-snug">
+                {currentActionText}
+              </div>
+            </div>
+
+            {/* Barra de Progresso Animada */}
+            <div className="mt-3">
+              <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+                <div
+                  className={`h-full transition-all duration-700 ease-out ${
+                    status.enabled
+                      ? "bg-gradient-to-r from-sky-500 via-emerald-500 to-teal-400 animate-pulse w-full"
+                      : "bg-zinc-700 w-0"
+                  }`}
+                />
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--muted)] font-mono">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[var(--ink-2)]">Alvo do Nicho:</span>
+                  <span className="text-sky-400 font-semibold truncate max-w-[160px]">
+                    {filters.targetProfiles.split(",")[0] || "@elonmusk"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[var(--ink-2)]">Palavra-chave:</span>
+                  <span className="text-purple-400 font-semibold truncate max-w-[140px]">
+                    {filters.keywords.split(",")[0] || "marketing"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-emerald-400 font-bold">100% Humano</span>
+                  <span>(Anti-Detection Spoofing)</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

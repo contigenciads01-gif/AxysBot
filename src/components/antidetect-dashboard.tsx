@@ -788,8 +788,10 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
           <div className="bg-[var(--sunken)]/60 rounded-xl p-3 border border-[var(--line)] flex flex-col justify-between">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
-                <span>Conta em Operação</span>
-                <span className={`size-2 rounded-full ${status.enabled ? "bg-emerald-500" : "bg-zinc-600"}`} />
+                <span>Esteira Multi-Contas</span>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                  {accounts.length} {accounts.length === 1 ? "Perfil" : "Perfis em Massa"}
+                </span>
               </div>
               <div className="mt-2 flex items-center gap-2.5">
                 <div className="size-9 rounded-full bg-[var(--surface)] border border-[var(--line)] flex items-center justify-center font-bold text-[13px] text-[var(--accent)]">
@@ -800,7 +802,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                     {activeAccount ? `@${activeAccount.username}` : "Nenhuma conta"}
                   </div>
                   <div className="text-[11px] text-[var(--muted)] truncate">
-                    {activeAccount?.display_name || "Perfil Ativo"}
+                    {accounts.length > 1 ? `Rotacionando com +${accounts.length - 1} contas no mesmo bot` : (activeAccount?.display_name || "Perfil Ativo")}
                   </div>
                 </div>
               </div>

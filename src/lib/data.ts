@@ -13,7 +13,19 @@ export const getAccount = cache(async (): Promise<XAccount | null> => {
     .order("connected_at", { ascending: false })
     .limit(1)
     .maybeSingle<XAccount>();
-  return data ?? null;
+
+  if (data) return data;
+
+  // Fallback para platform_accounts (farm / modelo conectada)
+  const { data: pData } = await db()
+    .from("platform_accounts")
+    .select("id,x_user_id,username,display_name,avatar_url,token_expires_at,scopes,connected_at")
+    .eq("is_active", true)
+    .order("connected_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<XAccount>();
+
+  return pData ?? null;
 });
 
 export async function listPosts(accountId: string, opts: { status?: PostStatus[]; from?: string; to?: string; limit?: number } = {}): Promise<Post[]> {

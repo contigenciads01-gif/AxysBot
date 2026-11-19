@@ -1,0 +1,58 @@
+# Chama o agendador do AXYSBOT no Vercel.
+#
+# Por que aqui e nao so no vercel.json: no plano Hobby (gratis) o Vercel so
+# permite cron 1x por dia. O GitHub Actions e gratis em repositorio publico e
+# roda a cada 5 min (pode atrasar alguns minutos em horario de pico).
+#
+# Configure em GitHub > Settings > Secrets and variables > Actions:
+#   APP_URL      ex.: https://axysbotpuro.vercel.app   (sem barra no final)
+#   CRON_SECRET  o mesmo valor da variavel CRON_SECRET no Vercel
+#
+# No plano Pro do Vercel voce pode trocar os horarios do vercel.json para
+# "*/5 * * * *" e "17 */2 * * *" e desligar este workflow.
+name: Agendador
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # publica posts vencidos
+    - cron: "17 */2 * * *"  # metricas e mencoes
+  workflow_dispatch:
+    inputs:
+      tarefa:
+        description: "O que rodar agora"
+        type: choice
+        options: [publicar, sincronizar]
+        default: publicar
+
+concurrency:
+  group: agendador-${{ github.event.schedule || inputs.tarefa }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  chamar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Chamar o AXYSBOT
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          AGENDA: ${{ github.event.schedule }}
+          TAREFA: ${{ inputs.tarefa }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::notice::APP_URL ou CRON_SECRET ainda nao configurados. Nada a fazer."
+            exit 0
+          fi
+          if [ "$AGENDA" = "17 */2 * * *" ] || [ "$TAREFA" = "sincronizar" ]; then
+            ROTA=/api/cron/sync
+          else
+            ROTA=/api/cron/publish
+          fi
+          status=$(curl -sS -o resposta.json -w '%{http_code}' --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL$ROTA")
+          echo "HTTP $status em $ROTA"
+          cat resposta.json; echo
+          [ "$status" = "200" ] || { echo "::error::O AXYSBOT respondeu HTTP $status"; exit 1; }

@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Post, PostStatus } from "@/lib/types";
-import { fmtDay, fmtTime, fmtRelative, fmtUsd } from "@/lib/format";
+import { fmtDay, fmtTime, fmtRelative } from "@/lib/format";
+import { PublishFlow, type Publishable } from "./publish-flow";
 import { useToast } from "./toast";
 
 const STATUS: { v: PostStatus | "todos"; label: string }[] = [
@@ -31,6 +32,7 @@ export function Agenda({ posts: initial }: { posts: Post[] }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [publishing, setPublishing] = useState<Publishable | null>(null);
   useEffect(() => setMounted(true), []);
   const pickFilter = (v: PostStatus | "todos") => {
     setFilter(v);
@@ -137,7 +139,7 @@ export function Agenda({ posts: initial }: { posts: Post[] }) {
                     <span className={TAG[p.status]}>{NAME[p.status]}</span>
                     {p.items.length > 1 ? <span className="tag">Thread de {p.items.length}</span> : null}
                     {iso ? <span className="text-[12.5px] text-[var(--ink-2)] num">{fmtDay(iso)}, {fmtTime(iso)} <span className="text-[var(--muted)]">({fmtRelative(iso)})</span></span> : null}
-                    <span className="ml-auto text-[12px] text-[var(--muted)] num">{fmtUsd(Number(p.est_cost_usd ?? 0))}</span>
+                    {p.status === "agendado" || p.status === "rascunho" ? <button type="button" className="ml-auto btn btn-sm" onClick={() => setPublishing(p)}>Publicar no X</button> : null}
                   </div>
                   <div className="mt-2 flex flex-col gap-1.5">
                     {p.items.map((it) => <p key={it.position} className="text-[13.5px] leading-snug whitespace-pre-wrap">{it.body}</p>)}
@@ -168,6 +170,9 @@ export function Agenda({ posts: initial }: { posts: Post[] }) {
           </ul>
         )}
       </section>
+      <PublishFlow post={publishing} onClose={() => setPublishing(null)} onDone={(id) => {
+        setPublishing(null); setPosts((xs) => xs.map((x) => (x.id === id ? { ...x, status: "publicado", published_at: new Date().toISOString() } : x))); toast.show("Marcado como publicado"); router.refresh();
+      }} />
       {toast.node}
     </div>
   );

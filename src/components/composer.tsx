@@ -2,9 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { weightedLength, splitIntoThread, X_LIMIT } from "@/lib/thread";
-import { estimateThreadCost, containsUrl } from "@/lib/cost";
-import { fmtUsd } from "@/lib/format";
-import { IconLink, IconSpark, IconX } from "./icons";
+import { IconExterno, IconSpark, IconX } from "./icons";
+import { PublishFlow, type Publishable } from "./publish-flow";
 import { useToast } from "./toast";
 
 const DRAFT_KEY = "axys.draft.v1"; // versionado: se o formato mudar, rascunho antigo e ignorado
@@ -42,6 +41,7 @@ export function Composer({ aiEnabled, username, displayName, avatar }: { aiEnabl
   const [items, setItems] = useState<string[]>([""]);
   const [when, setWhen] = useState("");
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState<Publishable | null>(null);
   const [mode, setMode] = useState<Mode>("variacoes");
   const [tone, setTone] = useState("");
   const [ai, setAi] = useState<{ loading: boolean; options: Option[]; error: string | null }>({ loading: false, options: [], error: null });
@@ -68,7 +68,6 @@ export function Composer({ aiEnabled, username, displayName, avatar }: { aiEnabl
 
   const lengths = useMemo(() => items.map(weightedLength), [items]);
   const filled = items.filter((s) => s.trim());
-  const cost = useMemo(() => estimateThreadCost(filled), [filled.join("\u0000")]); // eslint-disable-line react-hooks/exhaustive-deps
   const tooLong = lengths.some((l) => l > X_LIMIT);
   const canSave = filled.length > 0 && !tooLong && !saving;
 
@@ -88,6 +87,21 @@ export function Composer({ aiEnabled, username, displayName, avatar }: { aiEnabl
       if (!r.ok) throw new Error(j.error);
       setAi({ loading: false, options: j.options, error: null });
     } catch (e) { setAi({ loading: false, options: [], error: e instanceof Error ? e.message : "A IA não respondeu." }); }
+  }
+
+  /** Salva na fila com horario de agora e abre a confirmacao no X. */
+  async function publishNow() {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      const r = await fetch("/api/posts", { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ items: filled, scheduledFor: new Date().toISOString() }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error);
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      setPublishing({ id: j.id, items: filled.map((body, position) => ({ position, body })) });
+    } catch (e) { toast.show(e instanceof Error ? e.message : "Não deu para salvar."); }
+    finally { setSaving(false); }
   }
 
   async function save(schedule: boolean) {
@@ -125,7 +139,6 @@ export function Composer({ aiEnabled, username, displayName, avatar }: { aiEnabl
                   onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); addAfter(i); } }} />
                 <div className="flex items-center gap-1.5 mt-1">
                   <Ring used={lengths[i]} />
-                  {containsUrl(text) ? <span className="tag tag-warn" title="Post com link custa US$ 0,20 em vez de US$ 0,015"><IconLink size={13} />Link</span> : null}
                   <span className="ml-auto flex items-center gap-0.5">
                     {items.length > 1 ? (<>
                       <button type="button" className="btn btn-ghost btn-sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Subir">↑</button>
@@ -162,18 +175,14 @@ export function Composer({ aiEnabled, username, displayName, avatar }: { aiEnabl
             <input type="datetime-local" className="input mt-1 num" value={when} min={minWhen} name="agendar_para" autoComplete="off" onChange={(e) => setWhen(e.target.value)} />
           </label>
 
-          <div className="mt-4 sunken px-3 py-2.5 text-[13px]">
-            <div className="flex justify-between gap-2"><span className="text-[var(--ink-2)]">Custo estimado na API do X</span><span className="num font-[620]">{fmtUsd(cost.total)}</span></div>
-            {cost.withUrl ? (
-              <p className="mt-1.5 text-[12px] text-[var(--warn)]">{cost.withUrl} post{cost.withUrl > 1 ? "s" : ""} com link. Sem os links, economiza {fmtUsd(cost.urlPremium)}.</p>
-            ) : null}
-          </div>
+          <p className="mt-3 text-[12px] text-[var(--muted)]">No horário, o post aparece em Prontos para publicar. Um clique abre o X com o texto pronto, e você confirma lá.</p>
 
           <div className="mt-4 flex flex-col gap-2">
             <button type="button" className="btn btn-primary w-full" disabled={!canSave || !when} onClick={() => save(true)}>
               {saving ? "Agendando…" : filled.length > 1 ? `Agendar thread de ${filled.length}` : "Agendar post"}
             </button>
-            <button type="button" className="btn w-full" disabled={!canSave} onClick={() => save(false)}>Salvar rascunho</button>
+            <button type="button" className="btn w-full" disabled={!canSave} onClick={publishNow}><IconExterno size={14} />Publicar agora no X</button>
+            <button type="button" className="btn btn-ghost w-full" disabled={!canSave} onClick={() => save(false)}>Salvar rascunho</button>
             {tooLong ? <p className="text-[12.5px] text-[var(--bad)]">Algum post passou de {X_LIMIT} caracteres.</p> : null}
           </div>
         </section>
@@ -211,6 +220,8 @@ export function Composer({ aiEnabled, username, displayName, avatar }: { aiEnabl
       </div>
 
       <p className="sr-only">Publicando como {displayName} (@{username})</p>
+      <PublishFlow post={publishing} onClose={() => { setPublishing(null); toast.show("Ficou em Prontos para publicar"); setTimeout(() => router.push("/x"), 600); }}
+        onDone={() => { setPublishing(null); setItems([""]); toast.show("Marcado como publicado"); setTimeout(() => router.push("/x"), 600); }} />
       {toast.node}
     </div>
   );

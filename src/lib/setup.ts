@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "./supabase";
-import { adminPassword, hasSessionSecret, hasTokenKey, supabaseSecretKey, supabaseUrl } from "./env";
+import { adminPassword, hasSessionSecret, supabaseSecretKey, supabaseUrl } from "./env";
 
 export interface SetupItem { key: string; label: string; ok: boolean; hint: string }
 
@@ -11,14 +11,11 @@ export interface SetupItem { key: string; label: string; ok: boolean; hint: stri
  * depois, como erro obscuro. Aqui a gente pega isso antes.
  */
 const EXPECTED: Record<string, string> = {
-  x_accounts: "id,x_user_id,username,access_token,refresh_token,token_expires_at",
-  posts: "id,account_id,status,scheduled_for,claimed_at,attempts,est_cost_usd",
+  x_accounts: "id,x_user_id,username,display_name,access_token",
+  posts: "id,account_id,status,scheduled_for,claimed_at,published_at,x_post_id",
   post_items: "id,post_id,position,body,x_post_id",
-  metrics_daily: "account_id,day,followers,impressions",
-  post_metrics: "x_post_id,account_id,impressions",
-  mentions: "x_post_id,account_id,author_handle,replied",
-  settings: "account_id,theme,density,monthly_budget_usd,paused",
-  api_usage: "id,account_id,operation,cost_usd",
+  metrics_daily: "account_id,day,followers",
+  settings: "account_id,theme,density,paused",
   run_log: "id,account_id,kind,ok,detail",
 };
 
@@ -32,14 +29,10 @@ export async function getSetupStatus(): Promise<SetupItem[]> {
     { key: "supabase", label: "Supabase configurado", ok: Boolean(supabaseUrl() && supabaseSecretKey()),
       hint: "Defina SUPABASE_URL e SUPABASE_SECRET_KEY (ou NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY)." },
     { key: "schema", label: "Tabelas criadas no banco", ok: false, hint: "Rode supabase/schema.sql no SQL Editor do Supabase." },
-    { key: "x", label: "App do X configurado", ok: has("X_CLIENT_ID"),
-      hint: "Defina X_CLIENT_ID (console.x.com, OAuth 2.0). Client Secret é opcional: sem ele o app usa PKCE como cliente público." },
-    { key: "cifra", label: "Chave de cifragem dos tokens", ok: hasTokenKey(),
-      hint: "Defina TOKEN_ENCRYPTION_KEY ou ENCRYPTION_MASTER_KEY (16+ caracteres)." },
-    { key: "cron", label: "Agendador automático (GitHub Actions)", ok: true,
+    { key: "cron", label: "Lembretes do agendador (GitHub Actions)", ok: true,
       hint: "" },
     { key: "ia", label: "IA do composer (opcional)", ok: has("ANTHROPIC_API_KEY"), hint: "Defina ANTHROPIC_API_KEY para gerar variações e threads." },
-    { key: "conta", label: "Conta do X conectada", ok: false, hint: "Clique em Conectar conta do X, logo abaixo." },
+    { key: "conta", label: "Conta do X identificada", ok: false, hint: "Em Ajustes, digite o seu @ do X. Grátis: não precisa de app, cartão nem API." },
   ];
 
   const at = (k: string) => items.find((i) => i.key === k)!;

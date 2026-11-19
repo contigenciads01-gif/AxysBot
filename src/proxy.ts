@@ -3,10 +3,10 @@ import { SESSION_COOKIE, isValidSession } from "@/lib/session";
 
 /**
  * Next 16: `proxy` substitui `middleware` (runtime Node).
- * Tudo exige sessao, exceto login, callback do X e crons (que tem o proprio
+ * Tudo exige sessao, exceto login e crons (que tem o proprio
  * segredo). As rotas de API validam a sessao de novo (defesa em profundidade).
  */
-const PUBLIC = ["/login", "/api/auth/login", "/api/x/callback", "/api/cron/"];
+const PUBLIC = ["/login", "/api/auth/login", "/api/cron/"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

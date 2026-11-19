@@ -1,22 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { containsUrl, estimateThreadCost, X_PRICES_USD } from "../cost";
 import { weightedLength, splitIntoThread, X_LIMIT } from "../thread";
-
-describe("custo da API do X", () => {
-  it("detecta link com e sem protocolo", () => {
-    expect(containsUrl("veja https://axys.dev/x")).toBe(true);
-    expect(containsUrl("acesse axysbot.com.br hoje")).toBe(true);
-    expect(containsUrl("sem link nenhum aqui. ponto final.")).toBe(false);
-  });
-
-  it("cobra o preco de link so nos itens com link", () => {
-    const c = estimateThreadCost(["oi", "veja https://a.co", "fim"]);
-    expect(c.withUrl).toBe(1);
-    expect(c.plain).toBe(2);
-    expect(c.total).toBeCloseTo(X_PRICES_USD.post_create_url + 2 * X_PRICES_USD.post_create, 4);
-    expect(c.urlPremium).toBeCloseTo(0.185, 4);
-  });
-});
 
 describe("contagem de caracteres do X", () => {
   it("todo link conta 23", () => {

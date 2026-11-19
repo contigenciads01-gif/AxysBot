@@ -3,13 +3,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import type { DashboardData } from "@/lib/data";
 import type { Post } from "@/lib/types";
-import { BarChart, LineChart, Meter } from "./charts";
-import { IconPause, IconPlay, IconSync, IconEscrever } from "./icons";
+import { BarChart, LineChart } from "./charts";
+import { PublishFlow, type Publishable } from "./publish-flow";
+import { IconPause, IconPlay, IconEscrever } from "./icons";
 import { useToast } from "./toast";
-import { fmtDay, fmtNum, fmtRelative, fmtShortDate, fmtTime, fmtUsd } from "@/lib/format";
+import { fmtDay, fmtNum, fmtRelative, fmtShortDate, fmtTime } from "@/lib/format";
 
 type Payload = DashboardData & { account: { username: string; display_name: string | null } | null };
-const POLL_MS = 20_000; // le so o NOSSO banco: nao gasta credito na API do X
+const POLL_MS = 20_000; // le so o NOSSO banco
 
 export function LiveDashboard({ initial, initialQueue, initialPaused }: { initial: Payload; initialQueue: Post[]; initialPaused: boolean }) {
   const [data, setData] = useState(initial);
@@ -18,6 +19,7 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
   const [now, setNow] = useState(() => Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState(() => Date.now());
+  const [publishing, setPublishing] = useState<Publishable | null>(null);
   const [, startTransition] = useTransition();
   const toast = useToast();
 
@@ -41,7 +43,7 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
     return () => { clearInterval(poll); clearInterval(tick); document.removeEventListener("visibilitychange", onVis); };
   }, [refresh]);
 
-  async function act(kind: "pause" | "publish" | "sync") {
+  async function act(kind: "pause") {
     setBusy(kind);
     try {
       if (kind === "pause") {
@@ -50,15 +52,6 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
         if (!r.ok) throw new Error((await r.json()).error);
         setPaused(next);
         toast.show(next ? "Agendador pausado" : "Agendador ligado");
-      } else if (kind === "publish") {
-        const r = await fetch("/api/run/publish", { method: "POST" });
-        const j = await r.json();
-        if (!r.ok) throw new Error(j.error);
-        toast.show(j.claimed ? `Publicados: ${j.results.filter((x: { ok: boolean }) => x.ok).length} de ${j.claimed}` : "Nenhum post vencido agora");
-      } else {
-        const r = await fetch("/api/run/sync", { method: "POST" });
-        if (!r.ok) throw new Error((await r.json()).error);
-        toast.show("Métricas e menções sincronizadas");
       }
       await refresh();
     } catch (e) {
@@ -72,7 +65,8 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
   const perDay = data.perDay.map((d) => ({ x: d.day, label: fmtShortDate(d.day), y: d.count }));
   const upcoming = useMemo(() => queue.filter((p) => p.status !== "falhou").slice(0, 8), [queue]);
   const failed = queue.filter((p) => p.status === "falhou");
-  const next = upcoming[0]?.scheduled_for ?? null;
+  const next = upcoming.find((p) => new Date(p.scheduled_for!).getTime() > now)?.scheduled_for ?? null;
+  const dueNow = upcoming.filter((p) => new Date(p.scheduled_for!).getTime() <= now);
 
   return (
     <div className="flex flex-col gap-[var(--gap)]">
@@ -83,7 +77,7 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
           <div className="min-w-0">
             <div className="font-[620]">{paused ? "Agendador pausado" : "Agendador ligado"}</div>
             <div className="text-[12.5px] text-[var(--ink-2)] truncate">
-              {paused ? "Nada sai até você ligar de novo." : next ? <>Próximo post <span className="num">{fmtRelative(next, now)}</span>, às <span className="num">{fmtTime(next)}</span></> : "Fila vazia. Escreva algo para agendar."}
+              {paused ? "Sem lembretes até você ligar de novo." : dueNow.length ? <>{dueNow.length} post{dueNow.length > 1 ? "s" : ""} na hora de publicar. Confirme no X.</> : next ? <>Próximo post <span className="num">{fmtRelative(next, now)}</span>, às <span className="num">{fmtTime(next)}</span></> : "Fila vazia. Escreva algo para agendar."}
             </div>
           </div>
         </div>
@@ -91,12 +85,10 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
           <button type="button" className={`btn ${paused ? "btn-primary" : "btn-glass"}`} onClick={() => act("pause")} disabled={busy !== null} aria-pressed={!paused}>
             {paused ? <IconPlay size={15} /> : <IconPause size={15} />}{paused ? "Ligar agendador" : "Pausar"}
           </button>
-          <button type="button" className="btn btn-glass" onClick={() => act("publish")} disabled={busy !== null || paused}>
-            {busy === "publish" ? "Publicando…" : "Publicar vencidos"}
-          </button>
-          <button type="button" className="btn btn-ghost btn-glass" onClick={() => act("sync")} disabled={busy !== null} title="Busca métricas e menções novas no X">
-            <IconSync size={15} className={busy === "sync" ? "animate-spin" : ""} />Sincronizar
-          </button>
+          {dueNow.length ? (
+            <button type="button" className="btn btn-primary" onClick={() => setPublishing(dueNow[0])}>Publicar o próximo no X</button>
+          ) : null}
+          <Link href="/x" className="btn btn-glass">Abrir X Controller</Link>
         </div>
       </section>
 
@@ -139,7 +131,8 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
                       <p className="text-[13.5px] leading-snug line-clamp-2">{p.items[0]?.body}</p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
                         {p.items.length > 1 ? <span className="tag">Thread de {p.items.length}</span> : null}
-                        {p.status === "publicando" ? <span className="tag tag-blue">Publicando</span> : <span className="text-[12px] text-[var(--muted)] num" suppressHydrationWarning>{fmtRelative(when, now)}</span>}
+                        {new Date(when).getTime() <= now ? <span className="tag tag-blue">Na hora</span> : <span className="text-[12px] text-[var(--muted)] num" suppressHydrationWarning>{fmtRelative(when, now)}</span>}
+                        <button type="button" className={`btn btn-sm ml-auto ${new Date(when).getTime() <= now ? "btn-primary" : "btn-ghost"}`} onClick={() => setPublishing(p)}>Publicar no X</button>
                       </div>
                     </article>
                   </li>
@@ -163,14 +156,14 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
           <span className="label num">{now - updatedAt < 60_000 ? "Ao vivo" : `Atualizado ${fmtRelative(new Date(updatedAt).toISOString(), now)}`}</span>
         </div>
         {data.runs.length === 0 ? (
-          <p className="mt-3 text-[13px] text-[var(--ink-2)]">Ainda não rodou. O agendador confere a fila a cada 5 minutos.</p>
+          <p className="mt-3 text-[13px] text-[var(--ink-2)]">Nada ainda. O agendador confere a fila a cada 5 minutos e avisa quando um post chega na hora.</p>
         ) : (
           <ul className="mt-2 divide">
             {data.runs.map((r, i) => (
               <li key={i} className="flex items-start gap-3 py-2 text-[13px]">
                 <span className="dot mt-[7px]" style={{ color: r.ok ? "var(--ok)" : "var(--bad)" }} aria-label={r.ok ? "ok" : "falhou"} />
                 <div className="min-w-0 flex-1 sm:flex sm:gap-3">
-                  <span className="block sm:w-[86px] sm:shrink-0 text-[12px] sm:text-[13px] text-[var(--ink-2)]">{{ publicar: "Publicação", sync_metricas: "Métricas", sync_mencoes: "Menções", oauth: "Conexão" }[r.kind] ?? r.kind}</span>
+                  <span className="block sm:w-[86px] sm:shrink-0 text-[12px] sm:text-[13px] text-[var(--ink-2)]">{({ publicar: "Publicação", lembrete: "Lembrete", responder: "Resposta", repostar: "Repost", conta: "Conta", sync_metricas: "Métricas", sync_mencoes: "Menções", oauth: "Conexão" } as Record<string, string>)[r.kind] ?? r.kind}</span>
                   <span className={`block min-w-0 sm:flex-1 sm:truncate ${r.ok ? "" : "text-[var(--bad)]"}`}>{r.detail}</span>
                 </div>
                 <span className="shrink-0 text-[12px] text-[var(--muted)] num">{fmtRelative(r.at, now).replace("há menos de 1 min", "agora")}</span>
@@ -183,6 +176,7 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
 
         {/* ---------------- perfil ---------------- */}
         <section className="panel" aria-label="Seu perfil">
+          {data.metrics.length ? (<>
           <div className="panel-pad">
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="h2">Seguidores</h2>
@@ -209,6 +203,8 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
           </dl>
           <p className="px-[var(--pad)] pt-2 text-[11.5px] text-[var(--muted)]">Soma dos posts publicados nos últimos 7 dias.</p>
 
+          </>) : null}
+
           <div className="panel-pad">
             <div className="flex items-baseline justify-between gap-3">
               <h3 className="h2">Publicações por dia</h3>
@@ -217,26 +213,15 @@ export function LiveDashboard({ initial, initialQueue, initialPaused }: { initia
             <div className="mt-2"><BarChart points={perDay} unit="posts" title="Posts publicados por dia, últimos 14 dias" /></div>
           </div>
 
-          <div className="panel-pad border-t border-[var(--line)]">
-            <div className="flex items-baseline justify-between gap-3">
-              <h3 className="h2">Gasto com a API do X</h3>
-              <span className="label">este mês</span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="num text-[20px] font-[640] tracking-[-.02em]">{fmtUsd(data.spend.monthUsd)}</span>
-              <span className="text-[12.5px] text-[var(--ink-2)] num">de {fmtUsd(data.spend.budgetUsd)}</span>
-            </div>
-            <div className="mt-2"><Meter value={data.spend.monthUsd} max={data.spend.budgetUsd} label="Gasto do mês em relação ao orçamento" /></div>
-            {data.spend.monthUsd >= data.spend.budgetUsd * 0.8 ? (
-              <p className="mt-2 text-[12.5px] text-[var(--warn)] font-[550]">Perto do orçamento. Ajuste em Ajustes ou reduza links nos posts.</p>
-            ) : null}
-          </div>
         </section>
       </div>
 
       <Link href="/composer" className="md:hidden btn btn-primary fixed right-4 bottom-[76px] z-20 shadow-lg rounded-full h-12 px-5">
         <IconEscrever size={17} />Escrever
       </Link>
+      <PublishFlow post={publishing} onClose={() => setPublishing(null)} onDone={(id) => {
+        setPublishing(null); setQueue((xs) => xs.filter((x) => x.id !== id)); toast.show("Marcado como publicado"); refresh();
+      }} />
       {toast.node}
     </div>
   );

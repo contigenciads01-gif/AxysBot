@@ -29,7 +29,7 @@ export class ConfigError extends Error {
 /** Registra o que o agendador fez. Nunca lanca: log nao derruba operacao. */
 export async function logRun(entry: {
   account_id?: string | null;
-  kind: "publicar" | "sync_metricas" | "sync_mencoes" | "oauth";
+  kind: "publicar" | "lembrete" | "responder" | "repostar" | "conta";
   ok: boolean;
   detail?: string;
   duration_ms?: number;

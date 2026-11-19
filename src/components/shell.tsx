@@ -1,17 +1,17 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconAgenda, IconAjustes, IconEscrever, IconInbox, IconPainel } from "./icons";
+import { IconAgenda, IconAjustes, IconEscrever, IconPainel, IconRede } from "./icons";
 
 const NAV = [
   { href: "/", label: "Painel", Icon: IconPainel },
   { href: "/composer", label: "Escrever", Icon: IconEscrever },
   { href: "/agenda", label: "Agenda", Icon: IconAgenda },
-  { href: "/inbox", label: "Menções", Icon: IconInbox },
+  { href: "/x", label: "No X", Icon: IconRede },
   { href: "/ajustes", label: "Ajustes", Icon: IconAjustes },
 ] as const;
 
-export function Shell({ children, username, openMentions }: { children: React.ReactNode; username: string | null; openMentions: number }) {
+export function Shell({ children, username }: { children: React.ReactNode; username: string | null }) {
   const path = usePathname();
   const active = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 
@@ -29,14 +29,11 @@ export function Shell({ children, username, openMentions }: { children: React.Re
               className={`flex items-center gap-2.5 rounded-[var(--radius)] px-2.5 h-[var(--row)] font-[550] transition-colors ${active(href) ? "liquid-glass-chip text-[var(--ink)]" : "text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--sunken)] border border-transparent"}`}>
               <Icon size={17} className={active(href) ? "text-[var(--accent)]" : ""} />
               {label}
-              {href === "/inbox" && openMentions > 0 ? (
-                <span className="ml-auto num text-[11.5px] font-semibold text-[var(--accent)]">{openMentions}</span>
-              ) : null}
             </Link>
           ))}
         </nav>
         <div className="mt-auto px-2.5 text-[12.5px] text-[var(--muted)]">
-          {username ? <>Conectado como <span className="text-[var(--ink-2)] font-medium">@{username}</span></> : "Nenhuma conta do X"}
+          {username ? <>Conta <span className="text-[var(--ink-2)] font-medium">@{username}</span></> : "Conta do X não identificada"}
         </div>
       </aside>
 
@@ -55,7 +52,6 @@ export function Shell({ children, username, openMentions }: { children: React.Re
             className={`relative flex flex-col items-center justify-center gap-0.5 h-14 text-[11px] font-[550] ${active(href) ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}>
             <Icon size={20} />
             {label}
-            {href === "/inbox" && openMentions > 0 ? <span className="absolute top-2 right-[calc(50%-18px)] size-2 rounded-full bg-[var(--accent)]" /> : null}
           </Link>
         ))}
       </nav>

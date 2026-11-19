@@ -5,8 +5,7 @@ import { SESSION_COOKIE, isValidSession } from "./session";
 import { safeEqual } from "./crypto";
 import { verifyGithubOidc } from "./oidc";
 import { ConfigError } from "./supabase";
-import { XApiError } from "./x-api";
-import { XAuthError } from "./x-oauth";
+import { EmbedError } from "./oembed";
 
 /** Defesa em profundidade: toda rota valida a sessao, nao so o proxy. */
 export async function requireSession(): Promise<NextResponse | null> {
@@ -33,10 +32,7 @@ export async function requireCron(req: Request): Promise<NextResponse | null> {
 
 export function fail(e: unknown): NextResponse {
   if (e instanceof ConfigError) return NextResponse.json({ error: e.message, config: true }, { status: 503 });
-  if (e instanceof XAuthError) return NextResponse.json({ error: e.message, reconnect: true }, { status: 401 });
-  if (e instanceof XApiError) {
-    return NextResponse.json({ error: e.message, resetAt: e.resetAt?.toISOString() }, { status: e.status === 429 ? 429 : 502 });
-  }
+  if (e instanceof EmbedError) return NextResponse.json({ error: e.message }, { status: e.status });
   console.error("[axysbot]", e);
   // erros do supabase-js nao sao instancias de Error: lemos a mensagem mesmo assim
   const raw = e instanceof Error ? e.message : typeof e === "object" && e && "message" in e ? String((e as { message: unknown }).message) : "";

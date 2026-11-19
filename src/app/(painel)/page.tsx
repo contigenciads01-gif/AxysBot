@@ -36,7 +36,7 @@ export default async function DashboardPage() {
           <h1 className="h1">Olá, {acc.display_name?.split(" ")[0] ?? `@${acc.username}`}</h1>
           <p className="mt-1 text-[var(--ink-2)]">
             {dash.queue.agendado ? `${dash.queue.agendado} post${dash.queue.agendado > 1 ? "s" : ""} na fila` : "Fila vazia"}
-            {dash.openMentions ? `, ${dash.openMentions} menç${dash.openMentions > 1 ? "ões" : "ão"} para responder` : ""}.
+            {dash.ready ? `, ${dash.ready} pronto${dash.ready > 1 ? "s" : ""} para publicar` : ""}.
           </p>
         </div>
         <Link href="/composer" className="btn btn-primary hidden md:inline-flex">Escrever post</Link>

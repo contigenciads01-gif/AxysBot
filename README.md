@@ -1,26 +1,43 @@
 # AXYSBOT
 
-Painel para gerenciar **a sua** conta no X (Twitter) pela **API oficial v2**:
-escreve e agenda posts e threads, publica sozinho no horário, mostra as métricas
-do perfil e reúne as menções num inbox com resposta sugerida por IA.
+Painel para gerenciar **a sua** conta no X (Twitter) **sem API paga**: escreve e
+agenda posts e threads, avisa quando cada um chega na hora e publica, responde e
+reposta pelos **links oficiais do X (Web Intents)**, sempre com a sua confirmação
+na tela do próprio x.com. Sem créditos, cartão, assinatura ou cobrança por requisição.
 
 | Tela | O que faz |
 |---|---|
-| **Painel** | Liga/pausa o agendador, fila de publicação em trilho de horários, seguidores, impressões, publicações por dia, gasto do mês na API do X e o log do que o agendador fez. Atualiza sozinho a cada 20 s. |
-| **Escrever** | Editor de thread com contagem do jeito do X (link = 23), custo estimado antes de agendar, aviso de link (US$ 0,20 x US$ 0,015), dividir texto longo em thread e IA para variações, virar thread ou revisar. Rascunho salvo no navegador. |
-| **Agenda** | Calendário do mês + lista filtrável (agendados, publicados, falharam, rascunhos). Cancelar, reagendar, tentar de novo, excluir. |
-| **Menções** | Menções recentes, rascunho de resposta pela IA, resposta publicada só quando você clica. |
-| **Ajustes** | Conectar a conta do X (OAuth 2.0), tema Branco / Bege / Escuro, densidade Compacto / Amplo, orçamento mensal da API. |
+| **Painel** | Liga/pausa os lembretes, fila em trilho de horários com "Publicar no X", publicações por dia e o log do que aconteceu. Atualiza sozinho a cada 20 s. |
+| **Escrever** | Editor de thread com contagem do jeito do X (link = 23), dividir texto longo em thread, IA para variações, virar thread ou revisar, agendar ou "Publicar agora no X". |
+| **Agenda** | Calendário do mês + lista filtrável. Publicar, cancelar, reagendar, excluir. |
+| **No X** (X Controller) | Atalhos para Feed, Explorar, Notificações e Menções; pesquisa de posts e perfis; ver um post pelo embed oficial; responder e repostar com confirmação; posts prontos para publicar; publicados por você. |
+| **Ajustes** | Identificar a conta pelo @, tema Branco / Bege / Escuro, densidade Compacto / Amplo. |
+
+## Como funciona sem API paga
+
+| Ação | Como | Custo |
+|---|---|---|
+| Publicar / thread | `x.com/intent/tweet?text=…` (thread: `&in_reply_to=` com o link do post anterior) | grátis |
+| Responder | `x.com/intent/tweet?in_reply_to=ID` | grátis |
+| Repostar | `x.com/intent/retweet?tweet_id=ID` | grátis |
+| Ver um post | oEmbed oficial (`publish.twitter.com/oembed`) + `widgets.js` | grátis |
+| Feed, Explorar, pesquisa | abre a página do x.com numa aba nova | grátis |
+| Conta | só o @, conferido pelo embed oficial; nenhuma senha, cookie ou token | grátis |
+
+O que **não** dá para fazer de graça e dentro das regras do X: ler o feed ou os
+resultados de busca dentro do painel, importar menções e métricas do perfil
+sozinho, saber se você já curtiu um post, e publicar sem um clique seu. Isso só
+existe pela API paga, ou por automação com cookies e endpoints internos do x.com
+(caso do XActions), o que os Termos do X proíbem.
 
 ## Escopo
 
-Uma conta, a sua, pela API oficial, dentro das
+Uma conta, a sua, dentro das
 [regras de automação do X](https://help.x.com/en/rules-and-policies/x-automation).
-O projeto **não** faz curtida automática (proibida pelo X, sem exceção), não opera
-bloco de várias contas, não usa proxy residencial nem disfarça automação, e não
-faz follow/unfollow em massa.
+Nada de curtida automática, bloco de contas, proxy, disfarce de automação,
+follow/unfollow em massa ou endpoints privados.
 
-## Como dar o start (uns 20 minutos)
+## Como dar o start (uns 10 minutos)
 
 ### 1. Banco (Supabase)
 1. Crie um projeto em supabase.com.
@@ -29,14 +46,9 @@ faz follow/unfollow em massa.
 3. Em **Project Settings > API Keys**, copie a URL e a chave secreta
    (`sb_secret_...`, ou a `service_role` legada).
 
-### 2. App do X
-1. Em console.x.com, crie um app com **OAuth 2.0** ligado, tipo **Web App**.
-2. Callback URI: `https://SEU-DOMINIO.vercel.app/api/x/callback`
-3. Copie o **Client ID** do OAuth 2.0 para `X_CLIENT_ID` no Vercel.
-   O Client Secret é opcional: sem ele o painel usa PKCE como cliente público.
-   O endereço de retorno é calculado sozinho (domínio de produção do Vercel).
-4. Compre créditos: desde fev/2026 a API é paga por uso
-   (US$ 0,015 por post, US$ 0,20 com link, US$ 0,005 por leitura).
+### 2. X
+Nada para configurar: sem app no console.x.com, sem Client ID, sem créditos.
+Basta estar logado no x.com no navegador onde você usa o painel.
 
 ### 3. Vercel
 1. Importe este repositório.
@@ -44,8 +56,10 @@ faz follow/unfollow em massa.
    Para gerar segredos: `openssl rand -hex 32`
 3. Faça o deploy.
 
-### 4. Agendador (a cada 5 minutos, sem configurar nada)
-Quem chama o agendador a cada 5 minutos é o GitHub Actions
+### 4. Lembretes (a cada 5 minutos, sem configurar nada)
+O GitHub Actions chama o agendador a cada 5 minutos. Ele marca os posts que
+chegaram na hora (um aviso por post) para aparecerem em "Prontos para publicar".
+Quem chama é o GitHub Actions
 (`.github/workflows/agendador.yml`), grátis em repositório público. Não há
 segredo para cadastrar: cada execução apresenta um token OIDC assinado pelo
 GitHub, e o painel só aceita tokens **deste repositório, deste workflow, na
@@ -60,15 +74,18 @@ repositórios sem commits há 60 dias (reative em Actions).
 ### 5. No painel
 1. Entre com usuário `admin` (ou `ADMIN_USER`) e a `ADMIN_PASSWORD`. Se faltar algo, a primeira tela mostra a lista
    do que falta configurar, item por item.
-2. **Ajustes > Conectar conta do X**.
-3. Escreva um post, agende, e acompanhe no Painel.
+2. **Ajustes > Seu @ no X > Identificar conta**.
+3. Escreva um post e agende. Na hora, clique em **Publicar no X**: o x.com abre
+   com o texto pronto e você clica em Postar lá. Numa thread, cole o link de cada
+   post publicado para o próximo sair como resposta.
 
 ### Variáveis do projeto antigo
 
 O painel aceita os nomes que o `axysbotpuro` já tinha no Vercel:
 `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e
-`ENCRYPTION_MASTER_KEY` (de onde derivam a chave de sessão e a dos tokens).
-Faltam só `ADMIN_PASSWORD`, `X_CLIENT_ID` e, opcional, `ANTHROPIC_API_KEY`.
+`ENCRYPTION_MASTER_KEY` (de onde deriva a chave de sessão).
+Falta só `ADMIN_PASSWORD` e, opcional, `ANTHROPIC_API_KEY` (a IA do composer
+é da Anthropic, não do X, e é cobrada à parte; sem ela o painel funciona igual).
 
 Se o Supabase for o mesmo do painel antigo e já tiver tabelas com os nomes
 usados aqui (`posts`, `settings`…), a tela inicial avisa qual tabela conflita.
@@ -94,43 +111,43 @@ npm run dev
 ## Testes
 
 ```bash
-npm test            # 44 testes unitarios: custo, thread, cifragem, sessao, OAuth, IA
+npm test            # 48 testes unitarios: intents, embed, thread, sessao, OIDC, IA
 npm run typecheck
-npm run test:e2e    # ponta a ponta (46 verificacoes), ver abaixo
+npm run test:e2e    # ponta a ponta (50 verificacoes), ver abaixo
 ```
 
 O ponta a ponta sobe o app em modo produção com o servidor em UTC (como o Vercel),
-um emulador do PostgREST sobre Postgres real (PGlite), e um X e uma Anthropic
-falsos. Nada sai de verdade. Ele cobre: login e proteção de rotas, OAuth com PKCE
-e state contra CSRF, token cifrado no banco, composer com IA e custo, thread
-publicada como cadeia de respostas, **4 crons simultâneos sem publicar duplicado**,
-falha permanente com motivo e nova tentativa, refresh automático de token com
-rotação, métricas, menções, resposta, pausa do agendador, tema sem piscar e
-layout de celular sem rolagem lateral. Requer Python 3 com Playwright e Chrome.
+um emulador do PostgREST sobre Postgres real (PGlite), um oEmbed do X e uma
+Anthropic falsos, e troca `window.open` por um registro para conferir cada URL do
+X sem abri-la. Cobre: login, checklist sem itens pagos, identificação pelo @,
+composer com IA e sem custo, **lembretes sem duplicar com 4 crons simultâneos**,
+thread publicada com `in_reply_to` encadeado, pausa, atalhos e pesquisa do X
+Controller, embed sem script injetado, resposta e repost com confirmação, tema
+sem piscar e celular sem rolagem lateral. Requer Python 3 com Playwright e Chrome.
 
 ## Segurança
 
-- Tokens do X cifrados no banco (AES-256-GCM); a chave fica só no ambiente.
+- Nenhuma credencial do X fica no painel: as ações acontecem no seu navegador, no x.com.
+- O HTML do embed só é aceito no formato oficial (blockquote), sem `<script>` nem handlers.
 - Todas as tabelas com RLS ligado e sem acesso para `anon`/`authenticated`;
   só o servidor acessa, com a chave secreta (`server-only` impede vazar pro navegador).
 - Painel protegido por senha + cookie assinado (HMAC); cada rota de API valida a
   sessão de novo, além do `proxy.ts`.
-- Rotas de cron exigem `CRON_SECRET`.
-- Fila com `FOR UPDATE SKIP LOCKED`: execuções paralelas nunca publicam o mesmo post 2x.
+- Rota de cron aceita só o token OIDC deste repositório (ou `CRON_SECRET`, se definido).
 
 ## Stack
 
 Next.js 16 (App Router, `proxy.ts`) · React 19 · TypeScript 5.9 · Tailwind CSS 4 ·
-Supabase (Postgres) · API do X v2 · Anthropic API · Vercel (hosting + cron).
+Supabase (Postgres) · Web Intents e oEmbed do X · Anthropic API (opcional) · Vercel · GitHub Actions.
 Versões fixas e `package-lock.json` versionado.
 
 ## Estrutura
 
 ```
-src/app/(painel)/      Painel, Escrever, Agenda, Menções, Ajustes
-src/app/api/           OAuth do X, posts, cron, IA, menções, ajustes
+src/app/(painel)/      Painel, Escrever, Agenda, No X, Ajustes
+src/app/api/           posts, confirmação, conta, embed, cron, IA, ajustes
 src/components/        UI: trilho da fila, gráficos, composer, calendário
-src/lib/               Supabase, API do X, cifragem, sessão, custo, thread, jobs
+src/lib/               Supabase, intents do X, oEmbed, sessão, thread, jobs
 src/proxy.ts           proteção das rotas
 supabase/schema.sql    tabelas, índices, fila, RLS e permissões
 tests/e2e/             teste ponta a ponta

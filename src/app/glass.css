@@ -173,3 +173,26 @@
 @media (prefers-reduced-motion: reduce) {
   .btn.btn-primary, .btn.btn-primary:hover { transition-duration: .01ms; transform: none; }
 }
+
+/* ---------- dialogo de confirmacao (publicar / responder / repostar) ---------- */
+@layer components {
+  dialog.sheet {
+    width: min(560px, calc(100vw - 24px));
+    max-height: min(86dvh, 760px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: calc(var(--radius) + 6px);
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 24px 60px -18px rgb(0 0 0 / .35);
+    overflow: auto;
+  }
+  dialog.sheet::backdrop { background: rgb(10 14 24 / .38); backdrop-filter: blur(3px); }
+  dialog.sheet[open] { animation: sheet-in .22s cubic-bezier(.2,.8,.2,1); }
+  @keyframes sheet-in { from { opacity: 0; transform: translateY(10px) scale(.985); } }
+  @media (prefers-reduced-motion: reduce) { dialog.sheet[open] { animation: none; } }
+  .x-embed { min-height: 120px; }
+  .x-embed blockquote.twitter-tweet { margin: 0; padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--sunken); border-radius: var(--radius); font-size: 14px; line-height: 1.5; }
+  .x-embed blockquote.twitter-tweet a { color: var(--accent); }
+}

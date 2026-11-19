@@ -1,15 +1,11 @@
-# Chama o agendador do AXYSBOT no Vercel.
+# Chama o agendador do AXYSBOT no Vercel a cada 5 minutos.
 #
-# Por que aqui e nao so no vercel.json: no plano Hobby (gratis) o Vercel so
-# permite cron 1x por dia. O GitHub Actions e gratis em repositorio publico e
-# roda a cada 5 min (pode atrasar alguns minutos em horario de pico).
+# Sem segredo para cadastrar: o job pede ao GitHub um token OIDC assinado e o
+# painel confere a assinatura e que o token veio DESTE repositorio, DESTE
+# workflow, na main (src/lib/oidc.ts).
 #
-# Configure em GitHub > Settings > Secrets and variables > Actions:
-#   APP_URL      ex.: https://axysbotpuro.vercel.app   (sem barra no final)
-#   CRON_SECRET  o mesmo valor da variavel CRON_SECRET no Vercel
-#
-# No plano Pro do Vercel voce pode trocar os horarios do vercel.json para
-# "*/5 * * * *" e "17 */2 * * *" e desligar este workflow.
+# Endereco do app: variavel APP_URL do repositorio (Settings > Secrets and
+# variables > Actions > Variables), se existir; senao o padrao abaixo.
 name: Agendador
 
 on:
@@ -28,7 +24,8 @@ concurrency:
   group: agendador-${{ github.event.schedule || inputs.tarefa }}
   cancel-in-progress: false
 
-permissions: {}
+permissions:
+  id-token: write   # so para pedir o token OIDC
 
 jobs:
   chamar:
@@ -37,22 +34,24 @@ jobs:
     steps:
       - name: Chamar o AXYSBOT
         env:
-          APP_URL: ${{ secrets.APP_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL || 'https://axysbotpuro.vercel.app' }}
           AGENDA: ${{ github.event.schedule }}
           TAREFA: ${{ inputs.tarefa }}
         run: |
-          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
-            echo "::notice::APP_URL ou CRON_SECRET ainda nao configurados. Nada a fazer."
-            exit 0
-          fi
           if [ "$AGENDA" = "17 */2 * * *" ] || [ "$TAREFA" = "sincronizar" ]; then
             ROTA=/api/cron/sync
           else
             ROTA=/api/cron/publish
           fi
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=axysbot" | jq -r .value)
+          [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || { echo "::error::Nao consegui o token OIDC"; exit 1; }
           status=$(curl -sS -o resposta.json -w '%{http_code}' --max-time 90 \
-            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL$ROTA")
+            -H "Authorization: Bearer $TOKEN" "$APP_URL$ROTA")
           echo "HTTP $status em $ROTA"
           cat resposta.json; echo
-          [ "$status" = "200" ] || { echo "::error::O AXYSBOT respondeu HTTP $status"; exit 1; }
+          case "$status" in
+            200) ;;
+            503) echo "::warning::Painel ainda nao configurado (veja a tela inicial)";;
+            *) echo "::error::O AXYSBOT respondeu HTTP $status"; exit 1;;
+          esac

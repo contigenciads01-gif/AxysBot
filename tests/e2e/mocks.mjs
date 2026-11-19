@@ -16,7 +16,11 @@ http.createServer((req, res) => {
 
     if (u.pathname === "/2/oauth2/token") {
       const p = new URLSearchParams(body);
-      if (req.headers.authorization !== "Basic " + Buffer.from("cid-teste:csecret-teste").toString("base64")) return json(res, 401, { error: "unauthorized_client" });
+      // cliente confidencial (Basic) ou publico (sem Authorization, client_id no corpo)
+      const basicOk = req.headers.authorization === "Basic " + Buffer.from("cid-teste:csecret-teste").toString("base64");
+      const publicOk = !req.headers.authorization && p.get("client_id") === "cid-teste";
+      if (!basicOk && !publicOk) return json(res, 401, { error: "unauthorized_client" });
+      if (p.get("grant_type") === "authorization_code" && p.get("redirect_uri") !== "http://localhost:3100/api/x/callback") return json(res, 400, { error: "invalid_request", error_description: "redirect_uri mismatch" });
       if (p.get("grant_type") === "authorization_code" && p.get("code") === "code-ok" && p.get("code_verifier")) return json(res, 200, { access_token: TOKENS.access, refresh_token: TOKENS.refresh, expires_in: 7200, scope: "tweet.read tweet.write users.read offline.access", token_type: "bearer" });
       if (p.get("grant_type") === "refresh_token" && p.get("refresh_token") === TOKENS.refresh) { TOKENS.access = "at-2"; TOKENS.refresh = "rt-2"; return json(res, 200, { access_token: "at-2", refresh_token: "rt-2", expires_in: 7200, scope: "", token_type: "bearer" }); }
       return json(res, 400, { error: "invalid_grant", error_description: "Value passed for the token was invalid." });

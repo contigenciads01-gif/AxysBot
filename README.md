@@ -32,8 +32,9 @@ faz follow/unfollow em massa.
 ### 2. App do X
 1. Em console.x.com, crie um app com **OAuth 2.0** ligado, tipo **Web App**.
 2. Callback URI: `https://SEU-DOMINIO.vercel.app/api/x/callback`
-3. Copie o **Client ID** e o **Client Secret** do OAuth 2.0.
-   O Client ID e o Secret ficam só nas variáveis do Vercel; nunca no código.
+3. Copie o **Client ID** do OAuth 2.0 para `X_CLIENT_ID` no Vercel.
+   O Client Secret é opcional: sem ele o painel usa PKCE como cliente público.
+   O endereço de retorno é calculado sozinho (domínio de produção do Vercel).
 4. Compre créditos: desde fev/2026 a API é paga por uso
    (US$ 0,015 por post, US$ 0,20 com link, US$ 0,005 por leitura).
 
@@ -43,21 +44,18 @@ faz follow/unfollow em massa.
    Para gerar segredos: `openssl rand -hex 32`
 3. Faça o deploy.
 
-### 4. Agendador (a cada 5 minutos)
-No plano grátis do Vercel (Hobby), tarefa agendada só roda **1 vez por dia** —
-o `vercel.json` já vem assim, como rodada de segurança. Quem chama o agendador a
-cada 5 minutos é o GitHub Actions (`.github/workflows/agendador.yml`), grátis em
-repositório público:
+### 4. Agendador (a cada 5 minutos, sem configurar nada)
+Quem chama o agendador a cada 5 minutos é o GitHub Actions
+(`.github/workflows/agendador.yml`), grátis em repositório público. Não há
+segredo para cadastrar: cada execução apresenta um token OIDC assinado pelo
+GitHub, e o painel só aceita tokens **deste repositório, deste workflow, na
+main** (`src/lib/oidc.ts`). Se o painel não estiver em
+`https://axysbotpuro.vercel.app`, crie a variável `APP_URL` em
+**Settings > Secrets and variables > Actions > Variables**.
 
-1. No GitHub: **Settings > Secrets and variables > Actions > New repository secret**
-2. `APP_URL` = endereço do app no Vercel, sem barra no final
-3. `CRON_SECRET` = o mesmo valor que você pôs no Vercel
-4. Em **Actions > Agendador > Run workflow** você testa na hora.
-
-O GitHub pode atrasar alguns minutos em horário de pico, e desliga workflows
-agendados de repositórios sem commits há 60 dias (é só reativar em Actions).
-No plano Pro do Vercel, troque os horários do `vercel.json` para `*/5 * * * *`
-e `17 */2 * * *` e desligue o workflow.
+Para rodar na hora: **Actions > Agendador > Run workflow**. O GitHub pode
+atrasar alguns minutos em horário de pico, e pausa workflows agendados de
+repositórios sem commits há 60 dias (reative em Actions).
 
 ### 5. No painel
 1. Entre com usuário `admin` (ou `ADMIN_USER`) e a `ADMIN_PASSWORD`. Se faltar algo, a primeira tela mostra a lista
@@ -70,8 +68,7 @@ e `17 */2 * * *` e desligue o workflow.
 O painel aceita os nomes que o `axysbotpuro` já tinha no Vercel:
 `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e
 `ENCRYPTION_MASTER_KEY` (de onde derivam a chave de sessão e a dos tokens).
-Faltam só `ADMIN_PASSWORD`, as do app do X, `CRON_SECRET` e, opcional,
-`ANTHROPIC_API_KEY`.
+Faltam só `ADMIN_PASSWORD`, `X_CLIENT_ID` e, opcional, `ANTHROPIC_API_KEY`.
 
 Se o Supabase for o mesmo do painel antigo e já tiver tabelas com os nomes
 usados aqui (`posts`, `settings`…), a tela inicial avisa qual tabela conflita.
@@ -97,7 +94,7 @@ npm run dev
 ## Testes
 
 ```bash
-npm test            # 35 testes unitarios: custo, thread, cifragem, sessao, OAuth, IA
+npm test            # 44 testes unitarios: custo, thread, cifragem, sessao, OAuth, IA
 npm run typecheck
 npm run test:e2e    # ponta a ponta (46 verificacoes), ver abaixo
 ```

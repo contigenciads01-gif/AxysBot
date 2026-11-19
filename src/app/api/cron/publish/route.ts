@@ -5,7 +5,7 @@ import { runPublisher } from "@/lib/jobs";
 export const maxDuration = 60;
 
 export async function GET(req: Request) {
-  const denied = requireCron(req);
+  const denied = await requireCron(req);
   if (denied) return denied;
   try { return NextResponse.json(await runPublisher()); }
   catch (e) { return fail(e); }

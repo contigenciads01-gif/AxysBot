@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, isValidSession } from "./session";
 import { safeEqual } from "./crypto";
+import { verifyGithubOidc } from "./oidc";
 import { ConfigError } from "./supabase";
 import { XApiError } from "./x-api";
 import { XAuthError } from "./x-oauth";
@@ -14,11 +15,19 @@ export async function requireSession(): Promise<NextResponse | null> {
   return NextResponse.json({ error: "Sessao expirada. Entre de novo." }, { status: 401 });
 }
 
-/** O Vercel Cron manda `Authorization: Bearer <CRON_SECRET>`. */
-export function requireCron(req: Request): NextResponse | null {
-  const secret = process.env.CRON_SECRET ?? "";
+/**
+ * Quem pode chamar o agendador:
+ *  - GitHub Actions deste repositorio, com token OIDC assinado (sem segredo);
+ *  - ou quem tiver o CRON_SECRET, se ele estiver definido (Vercel Cron, Pro).
+ */
+export async function requireCron(req: Request): Promise<NextResponse | null> {
   const got = req.headers.get("authorization") ?? "";
+  const secret = process.env.CRON_SECRET ?? "";
   if (secret.length >= 16 && safeEqual(got, `Bearer ${secret}`)) return null;
+  const token = got.startsWith("Bearer ") ? got.slice(7) : "";
+  if (token.split(".").length === 3) {
+    try { if (await verifyGithubOidc(token)) return null; } catch { /* JWKS fora do ar: nega */ }
+  }
   return NextResponse.json({ error: "nao autorizado" }, { status: 401 });
 }
 

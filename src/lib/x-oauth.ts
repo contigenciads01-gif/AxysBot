@@ -41,16 +41,34 @@ export interface TokenSet {
   token_type: string;
 }
 
-function basicAuth(): string {
-  const id = process.env.X_CLIENT_ID, secret = process.env.X_CLIENT_SECRET;
-  if (!id || !secret) throw new Error("X_CLIENT_ID e X_CLIENT_SECRET nao configurados");
-  return "Basic " + Buffer.from(`${id}:${secret}`).toString("base64");
+/**
+ * Cliente confidencial (com X_CLIENT_SECRET): manda Basic auth.
+ * Cliente publico (app do X tipo "Native App", sem secret): so client_id +
+ * PKCE, que e o fluxo previsto pelo OAuth 2.0 para quem nao guarda segredo.
+ */
+function authHeader(): Record<string, string> {
+  const id = process.env.X_CLIENT_ID?.trim(), secret = process.env.X_CLIENT_SECRET?.trim();
+  if (!id) throw new Error("X_CLIENT_ID nao configurado");
+  return secret ? { Authorization: "Basic " + Buffer.from(`${id}:${secret}`).toString("base64") } : {};
+}
+
+/**
+ * Endereco de retorno do OAuth. Ordem: X_REDIRECT_URI explicito, dominio de
+ * producao do Vercel (variavel de sistema), ou a origem da requisicao.
+ */
+export function xRedirectUri(requestOrigin?: string): string {
+  const explicit = process.env.X_REDIRECT_URI?.trim();
+  if (explicit) return explicit;
+  const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (prod) return `https://${prod}/api/x/callback`;
+  if (requestOrigin) return `${requestOrigin}/api/x/callback`;
+  throw new Error("Nao deu para descobrir o endereco do app: defina X_REDIRECT_URI");
 }
 
 async function tokenRequest(body: Record<string, string>, fetchImpl: typeof fetch = fetch): Promise<TokenSet> {
   const res = await fetchImpl(X_TOKEN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: basicAuth() },
+    headers: { "Content-Type": "application/x-www-form-urlencoded", ...authHeader() },
     body: new URLSearchParams({ ...body, client_id: process.env.X_CLIENT_ID ?? "" }),
     cache: "no-store",
   });
@@ -63,11 +81,11 @@ async function tokenRequest(body: Record<string, string>, fetchImpl: typeof fetc
   return json as TokenSet;
 }
 
-export function exchangeCode(code: string, verifier: string, fetchImpl?: typeof fetch) {
+export function exchangeCode(code: string, verifier: string, redirectUri: string, fetchImpl?: typeof fetch) {
   return tokenRequest({
     grant_type: "authorization_code",
     code,
-    redirect_uri: process.env.X_REDIRECT_URI ?? "",
+    redirect_uri: redirectUri,
     code_verifier: verifier,
   }, fetchImpl);
 }

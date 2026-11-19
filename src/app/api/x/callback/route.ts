@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { exchangeCode, X_SCOPES } from "@/lib/x-oauth";
+import { exchangeCode, xRedirectUri, X_SCOPES } from "@/lib/x-oauth";
 import { getMeWithToken } from "@/lib/x-api";
 import { db, logRun } from "@/lib/supabase";
 import { encrypt, safeEqual } from "@/lib/crypto";
@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.redirect(new URL(`/ajustes?${q}`, req.url));
     res.cookies.delete({ name: "x_pkce", path: "/api/x" });
     res.cookies.delete({ name: "x_state", path: "/api/x" });
+    res.cookies.delete({ name: "x_redirect", path: "/api/x" });
     return res;
   };
   // publico no proxy (o X redireciona pra ca), mas so aceita quem tem sessao
@@ -27,7 +28,8 @@ export async function GET(req: NextRequest) {
 
   try {
     // o code expira em 30 s: troca imediatamente
-    const t = await exchangeCode(code, verifier);
+    const redirectUri = req.cookies.get("x_redirect")?.value || xRedirectUri(req.nextUrl.origin);
+    const t = await exchangeCode(code, verifier, redirectUri);
     const me = await getMeWithToken(t.access_token);
     const { data, error } = await db().from("x_accounts").upsert({
       x_user_id: me.id,

@@ -23,8 +23,8 @@ export interface PostRef { id: string; handle: string | null; url: string }
 /** Aceita link de post (x.com, twitter.com, mobile) ou so o ID numerico. */
 export function parsePostRef(input: string): PostRef | null {
   const s = input.trim();
-  if (/^\d{5,25}$/.test(s)) return { id: s, handle: null, url: `${X}/i/status/${s}` };
-  const m = s.match(/^(?:https?:\/\/)?(?:www\.|mobile\.)?(?:x|twitter)\.com\/(?:([A-Za-z0-9_]{1,15})|i(?:\/web)?)\/status(?:es)?\/(\d{5,25})/i);
+  if (/^\d{1,25}$/.test(s)) return { id: s, handle: null, url: `${X}/i/status/${s}` };
+  const m = s.match(/^(?:https?:\/\/)?(?:www\.|mobile\.)?(?:x|twitter)\.com\/(?:([A-Za-z0-9_]{1,15})|i(?:\/web)?)\/status(?:es)?\/(\d{1,25})/i);
   if (!m) return null;
   const handle = m[1] ?? null;
   return { id: m[2], handle, url: `${X}/${handle ?? "i"}/status/${m[2]}` };

@@ -20,6 +20,7 @@ describe("link de post", () => {
     expect(parsePostRef("mobile.twitter.com/nasa/status/123456789")?.id).toBe("123456789");
     expect(parsePostRef("https://x.com/i/web/status/123456789")?.handle).toBeNull();
     expect(parsePostRef("123456789012")?.id).toBe("123456789012");
+    expect(parsePostRef("https://twitter.com/jack/status/20")?.id).toBe("20");
   });
   it("recusa o que nao e post", () => {
     expect(parsePostRef("https://x.com/nasa")).toBeNull();

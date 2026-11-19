@@ -19,3 +19,6 @@ export const IconExterno = ({ size, className }: P) => (<svg {...base(size)} cla
 export const IconRepost = ({ size, className }: P) => (<svg {...base(size)} className={className}><path d="M7 7h10a3 3 0 0 1 3 3v2M17 17H7a3 3 0 0 1-3-3v-2M17 4l3 3-3 3M7 20l-3-3 3-3" /></svg>);
 export const IconResposta = ({ size, className }: P) => (<svg {...base(size)} className={className}><path d="M20 12a7.5 7.5 0 0 1-11 6.6L4 20l1.4-4.6A7.5 7.5 0 1 1 20 12z" /></svg>);
 export const IconBusca = ({ size, className }: P) => (<svg {...base(size)} className={className}><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></svg>);
+export const IconBot = ({ size, className }: P) => (<svg {...base(size)} className={className}><rect x="3" y="11" width="18" height="10" rx="2" /><circle cx="12" cy="5" r="2" /><path d="M12 7v4M8 15h.01M16 15h.01M9 19h6" /></svg>);
+export const IconFogo = ({ size, className }: P) => (<svg {...base(size)} className={className}><path d="M12 2c1 3 4 5.5 4 9a6 6 0 1 1-12 0c0-4 3.5-7 4-9 1 2 2 3 4 0z" /></svg>);
+

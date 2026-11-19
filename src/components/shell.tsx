@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconAgenda, IconAjustes, IconEscrever, IconPainel, IconRede } from "./icons";
+import { IconAgenda, IconAjustes, IconBot, IconEscrever, IconPainel, IconRede } from "./icons";
 
 const NAV = [
   { href: "/", label: "Painel", Icon: IconPainel },
+  { href: "/bot", label: "Bot", Icon: IconBot },
   { href: "/composer", label: "Escrever", Icon: IconEscrever },
   { href: "/agenda", label: "Agenda", Icon: IconAgenda },
   { href: "/x", label: "No X", Icon: IconRede },
@@ -46,7 +47,7 @@ export function Shell({ children, username }: { children: React.ReactNode; usern
       <main id="conteudo" tabIndex={-1} className="min-w-0 outline-none px-4 md:px-7 py-5 md:py-7 pb-24 md:pb-10 max-w-[1240px] w-full">{children}</main>
 
       {/* abas: mobile */}
-      <nav aria-label="Principal" className="md:hidden fixed bottom-0 inset-x-0 z-30 grid grid-cols-5 border-t liquid-glass-bar pb-[env(safe-area-inset-bottom)]">
+      <nav aria-label="Principal" className="md:hidden fixed bottom-0 inset-x-0 z-30 grid grid-cols-6 border-t liquid-glass-bar pb-[env(safe-area-inset-bottom)]">
         {NAV.map(({ href, label, Icon }) => (
           <Link key={href} href={href} aria-current={active(href) ? "page" : undefined}
             className={`relative flex flex-col items-center justify-center gap-0.5 h-14 text-[11px] font-[550] ${active(href) ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}>

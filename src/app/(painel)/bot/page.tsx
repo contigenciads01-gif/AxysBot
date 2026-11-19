@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { AutomationService } from "@/engine/services/automation-service";
-import { AutomationDashboard } from "@/components/automation-dashboard";
+import { AntidetectDashboard } from "@/components/antidetect-dashboard";
 
 export const metadata: Metadata = {
-  title: "Motor de Automação · AXYSBOT",
-  description: "Gerenciamento do motor de automação e aquecimento de contas no X",
+  title: "Aquecedor & Multi-Contas · AXYSBOT",
+  description: "Gerenciamento multi-contas, proxies isoladas e motor de aquecimento humano para o X",
 };
 
 export default async function BotPage() {
@@ -27,14 +27,14 @@ export default async function BotPage() {
     <div className="flex flex-col gap-[var(--gap)]">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="h1">Motor de Automação</h1>
-          <p className="mt-1 text-[var(--ink-2)] max-w-[70ch]">
-            Execução de tarefas reais no X com controle de rate limit, isolamento de sessões, fila atômica e logs de auditoria.
+          <h1 className="h1">Aquecedor de Contas & Multi-Perfil</h1>
+          <p className="mt-1 text-[var(--ink-2)] max-w-[75ch]">
+            Controle de contas com e-mail, senha, proxies dedicadas, inicialização isolada no Chrome e aquecimento orgânico indetectável.
           </p>
         </div>
       </header>
 
-      <AutomationDashboard initialStatus={status} initialAccounts={accounts} />
+      <AntidetectDashboard initialStatus={status} initialAccounts={accounts} />
     </div>
   );
 }

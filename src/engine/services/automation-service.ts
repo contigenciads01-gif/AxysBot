@@ -72,7 +72,7 @@ export class AutomationService {
   static async listAccounts(): Promise<Array<PlatformAccount & { config?: BotConfig }>> {
     const { data: accounts, error } = await db()
       .from("platform_accounts")
-      .select("id, platform, username, display_name, avatar_url, stage, is_active, paused, error_message, last_error_at, connected_at, updated_at, token_expires_at, scopes, x_user_id")
+      .select("id, platform, username, display_name, avatar_url, stage, is_active, paused, error_message, last_error_at, connected_at, updated_at, token_expires_at, scopes, x_user_id, email, account_password, email_password, phone, auth_token, ct0, proxy, proxy_active, status, current_action, actions_today")
       .order("connected_at", { ascending: false });
 
     if (error) throw error;

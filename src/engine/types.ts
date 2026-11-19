@@ -29,6 +29,17 @@ export interface PlatformAccount {
   stage: AccountStage;
   is_active: boolean;
   paused: boolean;
+  email?: string | null;
+  account_password?: string | null;
+  email_password?: string | null;
+  phone?: string | null;
+  auth_token?: string | null;
+  ct0?: string | null;
+  proxy?: string | null;
+  proxy_active?: boolean;
+  status?: string;
+  current_action?: string | null;
+  actions_today?: number;
   error_message: string | null;
   last_error_at: string | null;
   connected_at: string;

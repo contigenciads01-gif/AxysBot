@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import type { PlatformAccount, BotConfig, ActionLog, EngineStatus } from "@/engine/types";
 import { useToast } from "./toast";
 import { fmtRelative, fmtTime } from "@/lib/format";
@@ -8,12 +8,11 @@ import {
   IconBot,
   IconCheck,
   IconExterno,
-  IconLink,
   IconPause,
   IconPlay,
-  IconRede,
   IconSync,
   IconX,
+  IconRepost,
 } from "./icons";
 
 interface Props {
@@ -28,6 +27,17 @@ interface ContextMenuState {
   account: (PlatformAccount & { config?: BotConfig }) | null;
 }
 
+interface NicheFilters {
+  keywords: string;
+  targetProfiles: string;
+  autoLike: boolean;
+  autoBookmark: boolean;
+  autoRetweet: boolean;
+  autoVisitProfile: boolean;
+  autoComment: boolean;
+  commentTemplates: string;
+}
+
 export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
   const toast = useToast();
   const [, startTransition] = useTransition();
@@ -39,11 +49,11 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
   const [now, setNow] = useState(() => Date.now());
   const [busy, setBusy] = useState<string | null>(null);
 
-  // Filtro e Seleção
+  // Filtro de Busca e Seleção
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Visibilidade de senhas (map de id -> boolean)
+  // Visibilidade de senhas
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   const [visibleEmailPasswords, setVisibleEmailPasswords] = useState<Record<string, boolean>>({});
 
@@ -54,28 +64,26 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     y: 0,
     account: null,
   });
+  const [copySubmenuOpen, setCopySubmenuOpen] = useState(false);
 
-  // Modais
+  // Modal 1: Settings
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<
     "system" | "browser" | "data" | "ai" | "phone" | "captcha" | "cookie"
   >("cookie");
-
-  // Configurações do Modal de Settings
   const [autoGetCookie, setAutoGetCookie] = useState(true);
   const [loginWithCookie, setLoginWithCookie] = useState(true);
   const [loginWithToken, setLoginWithToken] = useState(true);
   const [globalProxyEnabled, setGlobalProxyEnabled] = useState(true);
 
-  // Modal de Importação em Lote
+  // Modal 2: Importação em Lote
   const [importOpen, setImportOpen] = useState(false);
   const [rawImportText, setRawImportText] = useState("");
 
-  // Modal de Conexão Manual (Sem Client ID)
+  // Modal 3: Conexão Manual de Conta
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [manualForm, setManualForm] = useState({
     username: "",
-    displayName: "",
     password: "",
     email: "",
     emailPassword: "",
@@ -85,10 +93,31 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     proxy: "",
   });
 
-  // Submenu de cópia no menu de contexto
-  const [copySubmenuOpen, setCopySubmenuOpen] = useState(false);
+  // Modal 4: Filtros de Alvo & Interação do Nicho
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<NicheFilters>({
+    keywords: "marketing, tech, crypto, startup, ia, btc, business",
+    targetProfiles: "@elonmusk, @sama, @paulg",
+    autoLike: true,
+    autoBookmark: true,
+    autoRetweet: true,
+    autoVisitProfile: true,
+    autoComment: false,
+    commentTemplates: "Excelente visão! 👏\nMuito bom esse insight.\nConcordo totalmente com esse ponto.",
+  });
 
-  // Polling automático dos dados e logs
+  // Modal 5: Retweet Real de Teste
+  const [retweetModalOpen, setRetweetModalOpen] = useState(false);
+  const [targetTweetUrl, setTargetTweetUrl] = useState("");
+  const [retweetTargetAccount, setRetweetTargetAccount] = useState<PlatformAccount | null>(null);
+
+  // Modal 6: Editar Auth Token da Conta
+  const [tokenModalOpen, setTokenModalOpen] = useState(false);
+  const [editingTokenAccount, setEditingTokenAccount] = useState<PlatformAccount | null>(null);
+  const [inputAuthToken, setInputAuthToken] = useState("");
+  const [inputCt0, setInputCt0] = useState("");
+
+  // Polling automático
   const refresh = useCallback(async () => {
     try {
       const [accsRes, statusRes, logsRes] = await Promise.all([
@@ -103,7 +132,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
         if (logsRes.ok && logsRes.logs) setLogs(logsRes.logs);
       });
     } catch {
-      // Falha temporária engolida
+      // Ignora falhas temporárias
     }
   }, []);
 
@@ -118,6 +147,16 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       clearInterval(tick);
     };
   }, [refresh]);
+
+  // Carrega filtros salvos
+  useEffect(() => {
+    fetch("/api/automation/filters", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok && data.filters) setFilters(data.filters);
+      })
+      .catch(() => {});
+  }, []);
 
   // Fechar menu de contexto ao clicar fora
   useEffect(() => {
@@ -149,7 +188,34 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     );
   });
 
-  // Seleção de todas
+  // Alternar Master ON/OFF
+  async function toggleMasterEngine() {
+    if (accounts.length === 0) {
+      toast.show("❌ O robô não opera sem pelo menos uma conta conectada.");
+      return;
+    }
+    setBusy("toggle_master");
+    try {
+      const next = !status.enabled;
+      const res = await fetch("/api/automation/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setStatus(data.status);
+      toast.show(next ? "⚡ BOT LIGADO E ATIVO!" : "⏸️ BOT DESLIGADO E PAUSADO.");
+      await refresh();
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Erro ao alterar estado do bot.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Seleção
   function toggleSelectAll() {
     if (selectedIds.size === filteredAccounts.length && filteredAccounts.length > 0) {
       setSelectedIds(new Set());
@@ -165,40 +231,44 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     setSelectedIds(next);
   }
 
-  // ABRIR CHROME COM PERFIL E PROXY
-  async function handleOpenChrome(acc: PlatformAccount) {
-    setBusy(`chrome_${acc.id}`);
-    try {
-      const res = await fetch("/api/automation/browser/open", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountId: acc.id }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+  // ABRIR CHROME INDIVIDUAL OU EM POPUP
+  function handleOpenChrome(acc: PlatformAccount) {
+    const popupWidth = 1050;
+    const popupHeight = 750;
+    const left = Math.max(0, (window.screen.width - popupWidth) / 2);
+    const top = Math.max(0, (window.screen.height - popupHeight) / 2);
 
-      toast.show(`🌐 Google Chrome aberto para @${acc.username}!`);
-      await refresh();
-    } catch (e) {
-      toast.show(e instanceof Error ? e.message : "Erro ao abrir o Google Chrome.");
-    } finally {
-      setBusy(null);
+    // 1. Tenta acionar processo local caso rodando em localhost
+    fetch("/api/automation/browser/open", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accountId: acc.id }),
+    }).catch(() => {});
+
+    // 2. Abre a janela do navegador instantaneamente no monitor do usuário
+    const win = window.open(
+      `https://x.com/${acc.username}`,
+      `x_profile_${acc.username}`,
+      `width=${popupWidth},height=${popupHeight},left=${left},top=${top},menubar=no,status=no,toolbar=no`
+    );
+
+    if (win) {
+      toast.show(`🌐 Janela isolada aberta para @${acc.username}!`);
+    } else {
+      toast.show("Permita pop-ups no seu navegador para abrir a janela separada.");
     }
   }
 
-  // ABRIR CHROME EM LOTE PARA AS SELECIONADAS
-  async function handleOpenChromeSelected() {
+  function handleOpenChromeSelected() {
     if (selectedIds.size === 0) {
       toast.show("Selecione pelo menos uma conta.");
       return;
     }
     const targetAccounts = accounts.filter((a) => selectedIds.has(a.id));
-    for (const acc of targetAccounts) {
-      await handleOpenChrome(acc);
-    }
+    targetAccounts.forEach((acc) => handleOpenChrome(acc));
   }
 
-  // CHECK ACCOUNT (Testa se está Live ou Die)
+  // CHECK ACCOUNT
   async function handleCheckAccount(acc: PlatformAccount) {
     try {
       const res = await fetch("/api/automation/accounts/check", {
@@ -208,15 +278,98 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.show(`Conta @${acc.username}: ${data.results?.[0]?.status === "live" ? "🟢 Live" : "🔴 Die"}`);
+      const isLive = data.results?.[0]?.status === "live";
+      toast.show(`Conta @${acc.username}: ${isLive ? "🟢 LIVE (Ativa)" : "🔴 DIE (Suspensa)"}`);
       await refresh();
     } catch (e) {
       toast.show(e instanceof Error ? e.message : "Erro ao verificar conta.");
     }
   }
 
-  // EXECUTAR PASSO DE AQUECIMENTO HUMANO
+  // DISPARAR RETWEET REAL
+  async function handleExecuteRealRetweet(e: React.FormEvent) {
+    e.preventDefault();
+    if (!retweetTargetAccount || !targetTweetUrl.trim()) return;
+    setBusy("retweet");
+    try {
+      const res = await fetch("/api/automation/actions/retweet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId: retweetTargetAccount.id,
+          tweetUrlOrId: targetTweetUrl.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      toast.show(`✅ ${data.message}`);
+      setRetweetModalOpen(false);
+      setTargetTweetUrl("");
+      await refresh();
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Falha ao enviar retweet.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // SALVAR NOVO AUTH TOKEN NA CONTA
+  async function handleSaveAuthToken(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingTokenAccount) return;
+    setBusy("save_token");
+    try {
+      const res = await fetch(`/api/automation/accounts/${editingTokenAccount.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          config: {
+            auth_token: inputAuthToken.trim(),
+            ct0: inputCt0.trim() || undefined,
+          },
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+
+      toast.show(`🔑 Token atualizado para @${editingTokenAccount.username}!`);
+      setTokenModalOpen(false);
+      setInputAuthToken("");
+      setInputCt0("");
+      await refresh();
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Erro ao atualizar token.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // SALVAR FILTROS DE NICHO
+  async function handleSaveFilters(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy("save_filters");
+    try {
+      const res = await fetch("/api/automation/filters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filters }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      toast.show("🎯 Filtros de nicho e interação salvos!");
+      setFiltersOpen(false);
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Erro ao salvar filtros.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // EXECUTAR PASSO DE AQUECIMENTO
   async function handleRunWarmup() {
+    if (accounts.length === 0) {
+      toast.show("❌ Adicione pelo menos uma conta antes de aquecer.");
+      return;
+    }
     setBusy("warmup");
     try {
       const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : accounts.map((a) => a.id);
@@ -261,7 +414,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     }
   }
 
-  // CONECTAR UMA CONTA MANUAL (Sem precisar de Client ID)
+  // CONECTAR UMA CONTA MANUAL
   async function handleManualSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!manualForm.username.trim()) {
@@ -295,7 +448,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       setManualModalOpen(false);
       setManualForm({
         username: "",
-        displayName: "",
         password: "",
         email: "",
         emailPassword: "",
@@ -325,7 +477,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     await refresh();
   }
 
-  // TOGGLE PROXY INDIVIDUAL
+  // TOGGLE PROXY
   async function handleToggleProxy(acc: PlatformAccount) {
     try {
       const nextActive = !acc.proxy_active;
@@ -343,7 +495,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     }
   }
 
-  // COPIAR PARA CLIPBOARD
+  // COPIAR
   function copyText(text: string, label: string) {
     if (!text) {
       toast.show(`${label} não disponível para esta conta.`);
@@ -353,14 +505,12 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     toast.show(`${label} copiado!`);
   }
 
-  // Disparar menu de contexto (Right Click)
+  // CONTEXT MENU
   function handleContextMenu(e: React.MouseEvent, acc: PlatformAccount & { config?: BotConfig }) {
     e.preventDefault();
     e.stopPropagation();
-
-    // Posiciona dentro dos limites da tela
-    const x = Math.min(e.clientX, window.innerWidth - 220);
-    const y = Math.min(e.clientY, window.innerHeight - 340);
+    const x = Math.min(e.clientX, window.innerWidth - 240);
+    const y = Math.min(e.clientY, window.innerHeight - 380);
 
     setContextMenu({
       visible: true,
@@ -374,10 +524,101 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
   return (
     <div className="flex flex-col gap-4">
       {/* ============================================================== */}
-      {/* 1. BARRA SUPERIOR: BUSCA + BADGES + BOTÕES DE AÇÃO             */}
+      {/* 1. MASTER BOT CARD: BOTÃO GERAL DE LIGAR E DESLIGAR VISÍVEL    */}
+      {/* ============================================================== */}
+      <section
+        className={`liquid-glass glass-card panel-pad flex flex-wrap items-center justify-between gap-4 border-2 transition-all ${
+          status.enabled
+            ? "border-emerald-500/50 bg-emerald-950/10 shadow-lg shadow-emerald-500/10"
+            : "border-rose-500/50 bg-rose-950/10 shadow-lg shadow-rose-500/10"
+        }`}
+        data-glass
+      >
+        <div className="flex items-center gap-4 min-w-0">
+          <div
+            className={`size-14 rounded-2xl grid place-items-center shrink-0 transition-transform ${
+              status.enabled
+                ? "bg-emerald-500/20 text-emerald-400 scale-105"
+                : "bg-rose-500/20 text-rose-400"
+            }`}
+          >
+            <IconBot size={30} />
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <span
+                className={`size-3 rounded-full ${
+                  status.enabled
+                    ? "bg-emerald-500 shadow-[0_0_12px_#10b981] animate-pulse"
+                    : "bg-rose-500"
+                }`}
+              />
+              <h2 className="text-[20px] font-[750] tracking-tight">
+                {status.enabled ? (
+                  <span className="text-emerald-400">BOT LIGADO — EM OPERAÇÃO</span>
+                ) : (
+                  <span className="text-rose-400">BOT DESLIGADO — PAUSADO</span>
+                )}
+              </h2>
+            </div>
+
+            <p className="text-[13px] text-[var(--ink-2)] mt-1">
+              {accounts.length === 0 ? (
+                <span className="text-amber-400 font-semibold">
+                  ⚠️ O robô não opera sem uma conta conectada. Adicione pelo menos uma conta abaixo.
+                </span>
+              ) : status.enabled ? (
+                `🟢 ${accounts.length} conta(s) monitorada(s) · Aquecimento humano e filtros ativos.`
+              ) : (
+                "🔴 Bot pausado. Nenhuma ação será realizada até você ligar."
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 ml-auto">
+          <button
+            type="button"
+            className="btn btn-glass"
+            onClick={() => setFiltersOpen(true)}
+            title="Configurar palavras-chave e alvos de interação do bot"
+          >
+            🎯 Filtros de Alvo & Interação
+          </button>
+
+          {/* BOTÃO MASTER ON/OFF */}
+          <button
+            type="button"
+            onClick={toggleMasterEngine}
+            disabled={busy !== null || accounts.length === 0}
+            className={`px-6 py-3 rounded-xl font-[750] text-[14px] flex items-center gap-2.5 transition-all shadow-md ${
+              accounts.length === 0
+                ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
+                : status.enabled
+                ? "bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30"
+                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 animate-pulse"
+            }`}
+          >
+            {accounts.length === 0 ? (
+              <>🔒 Robô Bloqueado (0 Contas)</>
+            ) : status.enabled ? (
+              <>
+                <IconPause size={18} /> DESLIGAR BOT
+              </>
+            ) : (
+              <>
+                <IconPlay size={18} /> LIGAR BOT
+              </>
+            )}
+          </button>
+        </div>
+      </section>
+
+      {/* ============================================================== */}
+      {/* 2. BARRA DE FERRAMENTAS: BUSCA + BADGES + BOTÕES               */}
       {/* ============================================================== */}
       <div className="liquid-glass glass-card panel-pad flex flex-wrap items-center justify-between gap-3" data-glass>
-        {/* Lado Esquerdo: Campo de Busca + Badges */}
         <div className="flex flex-wrap items-center gap-3 min-w-0">
           <div className="relative w-[180px] sm:w-[220px]">
             <input
@@ -405,16 +646,15 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
           </div>
         </div>
 
-        {/* Lado Direito: Botões de Lote */}
         <div className="flex flex-wrap items-center gap-2 ml-auto">
           <button
             type="button"
             className="btn btn-sm btn-glass"
             onClick={handleOpenChromeSelected}
             disabled={selectedCount === 0 || busy !== null}
-            title="Abre as contas selecionadas em instâncias isoladas do Google Chrome"
+            title="Abre as contas selecionadas em janelas isoladas"
           >
-            <IconExterno size={14} /> Close / Open chrome
+            <IconExterno size={14} /> Open browser
           </button>
 
           <button
@@ -427,9 +667,17 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             Trash can
           </button>
 
+          <a
+            href="/api/oauth/x/authorize"
+            className="btn btn-sm btn-primary bg-sky-500 hover:bg-sky-400 text-white font-[600] flex items-center gap-1.5 shadow-md shadow-sky-500/20"
+            title="Conectar sua conta do X com 1 clique oficial (sem precisar de F12 ou copiar tokens)"
+          >
+            <span>🔗</span> Conectar X Oficial (1-Clique)
+          </a>
+
           <button
             type="button"
-            className="btn btn-sm btn-glass"
+            className="btn btn-sm btn-primary"
             onClick={() => setManualModalOpen(true)}
             title="Adicionar uma conta manualmente (sem precisar de Client ID)"
           >
@@ -464,7 +712,32 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       </div>
 
       {/* ============================================================== */}
-      {/* 2. TABELA DE CONTAS MULTI-PERFIL (ESTILO DRAGON TOOLS)         */}
+      {/* 3. RESUMO DOS FILTROS DO NICHO ATIVOS                          */}
+      {/* ============================================================== */}
+      <div className="sunken px-4 py-2.5 text-[12.5px] flex flex-wrap items-center justify-between gap-2 border border-[var(--line)]">
+        <div className="flex items-center gap-2 truncate">
+          <span className="font-[650] text-[var(--accent)]">🎯 Alvos Ativos:</span>
+          <span className="truncate text-[var(--ink-2)]">
+            Palavras: <strong>{filters.keywords}</strong> · Perfis: <strong>{filters.targetProfiles}</strong>
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-[11.5px] text-[var(--muted)] shrink-0">
+          {filters.autoLike && <span className="tag tag-green">Curtir</span>}
+          {filters.autoBookmark && <span className="tag tag-blue">Guardar</span>}
+          {filters.autoRetweet && <span className="tag tag-purple">Retweetar</span>}
+          {filters.autoVisitProfile && <span className="tag tag-gray">Visitar</span>}
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="text-[var(--accent)] font-[600] hover:underline ml-1"
+          >
+            Editar Filtros
+          </button>
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* 4. TABELA DE CONTAS MULTI-PERFIL                               */}
       {/* ============================================================== */}
       <div className="panel overflow-hidden border border-[var(--line)]">
         <div className="overflow-x-auto">
@@ -496,7 +769,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               {filteredAccounts.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="p-8 text-center text-[var(--ink-2)]">
-                    Nenhuma conta cadastrada. Clique em <strong>+ Importar Contas</strong> para adicionar via texto ou token.
+                    Nenhuma conta cadastrada. Clique em <strong>+ Conectar Manual</strong> para adicionar sua conta.
                   </td>
                 </tr>
               ) : (
@@ -513,7 +786,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                         isSelected ? "bg-[color-mix(in_oklab,var(--accent)_8%,transparent)]" : ""
                       }`}
                     >
-                      {/* Checkbox */}
                       <td className="p-3 text-center">
                         <input
                           type="checkbox"
@@ -523,29 +795,36 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                         />
                       </td>
 
-                      {/* STT */}
                       <td className="p-3 text-center num text-[var(--muted)]">
                         {index + 1}
                       </td>
 
-                      {/* Username */}
                       <td className="p-3 font-[600] text-[var(--ink)]">
                         <div className="flex items-center gap-1.5">
                           <span>@{acc.username}</span>
+                          {!acc.auth_token && acc.access_token === "placeholder" && (
+                            <span
+                              className="text-[10px] text-amber-400 font-normal cursor-pointer hover:underline"
+                              onClick={() => {
+                                setEditingTokenAccount(acc);
+                                setTokenModalOpen(true);
+                              }}
+                              title="Clique para adicionar auth_token e habilitar retweets reais"
+                            >
+                              [sem token]
+                            </span>
+                          )}
                         </div>
                       </td>
 
-                      {/* Display Name */}
                       <td className="p-3 text-[var(--ink-2)] truncate max-w-[140px]">
                         {acc.display_name || "-"}
                       </td>
 
-                      {/* Phone */}
                       <td className="p-3 text-[var(--muted)]">
                         {acc.phone || "-"}
                       </td>
 
-                      {/* Password */}
                       <td className="p-3">
                         <div className="flex items-center gap-1.5">
                           <span className="font-mono text-[12px]">
@@ -573,7 +852,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                         </div>
                       </td>
 
-                      {/* Email */}
                       <td className="p-3 text-[var(--ink-2)] truncate max-w-[180px]">
                         <div className="flex items-center gap-1.5">
                           <span className="truncate">{acc.email || "-"}</span>
@@ -590,7 +868,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                         </div>
                       </td>
 
-                      {/* Email Password */}
                       <td className="p-3">
                         <div className="flex items-center gap-1.5">
                           <span className="font-mono text-[12px]">
@@ -618,7 +895,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                         </div>
                       </td>
 
-                      {/* Proxy */}
                       <td className="p-3">
                         {acc.proxy ? (
                           <div className="flex items-center gap-2">
@@ -632,7 +908,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                             </span>
                             <button
                               type="button"
-                              className="text-[11px] text-[var(--muted)] hover:text-[var(--ink)]"
+                              className="text-[11px]"
                               onClick={() => handleToggleProxy(acc)}
                               title="Ligar/Desligar Proxy"
                             >
@@ -644,7 +920,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                         )}
                       </td>
 
-                      {/* Status */}
                       <td className="p-3 text-center">
                         <span
                           className={`tag text-[11px] uppercase font-[650] ${
@@ -659,7 +934,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                         </span>
                       </td>
 
-                      {/* Ação ao Vivo */}
                       <td className="p-3 text-[12px] text-[var(--ink-2)] truncate max-w-[240px]">
                         <span className="truncate block" title={acc.current_action || "Aguardando próxima rotina"}>
                           {acc.current_action || "Aguardando rotina..."}
@@ -675,13 +949,13 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       </div>
 
       {/* ============================================================== */}
-      {/* 3. LIVE RADAR FEED / LOGS DE ATIVIDADE AO VIVO                 */}
+      {/* 5. RADAR DE AÇÕES E LOGS AO VIVO                               */}
       {/* ============================================================== */}
-      <section className="panel panel-pad" aria-label="Radar de Aquecimento Humano">
+      <section className="panel panel-pad" aria-label="Radar de Ações">
         <div className="flex items-baseline justify-between gap-3 border-b border-[var(--line)] pb-2.5">
           <div className="flex items-center gap-2">
             <span className="dot dot-live" style={{ color: "var(--ok)" }} />
-            <h2 className="h2 text-[14.5px]">Radar de Ações e Aquecimento ao Vivo</h2>
+            <h3 className="h2 text-[14.5px]">Radar de Ações e Aquecimento ao Vivo</h3>
           </div>
           <span className="label num">Atualizando em tempo real</span>
         </div>
@@ -710,11 +984,11 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       </section>
 
       {/* ============================================================== */}
-      {/* 4. MENU DE CONTEXTO (RIGHT-CLICK EXATO DA IMAGEM 2)            */}
+      {/* 6. MENU DE CONTEXTO (RIGHT-CLICK)                              */}
       {/* ============================================================== */}
       {contextMenu.visible && contextMenu.account && (
         <div
-          className="fixed z-50 min-w-[210px] rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] shadow-2xl p-1 text-[13px] enter"
+          className="fixed z-50 min-w-[230px] rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] shadow-2xl p-1 text-[13px] enter"
           style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -733,37 +1007,47 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             <span>✓</span> Check account
           </button>
 
+          <a
+            href="/api/oauth/x/authorize"
+            className="w-full text-left px-3 py-2 rounded hover:bg-[var(--sunken)] flex items-center gap-2 transition-colors text-sky-400 font-[600]"
+            title="Autoriza a conta automaticamente via Twitter com 1 clique"
+          >
+            <span>🔗</span> Login X (Autorizar via 1-Clique)
+          </a>
+
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 rounded hover:bg-[var(--sunken)] flex items-center gap-2 transition-colors text-[var(--accent)] font-[600]"
+            onClick={() => {
+              setRetweetTargetAccount(contextMenu.account!);
+              setRetweetModalOpen(true);
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <span>🔁</span> Disparar Retweet Real Agora
+          </button>
+
           <button
             type="button"
             className="w-full text-left px-3 py-2 rounded hover:bg-[var(--sunken)] flex items-center gap-2 transition-colors font-[600]"
             onClick={() => {
-              toast.show(`Login efetuado para @${contextMenu.account!.username}`);
+              setEditingTokenAccount(contextMenu.account!);
+              setTokenModalOpen(true);
               setContextMenu((prev) => ({ ...prev, visible: false }));
             }}
           >
-            <span>𝕏</span> Login X
+            <span>🔑</span> Inserir / Editar Auth Token
           </button>
 
           <button
             type="button"
             className="w-full text-left px-3 py-2 rounded hover:bg-[var(--sunken)] flex items-center gap-2 transition-colors"
             onClick={() => {
-              toast.show(`Dados limpos e re-login agendado para @${contextMenu.account!.username}`);
-              setContextMenu((prev) => ({ ...prev, visible: false }));
-            }}
-          >
-            <span>🔄</span> Clear data and re-login
-          </button>
-
-          <button
-            type="button"
-            className="w-full text-left px-3 py-2 rounded hover:bg-[var(--sunken)] flex items-center gap-2 transition-colors text-[var(--accent)] font-[600]"
-            onClick={() => {
               handleOpenChrome(contextMenu.account!);
               setContextMenu((prev) => ({ ...prev, visible: false }));
             }}
           >
-            <span>🌐</span> Open chrome
+            <span>🌐</span> Open browser
           </button>
 
           <button
@@ -777,7 +1061,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             <span>🛡️</span> Toggle Proxy ({contextMenu.account.proxy_active ? "Desativar" : "Ativar"})
           </button>
 
-          {/* Submenu Copy > */}
+          {/* Submenu Copy */}
           <div className="relative">
             <button
               type="button"
@@ -826,16 +1110,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                   type="button"
                   className="w-full text-left px-3 py-1.5 rounded hover:bg-[var(--sunken)]"
                   onClick={() => {
-                    copyText(contextMenu.account!.email_password || "", "Senha do Email");
-                    setContextMenu((prev) => ({ ...prev, visible: false }));
-                  }}
-                >
-                  Copy Email Password
-                </button>
-                <button
-                  type="button"
-                  className="w-full text-left px-3 py-1.5 rounded hover:bg-[var(--sunken)]"
-                  onClick={() => {
                     copyText(contextMenu.account!.proxy || "", "Proxy");
                     setContextMenu((prev) => ({ ...prev, visible: false }));
                   }}
@@ -864,24 +1138,425 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       )}
 
       {/* ============================================================== */}
-      {/* 5. MODAL DE SETTINGS (EXATO DA IMAGEM 1)                        */}
+      {/* 7. MODAL: FILTROS DE ALVO & INTERAÇÃO (NICHO)                  */}
+      {/* ============================================================== */}
+      {filtersOpen && (
+        <dialog open className="sheet">
+          <div className="panel-pad max-w-[620px] w-full">
+            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
+              <div>
+                <h2 className="h2 text-[17px]">🎯 Filtros de Alvo & Interação do Nicho</h2>
+                <p className="text-[12px] text-[var(--muted)] mt-0.5">
+                  Configure quais assuntos e perfis o bot vai monitorar para curtir, salvar e interagir de forma humana.
+                </p>
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFiltersOpen(false)}>
+                <IconX size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFilters} className="mt-4 flex flex-col gap-3.5 text-[13px]">
+              <div>
+                <label className="label" htmlFor="f-keywords">
+                  Palavras-chave e Hashtags do Nicho (separadas por vírgula)
+                </label>
+                <input
+                  id="f-keywords"
+                  className="input mt-1"
+                  value={filters.keywords}
+                  onChange={(e) => setFilters({ ...filters, keywords: e.target.value })}
+                  placeholder="marketing, tech, crypto, startup, ia, btc, business"
+                  required
+                />
+                <p className="text-[11px] text-[var(--muted)] mt-1">
+                  O bot só vai interagir com tweets que contenham pelo menos um desses termos.
+                </p>
+              </div>
+
+              <div>
+                <label className="label" htmlFor="f-profiles">
+                  Perfis de Referência para Acompanhar (separados por vírgula)
+                </label>
+                <input
+                  id="f-profiles"
+                  className="input mt-1"
+                  value={filters.targetProfiles}
+                  onChange={(e) => setFilters({ ...filters, targetProfiles: e.target.value })}
+                  placeholder="@elonmusk, @sama, @paulg"
+                />
+              </div>
+
+              <div className="border-t border-[var(--line)] pt-3">
+                <span className="label">Ações Permitidas na Esteira:</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filters.autoLike}
+                      onChange={(e) => setFilters({ ...filters, autoLike: e.target.checked })}
+                    />
+                    <span>Curtir Tweets</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filters.autoBookmark}
+                      onChange={(e) => setFilters({ ...filters, autoBookmark: e.target.checked })}
+                    />
+                    <span>Guardar Links</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filters.autoRetweet}
+                      onChange={(e) => setFilters({ ...filters, autoRetweet: e.target.checked })}
+                    />
+                    <span>Retweetar Posts</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filters.autoVisitProfile}
+                      onChange={(e) => setFilters({ ...filters, autoVisitProfile: e.target.checked })}
+                    />
+                    <span>Visitar Perfis</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filters.autoComment}
+                      onChange={(e) => setFilters({ ...filters, autoComment: e.target.checked })}
+                    />
+                    <span>Comentar em Posts</span>
+                  </label>
+                </div>
+              </div>
+
+              {filters.autoComment && (
+                <div>
+                  <label className="label" htmlFor="f-comments">
+                    Modelos de Comentários Humanos (um por linha):
+                  </label>
+                  <textarea
+                    id="f-comments"
+                    className="textarea mt-1"
+                    rows={3}
+                    value={filters.commentTemplates}
+                    onChange={(e) => setFilters({ ...filters, commentTemplates: e.target.value })}
+                  />
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[var(--line)] mt-2">
+                <button type="button" className="btn" onClick={() => setFiltersOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={busy === "save_filters"}>
+                  Salvar Filtros
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
+      )}
+
+      {/* ============================================================== */}
+      {/* 8. MODAL: DISPARAR RETWEET REAL DE TESTE                       */}
+      {/* ============================================================== */}
+      {retweetModalOpen && retweetTargetAccount && (
+        <dialog open className="sheet">
+          <div className="panel-pad max-w-[500px] w-full border-2 border-[var(--accent)]">
+            <h2 className="h2 text-[var(--accent)]">🔁 Disparar Retweet Real Agora</h2>
+            <p className="text-[13px] text-[var(--ink-2)] mt-1">
+              Testar a execução real de um Retweet na conta <strong>@{retweetTargetAccount.username}</strong>:
+            </p>
+
+            <form onSubmit={handleExecuteRealRetweet} className="mt-4 flex flex-col gap-3">
+              <div>
+                <label className="label" htmlFor="r-url">
+                  Link ou ID do Tweet a ser Retweetado *
+                </label>
+                <input
+                  id="r-url"
+                  className="input mt-1"
+                  placeholder="https://x.com/elonmusk/status/1892837465..."
+                  value={targetTweetUrl}
+                  onChange={(e) => setTargetTweetUrl(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-[var(--line)]">
+                <button type="button" className="btn" onClick={() => setRetweetModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={busy === "retweet"}>
+                  {busy === "retweet" ? "Retweetando..." : "Retuitar Agora!"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
+      )}
+
+      {/* ============================================================== */}
+      {/* 9. MODAL: EDITAR / INSERIR AUTH TOKEN DA CONTA                 */}
+      {/* ============================================================== */}
+      {tokenModalOpen && editingTokenAccount && (
+        <dialog open className="sheet">
+          <div className="panel-pad max-w-[500px] w-full">
+            <h2 className="h2">🔑 Inserir Auth Token de @{editingTokenAccount.username}</h2>
+            <p className="text-[12.5px] text-[var(--ink-2)] mt-1">
+              Cole o cookie <code>auth_token</code> da conta logada no seu navegador para permitir retweets e curtidas imediatas sem precisar de senha ou captcha.
+            </p>
+
+            <form onSubmit={handleSaveAuthToken} className="mt-4 flex flex-col gap-3">
+              <div>
+                <label className="label" htmlFor="t-token">
+                  auth_token (Cookie do X) *
+                </label>
+                <input
+                  id="t-token"
+                  className="input mt-1 font-mono text-[12px]"
+                  placeholder="Ex: a1b2c3d4e5f6..."
+                  value={inputAuthToken}
+                  onChange={(e) => setInputAuthToken(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label" htmlFor="t-ct0">
+                  ct0 (Opcional)
+                </label>
+                <input
+                  id="t-ct0"
+                  className="input mt-1 font-mono text-[12px]"
+                  placeholder="Ex: 1234567890abcdef..."
+                  value={inputCt0}
+                  onChange={(e) => setInputCt0(e.target.value)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-[var(--line)]">
+                <button type="button" className="btn" onClick={() => setTokenModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={busy === "save_token"}>
+                  {busy === "save_token" ? "Salvando..." : "Salvar Token"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
+      )}
+
+      {/* ============================================================== */}
+      {/* 10. MODAL: CONECTAR CONTA MANUAL                               */}
+      {/* ============================================================== */}
+      {manualModalOpen && (
+        <dialog open className="sheet">
+          <div className="panel-pad max-w-[580px] w-full">
+            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
+              <div>
+                <h2 className="h2">Conectar Conta Manualmente</h2>
+                <p className="text-[12px] text-[var(--muted)] mt-0.5">
+                  Não precisa de Client ID nem de API Developer. Funciona direto com e-mail, senha ou token.
+                </p>
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setManualModalOpen(false)}>
+                <IconX size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleManualSubmit} className="mt-4 flex flex-col gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="label" htmlFor="m-user">
+                    Username / @ do X *
+                  </label>
+                  <input
+                    id="m-user"
+                    className="input mt-1"
+                    placeholder="@seuperfil"
+                    value={manualForm.username}
+                    onChange={(e) => setManualForm({ ...manualForm, username: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="m-pass">
+                    Senha do X
+                  </label>
+                  <input
+                    id="m-pass"
+                    type="password"
+                    className="input mt-1"
+                    placeholder="••••••••"
+                    value={manualForm.password}
+                    onChange={(e) => setManualForm({ ...manualForm, password: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="m-email">
+                    E-mail da Conta
+                  </label>
+                  <input
+                    id="m-email"
+                    type="email"
+                    className="input mt-1"
+                    placeholder="usuario@hotmail.com"
+                    value={manualForm.email}
+                    onChange={(e) => setManualForm({ ...manualForm, email: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="m-epass">
+                    Senha do E-mail (opcional)
+                  </label>
+                  <input
+                    id="m-epass"
+                    type="password"
+                    className="input mt-1"
+                    placeholder="••••••••"
+                    value={manualForm.emailPassword}
+                    onChange={(e) => setManualForm({ ...manualForm, emailPassword: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="m-phone">
+                    Telefone (opcional)
+                  </label>
+                  <input
+                    id="m-phone"
+                    className="input mt-1"
+                    placeholder="+55 11 9..."
+                    value={manualForm.phone}
+                    onChange={(e) => setManualForm({ ...manualForm, phone: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="m-proxy">
+                    Proxy Dedicada (opcional)
+                  </label>
+                  <input
+                    id="m-proxy"
+                    className="input mt-1"
+                    placeholder="http://user:pass@host:port"
+                    value={manualForm.proxy}
+                    onChange={(e) => setManualForm({ ...manualForm, proxy: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-[var(--line)] pt-2.5 mt-1">
+                <span className="label text-[11.5px] text-[var(--accent)]">
+                  Login Instantâneo por Cookie (Opcional)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1.5">
+                  <div>
+                    <label className="label text-[11px]" htmlFor="m-token">
+                      auth_token (Cookie do X)
+                    </label>
+                    <input
+                      id="m-token"
+                      className="input mt-1 text-[12px] font-mono"
+                      placeholder="40 caracteres hex..."
+                      value={manualForm.authToken}
+                      onChange={(e) => setManualForm({ ...manualForm, authToken: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="label text-[11px]" htmlFor="m-ct0">
+                      ct0 (CSRF token)
+                    </label>
+                    <input
+                      id="m-ct0"
+                      className="input mt-1 text-[12px] font-mono"
+                      placeholder="160 caracteres..."
+                      value={manualForm.ct0}
+                      onChange={(e) => setManualForm({ ...manualForm, ct0: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--line)]">
+                <button type="button" className="btn" onClick={() => setManualModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={busy === "manual_add" || !manualForm.username.trim()}>
+                  {busy === "manual_add" ? "Salvando..." : "Salvar e Conectar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
+      )}
+
+      {/* ============================================================== */}
+      {/* 11. MODAL: IMPORTAR EM LOTE                                    */}
+      {/* ============================================================== */}
+      {importOpen && (
+        <dialog open className="sheet">
+          <div className="panel-pad max-w-[560px] w-full">
+            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
+              <h2 className="h2">Importar Contas do X em Lote</h2>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setImportOpen(false)}>
+                <IconX size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleImportSubmit} className="mt-4 flex flex-col gap-3">
+              <p className="text-[12.5px] text-[var(--ink-2)]">
+                Cole uma conta por linha no formato:
+                <br />
+                <code className="text-[var(--accent)] font-mono text-[11.5px]">
+                  username|senha|email|senha_email|auth_token|proxy
+                </code>
+              </p>
+
+              <textarea
+                className="textarea font-mono text-[12px]"
+                rows={8}
+                placeholder="hailongii_987_vn|Long123456|elvira-261@hotmail.com|PassEmail123|token_abc...|http://user:pass@185.220.101.5:8080&#10;turkan_turk|Accn8899|sorbyrkaramikc4@hotmail.com|PassEmail456||"
+                value={rawImportText}
+                onChange={(e) => setRawImportText(e.target.value)}
+                required
+              />
+
+              <div className="flex justify-end gap-2 mt-2">
+                <button type="button" className="btn" onClick={() => setImportOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={busy === "import" || !rawImportText.trim()}>
+                  {busy === "import" ? "Importando..." : "Importar Contas"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
+      )}
+
+      {/* ============================================================== */}
+      {/* 12. MODAL: SETTINGS (DRAGON TOOLS)                             */}
       {/* ============================================================== */}
       {settingsOpen && (
         <dialog open className="sheet">
           <div className="panel-pad max-w-[680px] w-full p-0 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--line)]">
               <h2 className="text-[17px] font-[650]">Settings</h2>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setSettingsOpen(false)}
-              >
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingsOpen(false)}>
                 <IconX size={16} />
               </button>
             </div>
 
             <div className="grid grid-cols-[200px_1fr] min-h-[340px]">
-              {/* Barra lateral esquerda de abas */}
               <div className="border-r border-[var(--line)] p-2 space-y-0.5 bg-[var(--sunken)] text-[13px]">
                 {[
                   { id: "system", label: "System settings", icon: "⚙️" },
@@ -908,7 +1583,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                 ))}
               </div>
 
-              {/* Painel de Conteúdo da Direita */}
               <div className="p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex gap-4 border-b border-[var(--line)] pb-2 text-[13px] font-[600]">
@@ -995,229 +1669,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                 </div>
               </div>
             </div>
-          </div>
-        </dialog>
-      )}
-
-      {/* ============================================================== */}
-      {/* 6. MODAL DE IMPORTAR CONTAS EM LOTE                            */}
-      {/* ============================================================== */}
-      {importOpen && (
-        <dialog open className="sheet">
-          <div className="panel-pad max-w-[560px] w-full">
-            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
-              <h2 className="h2">Importar Contas do X em Lote</h2>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setImportOpen(false)}
-              >
-                <IconX size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleImportSubmit} className="mt-4 flex flex-col gap-3">
-              <p className="text-[12.5px] text-[var(--ink-2)]">
-                Cole uma conta por linha. Formato suportado:
-                <br />
-                <code className="text-[var(--accent)] font-mono text-[11.5px]">
-                  username|senha|email|senha_email|auth_token|proxy
-                </code>
-              </p>
-
-              <textarea
-                className="textarea font-mono text-[12px]"
-                rows={8}
-                placeholder="hailongii_987_vn|Long123456|elvira-261@hotmail.com|PassEmail123|token_abc...|http://user:pass@185.220.101.5:8080&#10;turkan_turk|Accn8899|sorbyrkaramikc4@hotmail.com|PassEmail456||"
-                value={rawImportText}
-                onChange={(e) => setRawImportText(e.target.value)}
-                required
-              />
-
-              <div className="flex justify-end gap-2 mt-2">
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => setImportOpen(false)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={busy === "import" || !rawImportText.trim()}
-                >
-                  {busy === "import" ? "Importando..." : "Importar Contas"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </dialog>
-      )}
-
-      {/* ============================================================== */}
-      {/* 7. MODAL DE CONECTAR CONTA MANUAL (SEM CLIENT ID)              */}
-      {/* ============================================================== */}
-      {manualModalOpen && (
-        <dialog open className="sheet">
-          <div className="panel-pad max-w-[580px] w-full">
-            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
-              <div>
-                <h2 className="h2">Conectar Conta Manualmente</h2>
-                <p className="text-[12px] text-[var(--muted)] mt-0.5">
-                  Não precisa de Client ID nem de API Developer. Funciona direto com e-mail, senha ou token.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setManualModalOpen(false)}
-              >
-                <IconX size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleManualSubmit} className="mt-4 flex flex-col gap-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Username */}
-                <div>
-                  <label className="label" htmlFor="m-user">
-                    Username / @ do X *
-                  </label>
-                  <input
-                    id="m-user"
-                    className="input mt-1"
-                    placeholder="@seuperfil"
-                    value={manualForm.username}
-                    onChange={(e) => setManualForm({ ...manualForm, username: e.target.value })}
-                    required
-                  />
-                </div>
-
-                {/* Password */}
-                <div>
-                  <label className="label" htmlFor="m-pass">
-                    Senha do X
-                  </label>
-                  <input
-                    id="m-pass"
-                    type="password"
-                    className="input mt-1"
-                    placeholder="••••••••"
-                    value={manualForm.password}
-                    onChange={(e) => setManualForm({ ...manualForm, password: e.target.value })}
-                  />
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label className="label" htmlFor="m-email">
-                    E-mail da Conta
-                  </label>
-                  <input
-                    id="m-email"
-                    type="email"
-                    className="input mt-1"
-                    placeholder="usuario@hotmail.com"
-                    value={manualForm.email}
-                    onChange={(e) => setManualForm({ ...manualForm, email: e.target.value })}
-                  />
-                </div>
-
-                {/* Email Password */}
-                <div>
-                  <label className="label" htmlFor="m-epass">
-                    Senha do E-mail (opcional)
-                  </label>
-                  <input
-                    id="m-epass"
-                    type="password"
-                    className="input mt-1"
-                    placeholder="••••••••"
-                    value={manualForm.emailPassword}
-                    onChange={(e) => setManualForm({ ...manualForm, emailPassword: e.target.value })}
-                  />
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label className="label" htmlFor="m-phone">
-                    Telefone (opcional)
-                  </label>
-                  <input
-                    id="m-phone"
-                    className="input mt-1"
-                    placeholder="+55 11 9..."
-                    value={manualForm.phone}
-                    onChange={(e) => setManualForm({ ...manualForm, phone: e.target.value })}
-                  />
-                </div>
-
-                {/* Proxy */}
-                <div>
-                  <label className="label" htmlFor="m-proxy">
-                    Proxy Dedicada (opcional)
-                  </label>
-                  <input
-                    id="m-proxy"
-                    className="input mt-1"
-                    placeholder="http://user:pass@host:port"
-                    value={manualForm.proxy}
-                    onChange={(e) => setManualForm({ ...manualForm, proxy: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Seção Opcional de Cookies / Auth Token */}
-              <div className="border-t border-[var(--line)] pt-2.5 mt-1">
-                <span className="label text-[11.5px] text-[var(--accent)]">
-                  Login Instantâneo por Cookie (Opcional)
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1.5">
-                  <div>
-                    <label className="label text-[11px]" htmlFor="m-token">
-                      auth_token (Cookie do X)
-                    </label>
-                    <input
-                      id="m-token"
-                      className="input mt-1 text-[12px] font-mono"
-                      placeholder="40 caracteres hex..."
-                      value={manualForm.authToken}
-                      onChange={(e) => setManualForm({ ...manualForm, authToken: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="label text-[11px]" htmlFor="m-ct0">
-                      ct0 (CSRF token)
-                    </label>
-                    <input
-                      id="m-ct0"
-                      className="input mt-1 text-[12px] font-mono"
-                      placeholder="160 caracteres..."
-                      value={manualForm.ct0}
-                      onChange={(e) => setManualForm({ ...manualForm, ct0: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--line)]">
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => setManualModalOpen(false)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={busy === "manual_add" || !manualForm.username.trim()}
-                >
-                  {busy === "manual_add" ? "Salvando..." : "Salvar e Conectar"}
-                </button>
-              </div>
-            </form>
           </div>
         </dialog>
       )}

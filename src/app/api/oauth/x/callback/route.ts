@@ -24,9 +24,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Troca de tokens OAuth 2.0
-    // Em produção, o codeVerifier é recuperado de cookie seguro ou sessão
-    const codeVerifier = req.headers.get("cookie")?.match(/axys_pkce=([^;]+)/)?.[1] || "";
+    const cookieHeader = req.headers.get("cookie") || "";
+    const match = cookieHeader.match(/(?:^|;\s*)axys_pkce=([^;]+)/);
+    const codeVerifier = match ? decodeURIComponent(match[1]) : "";
 
     const tokenRes = await XOAuth.exchangeCode({
       code,
@@ -36,11 +36,9 @@ export async function GET(req: Request) {
       redirectUri,
     });
 
-    // Consulta perfil do usuário no X
     const connector = new XConnector(tokenRes.access_token);
     const me = await connector.getMe();
 
-    // Salva ou atualiza a conta no banco
     const { data: acc, error: accErr } = await db()
       .from("platform_accounts")
       .upsert(
@@ -51,11 +49,13 @@ export async function GET(req: Request) {
           username: me.username,
           display_name: me.name,
           avatar_url: me.profile_image_url ?? null,
-          access_token: "placeholder", // Será atualizado pelo TokenVault
+          access_token: "placeholder",
           refresh_token: null,
           token_expires_at: null,
           scopes: tokenRes.scope ? tokenRes.scope.split(" ") : XOAuth.DEFAULT_SCOPES,
           stage: "operating",
+          status: "live",
+          current_action: "Conectado via OAuth 2.0",
           is_active: true,
           paused: false,
           updated_at: new Date().toISOString(),
@@ -67,7 +67,6 @@ export async function GET(req: Request) {
 
     if (accErr || !acc) throw accErr ?? new Error("Falha ao registrar conta.");
 
-    // Criptografa e armazena os tokens com AES-256-GCM
     await TokenVault.storeTokens(acc.id, {
       accessToken: tokenRes.access_token,
       refreshToken: tokenRes.refresh_token,
@@ -75,7 +74,6 @@ export async function GET(req: Request) {
       scopes: tokenRes.scope?.split(" "),
     });
 
-    // Cria config de automação padrão
     await db().from("bot_configs").upsert(
       {
         account_id: acc.id,
@@ -89,9 +87,11 @@ export async function GET(req: Request) {
       { onConflict: "account_id", ignoreDuplicates: true }
     );
 
-    return NextResponse.redirect(`${origin}/bot?connected=${encodeURIComponent(me.username)}`);
+    const res = NextResponse.redirect(`${origin}/bot?connected=${encodeURIComponent(me.username)}`);
+    res.cookies.delete("axys_pkce");
+    return res;
   } catch (e) {
-    console.error("[OAuthCallback] Erro:", e);
+    console.error("[OAuthCallback /api/oauth/x/callback] Erro:", e);
     const msg = e instanceof Error ? e.message : "Falha na conexão OAuth";
     return NextResponse.redirect(`${origin}/bot?error=${encodeURIComponent(msg)}`);
   }

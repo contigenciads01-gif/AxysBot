@@ -46,7 +46,7 @@ export class AutomationService {
     const isGloballyPaused = Boolean(engineSetting?.paused);
 
     return {
-      enabled: !isGloballyPaused && (activeAccounts ?? 0) > 0,
+      enabled: !isGloballyPaused,
       active_accounts: activeAccounts ?? 0,
       total_accounts: totalAccounts ?? 0,
       pending_tasks: pendingTasks ?? 0,
@@ -62,8 +62,16 @@ export class AutomationService {
    * Liga ou desliga o motor globalmente.
    */
   static async setEngineEnabled(enabled: boolean): Promise<void> {
-    // Atualiza tabela settings.paused
-    await db().from("settings").update({ paused: !enabled });
+    try {
+      const { data } = await db().from("settings").select("account_id").limit(1).maybeSingle();
+      if (data?.account_id) {
+        await db().from("settings").update({ paused: !enabled }).eq("account_id", data.account_id);
+      } else {
+        await db().from("settings").upsert({ account_id: "global", paused: !enabled }, { onConflict: "account_id" });
+      }
+    } catch (e) {
+      console.warn("[automation] sincronização de settings.paused em DB falhou:", e);
+    }
   }
 
   /**

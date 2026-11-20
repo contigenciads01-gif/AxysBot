@@ -138,6 +138,27 @@ a, button, input, textarea, select, label { touch-action: manipulation; }
   animation: holoFloatUp 1.8s cubic-bezier(.2, .8, .2, 1) forwards;
 }
 
+@keyframes chatgptGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.chatgpt-animated-txt {
+  background: linear-gradient(90deg, #10a37f, #38bdf8, #818cf8, #f43f5e, #10a37f);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: chatgptGradient 5s ease infinite;
+  font-weight: 700;
+}
+@keyframes pulseSubtle {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+.chatgpt-animated-icon {
+  animation: pulseSubtle 3s ease-in-out infinite;
+}
+
 }
 
 @media (prefers-reduced-motion: reduce) {

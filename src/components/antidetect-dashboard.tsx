@@ -119,13 +119,8 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     commentTemplates: "Excelente visão! 👏\nMuito bom esse insight.\nConcordo totalmente com esse ponto.",
   });
 
-  // HoloGlobe & Smartphone Simulator States
+  // HoloGlobe Telemetry States
   const [floatingPills, setFloatingPills] = useState<FloatingPill[]>([]);
-  const [showMobileSim, setShowMobileSim] = useState(true);
-  const [phoneScrollY, setPhoneScrollY] = useState(0);
-  const [phoneTouchActive, setPhoneTouchActive] = useState(false);
-  const [phoneLikeActive, setPhoneLikeActive] = useState(false);
-  const [phoneRetweetActive, setPhoneRetweetActive] = useState(false);
 
   // Modal 5: Retweet Real de Teste
   const [retweetModalOpen, setRetweetModalOpen] = useState(false);
@@ -247,21 +242,14 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             pIcon = "❤️";
             pText = `Like ${s.targetProfile || ""}`;
             pColor = "text-rose-400 border-rose-500/50 bg-rose-950/80";
-            setPhoneLikeActive(true);
-            setTimeout(() => setPhoneLikeActive(false), 1600);
           } else if (s.actionType.includes("RETWEET")) {
             pIcon = "🔁";
             pText = `RT ${s.targetProfile || ""}`;
             pColor = "text-teal-400 border-teal-500/50 bg-teal-950/80";
-            setPhoneRetweetActive(true);
-            setTimeout(() => setPhoneRetweetActive(false), 1600);
           } else if (s.actionType.includes("SCROLL")) {
             pIcon = "📜";
             pText = "Scroll 380px";
             pColor = "text-sky-400 border-sky-500/50 bg-sky-950/80";
-            setPhoneTouchActive(true);
-            setPhoneScrollY((prev) => (prev > 300 ? 0 : prev + 90));
-            setTimeout(() => setPhoneTouchActive(false), 1200);
           } else if (s.actionType.includes("DIRECT_LINK")) {
             pIcon = "🔗";
             pText = "Link Alvo";
@@ -333,10 +321,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
 
   // Alternar Master ON/OFF
   async function toggleMasterEngine() {
-    if (accounts.length === 0) {
-      toast.show("❌ O robô não opera sem pelo menos uma conta conectada.");
-      return;
-    }
     setBusy("toggle_master");
     try {
       const next = !status.enabled;
@@ -349,7 +333,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       if (!res.ok) throw new Error(data.error);
 
       setStatus(data.status);
-      toast.show(next ? "⚡ BOT LIGADO E ATIVO!" : "⏸️ BOT DESLIGADO E PAUSADO.");
+      toast.show(next ? "⚡ BOT LIGADO!" : "⏸️ BOT DESLIGADO.");
       await refresh();
     } catch (e) {
       toast.show(e instanceof Error ? e.message : "Erro ao alterar estado do bot.");
@@ -796,30 +780,26 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             ⏰ Ritmo & Pausas
           </button>
 
-          {/* BOTÃO MASTER ON/OFF */}
+          {/* BOTÃO COMPACTO ARREDONDADO (LIGADO / DESLIGADO) */}
           <button
             type="button"
             onClick={toggleMasterEngine}
-            disabled={busy !== null || accounts.length === 0}
-            className={`px-6 py-3 rounded-xl font-[750] text-[14px] flex items-center gap-2.5 transition-all shadow-md ${
-              accounts.length === 0
-                ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
-                : status.enabled
-                ? "bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30"
-                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 animate-pulse"
+            disabled={busy === "toggle_master"}
+            className={`px-3.5 py-1.5 rounded-full text-[12.5px] font-[650] flex items-center gap-2 border transition-all cursor-pointer shadow-sm select-none ${
+              status.enabled
+                ? "bg-emerald-950/40 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/50 shadow-emerald-950/20"
+                : "bg-rose-950/40 border-rose-500/50 text-rose-300 hover:bg-rose-900/50 shadow-rose-950/20"
             }`}
+            title={status.enabled ? "Bot ativo. Clique para desligar." : "Bot desligado. Clique para ligar."}
           >
-            {accounts.length === 0 ? (
-              <>🔒 Robô Bloqueado (0 Contas)</>
-            ) : status.enabled ? (
-              <>
-                <IconPause size={18} /> DESLIGAR BOT
-              </>
-            ) : (
-              <>
-                <IconPlay size={18} /> LIGAR BOT
-              </>
-            )}
+            <span
+              className={`size-2 rounded-full transition-all ${
+                status.enabled
+                  ? "bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"
+                  : "bg-rose-500 shadow-[0_0_8px_#f43f5e]"
+              }`}
+            />
+            <span>{status.enabled ? "Ligado" : "Desligado"}</span>
           </button>
         </div>
       </section>
@@ -867,15 +847,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                 </div>
               ))}
             </div>
-
-            <button
-              type="button"
-              className={`btn btn-xs ${showMobileSim ? "btn-primary" : "btn-glass"} flex items-center gap-1.5`}
-              onClick={() => setShowMobileSim(!showMobileSim)}
-              title="Alternar simulador de celular ativo"
-            >
-              <span>📱</span> {showMobileSim ? "Ocultar Celular" : "Ver Celular"}
-            </button>
 
             <div className="hidden sm:flex items-center gap-1.5">
               <span className="font-mono text-[var(--muted)]">Ciclo:</span>
@@ -999,191 +970,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             </div>
           </div>
         </div>
-
-        {/* ============================================================== */}
-        {/* SIMULADOR VISUAL DE SMARTPHONE (CELULAR MEXENDO NA CONTA)     */}
-        {/* ============================================================== */}
-        {showMobileSim && (
-          <div className="mt-4 pt-4 border-t border-[var(--line)] flex flex-col md:flex-row items-center justify-center gap-6 enter">
-            {/* Moldura de Smartphone (iPhone Style) */}
-            <div className="w-[280px] h-[480px] rounded-[38px] border-[5px] border-zinc-700 bg-zinc-950 shadow-2xl relative overflow-hidden flex flex-col p-2 shadow-emerald-950/20 shrink-0">
-              {/* Dynamic Island / Notch */}
-              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-24 h-3.5 bg-black rounded-full z-40 flex items-center justify-between px-2">
-                <span className={`size-1.5 rounded-full ${status.enabled ? "bg-emerald-500 animate-pulse" : "bg-zinc-700"}`} />
-                <span className="size-1.5 rounded-full bg-zinc-800" />
-              </div>
-
-              {/* Barra de Status do Celular */}
-              <div className="h-5 flex items-center justify-between px-3 text-[9.5px] font-semibold text-zinc-400 z-30 pt-0.5">
-                <span>01:45</span>
-                <div className="flex items-center gap-1.5 text-[8.5px]">
-                  <span>5G</span>
-                  <span>📶</span>
-                  <span>96% 🔋</span>
-                </div>
-              </div>
-
-              {/* Tela do Aplicativo do X */}
-              <div className="flex-1 bg-black rounded-[28px] overflow-hidden flex flex-col relative text-white text-[11.5px]">
-                {/* Header do X */}
-                <div className="h-9 border-b border-zinc-800/80 flex items-center justify-between px-2.5 bg-black/90 backdrop-blur z-20">
-                  <div className="size-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-bold text-sky-400">
-                    {activeAccount ? activeAccount.username.slice(0, 2).toUpperCase() : "X"}
-                  </div>
-                  <span className="text-[14px] font-black tracking-tight select-none">𝕏</span>
-                  <span className="text-[10px] text-zinc-400 font-mono">60fps</span>
-                </div>
-
-                {/* Abas Para Você / Seguindo */}
-                <div className="flex border-b border-zinc-800 text-[10.5px] font-semibold text-zinc-400 bg-black z-20">
-                  <div className="flex-1 py-1 text-center text-white border-b-2 border-sky-500">
-                    Para você
-                  </div>
-                  <div className="flex-1 py-1 text-center text-zinc-500">
-                    Seguindo
-                  </div>
-                </div>
-
-                {/* Feed Interativo com Scroll e Efeitos de Toque */}
-                <div className="flex-1 overflow-hidden relative">
-                  <div
-                    className="p-2.5 space-y-2.5 transition-transform duration-700 ease-out"
-                    style={{ transform: `translateY(-${phoneScrollY}px)` }}
-                  >
-                    {/* Post 1 */}
-                    <div className="border-b border-zinc-800/80 pb-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <div className="size-6 rounded-full bg-purple-900/60 border border-purple-500/40 grid place-items-center text-[8.5px] font-bold text-purple-200">
-                          EM
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-bold text-[10.5px] flex items-center gap-1 truncate">
-                            <span>{filters.targetProfiles.split(",")[0] || "@elonmusk"}</span>
-                            <span className="text-sky-400 text-[8px]">☑</span>
-                          </div>
-                          <span className="text-zinc-500 text-[9px]">há 12 min</span>
-                        </div>
-                      </div>
-                      <p className="mt-1 text-[10.5px] text-zinc-200 leading-relaxed">
-                        A automação inteligente e modelos autônomos no nicho de {filters.keywords.split(",")[0] || "marketing"} aceleram tudo.
-                      </p>
-                      <div className="flex items-center justify-between text-zinc-500 mt-1.5 px-1 text-[10px]">
-                        <span>💬 142</span>
-                        <span className={`flex items-center gap-1 transition-all ${phoneRetweetActive ? "text-emerald-400 font-bold scale-125" : ""}`}>
-                          🔁 {phoneRetweetActive ? "1.8K" : "1.7K"}
-                        </span>
-                        <span className={`flex items-center gap-1 transition-all ${phoneLikeActive ? "text-rose-500 font-bold scale-125" : ""}`}>
-                          ❤️ {phoneLikeActive ? "14.2K" : "14.1K"}
-                        </span>
-                        <span>🔖 89</span>
-                      </div>
-                    </div>
-
-                    {/* Post 2 */}
-                    <div className="border-b border-zinc-800/80 pb-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <div className="size-6 rounded-full bg-sky-900/60 border border-sky-500/40 grid place-items-center text-[8.5px] font-bold text-sky-200">
-                          SM
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-bold text-[10.5px] flex items-center gap-1 truncate">
-                            <span>{filters.targetProfiles.split(",")[1] || "@sama"}</span>
-                            <span className="text-sky-400 text-[8px]">☑</span>
-                          </div>
-                          <span className="text-zinc-500 text-[9px]">há 34 min</span>
-                        </div>
-                      </div>
-                      <p className="mt-1 text-[10.5px] text-zinc-200 leading-relaxed">
-                        Agentes com comportamento orgânico que simulam pausas biológicas estão redefinindo interações reais.
-                      </p>
-                      <div className="flex items-center justify-between text-zinc-500 mt-1.5 px-1 text-[10px]">
-                        <span>💬 88</span>
-                        <span>🔁 612</span>
-                        <span>❤️ 3.9K</span>
-                        <span>🔖 55</span>
-                      </div>
-                    </div>
-
-                    {/* Post 3 */}
-                    <div className="border-b border-zinc-800/80 pb-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <div className="size-6 rounded-full bg-emerald-900/60 border border-emerald-500/40 grid place-items-center text-[8.5px] font-bold text-emerald-200">
-                          PG
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-bold text-[10.5px] flex items-center gap-1 truncate">
-                            <span>{filters.targetProfiles.split(",")[2] || "@paulg"}</span>
-                          </div>
-                          <span className="text-zinc-500 text-[9px]">há 1h</span>
-                        </div>
-                      </div>
-                      <p className="mt-1 text-[10.5px] text-zinc-200 leading-relaxed">
-                        A persistência e cadência humana superam qualquer esforço desordenado no nicho de {filters.keywords.split(",")[1] || "startups"}.
-                      </p>
-                      <div className="flex items-center justify-between text-zinc-500 mt-1.5 px-1 text-[10px]">
-                        <span>💬 41</span>
-                        <span>🔁 289</span>
-                        <span>❤️ 1.5K</span>
-                        <span>🔖 32</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Indicador Tátil (Polegar Humano Simulando Toque na Tela) */}
-                  {phoneTouchActive && (
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30">
-                      <div className="size-8 rounded-full bg-sky-400/30 border-2 border-sky-400/80 shadow-[0_0_12px_#38bdf8] animate-ping" />
-                    </div>
-                  )}
-
-                  {/* Coração Explodindo quando Dá Like */}
-                  {phoneLikeActive && (
-                    <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 text-[32px] animate-bounce">
-                      ❤️
-                    </div>
-                  )}
-                </div>
-
-                {/* Barra Inferior de Navegação do X */}
-                <div className="h-8 border-t border-zinc-800/80 flex items-center justify-around text-zinc-400 text-[12px] bg-black/95 z-20">
-                  <span className="text-white">🏠</span>
-                  <span>🔍</span>
-                  <span>⚡</span>
-                  <span>🔔</span>
-                  <span>✉️</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Explicação e Telemetria do Simulador */}
-            <div className="max-w-[440px] text-[12.5px] space-y-2.5">
-              <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                <h4 className="font-[750] text-[14px] text-[var(--ink)]">
-                  Simulação Visual em Tempo Real (Mobile View)
-                </h4>
-              </div>
-              <p className="text-[var(--ink-2)] leading-relaxed">
-                Este simulador reflete em tempo real o que o motor de automação executa no navegador isolado: 
-                <strong> rolagem do feed com curvas de Bezier</strong>, retenção de leitura em tweets, curtidas orgânicas e pausas humanas.
-              </p>
-              <div className="p-3 rounded-xl bg-[var(--sunken)]/60 border border-[var(--line)] space-y-1.5 text-[11.5px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[var(--muted)]">Modelo Ativa:</span>
-                  <span className="font-semibold text-emerald-400">@{activeAccount?.username || "JulyCardosoCirc"}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[var(--muted)]">Ação Física Simulada:</span>
-                  <span className="font-mono text-sky-400">{phoneTouchActive ? "Polegar Arrastando Feed 👆" : phoneLikeActive ? "Toque de Curtida ❤️" : phoneRetweetActive ? "Retweetando 🔁" : "Lendo Publicação 👀"}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[var(--muted)]">Modo de Alvo:</span>
-                  <span className="font-mono text-amber-400 uppercase font-semibold">{filters.discoveryMode || "Híbrido"}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* ============================================================== */}
@@ -1269,15 +1055,6 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             onClick={() => setSettingsOpen(true)}
           >
             ⚙️ Settings
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
-            onClick={handleRunWarmup}
-            disabled={busy !== null || accounts.length === 0}
-          >
-            <IconPlay size={14} /> Aquecer Contas
           </button>
         </div>
       </div>

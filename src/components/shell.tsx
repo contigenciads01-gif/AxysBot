@@ -83,7 +83,53 @@ export function Shell({ children, username }: { children: React.ReactNode; usern
           </div>
         </div>
 
-        {/* 3. Ajustes no Final da Navegação */}
+        {/* 3. Acervo & Drive de Conteúdo (Fotos / Vídeos) + ChatGPT */}
+        <div className="my-2 pt-2 border-t border-[var(--line)]">
+          <div className="px-2.5 pb-1 text-[10.5px] font-[700] uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+            <span>Acervo & IA</span>
+            <span className="text-[9px] text-sky-400 font-mono">DRIVE</span>
+          </div>
+          <div className="flex flex-col gap-0.5 mt-1">
+            <Link
+              href="/drive"
+              aria-current={active("/drive") ? "page" : undefined}
+              className={`flex items-center justify-between rounded-[var(--radius)] px-2.5 h-[34px] text-[12.5px] font-[550] transition-colors group ${
+                active("/drive")
+                  ? "liquid-glass-chip text-[var(--ink)]"
+                  : "text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--sunken)]"
+              }`}
+            >
+              <div className="flex items-center gap-2 truncate">
+                <span className="text-[14px]">📁</span>
+                <span className="truncate">Drive de Mídia</span>
+              </div>
+              <span className="text-[9px] font-mono px-1 rounded bg-[var(--surface)] text-sky-400 border border-[var(--line)]">
+                FOTOS/VÍDEOS
+              </span>
+            </Link>
+
+            {/* ChatGPT com Logo e Texto Animado */}
+            <a
+              href="https://chatgpt.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between rounded-[var(--radius)] px-2.5 h-[34px] text-[12.5px] font-[500] hover:bg-[var(--sunken)] transition-colors group mt-0.5"
+              title="Abrir ChatGPT"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <svg className="size-4 shrink-0 chatgpt-animated-icon text-[#10a37f]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1683a.071.071 0 0 1 .038.052v5.5826a4.5045 4.5045 0 0 1-4.4945 4.4947zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4997 4.4997 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1683a.0757.0757 0 0 1-.071 0l-4.8303-2.7866A4.5045 4.5045 0 0 1 2.3408 7.8956zm16.0993 3.8558L12.5973 8.3829l2.02-1.1636a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4949 4.4949 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.402-.6862zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L8.907 9.2298V6.8974a.0662.0662 0 0 1 .0331-.0615l4.8304-2.7866a4.5045 4.5045 0 0 1 6.6903 4.5952zM12 14.7702l-2.7487-1.587 2.7487-1.587 2.7487 1.587z" />
+                </svg>
+                <span className="chatgpt-animated-txt text-[13px]">ChatGPT</span>
+              </div>
+              <span className="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/20 group-hover:bg-emerald-500/20">
+                PRO
+              </span>
+            </a>
+          </div>
+        </div>
+
+        {/* 4. Ajustes no Final da Navegação */}
         <div className="mt-1 pt-2 border-t border-[var(--line)]">
           <Link
             href="/ajustes"

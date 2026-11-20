@@ -11,6 +11,10 @@ export default function DriveMediaPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
+  // Estados de upload direto (Opção 2)
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+
   // Estados de edição em massa
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [bulkHashtags, setBulkHashtags] = useState("#vip #exclusive #preview #lifestyle");
@@ -296,6 +300,43 @@ export default function DriveMediaPage() {
     }
   }
 
+  // Upload direto de fotos e vídeos da pasta July (Opção 2 - Imediato)
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    setUploadProgress(`0 / ${files.length}`);
+
+    try {
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append("files", files[i]);
+      }
+
+      setUploadProgress(`Enviando ${files.length} arquivo(s)...`);
+
+      const res = await fetch("/api/drive/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao processar upload.");
+
+      if (data.ok && data.drive) {
+        setDrive(data.drive);
+        toast.show(`🚀 ${data.count} foto(s)/vídeo(s) da July adicionados ao acervo com sucesso! Lote de 6 ativo atualizado.`);
+      }
+    } catch (err) {
+      toast.show(err instanceof Error ? err.message : "Erro ao enviar fotos.");
+    } finally {
+      setUploading(false);
+      setUploadProgress("");
+      e.target.value = "";
+    }
+  }
+
   if (loading || !drive) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
@@ -505,6 +546,54 @@ export default function DriveMediaPage() {
           </button>
         </div>
       </form>
+
+      {/* 2.5. UPLOAD DIRETO DE MÍDIAS DA MODELO JULY (OPÇÃO 2 - SEM GOOGLE CLOUD) */}
+      <section className="liquid-glass glass-card panel-pad space-y-3.5 border-2 border-dashed border-sky-500/40 hover:border-sky-400/80 transition-all rounded-2xl relative overflow-hidden bg-gradient-to-r from-sky-950/20 via-zinc-950/40 to-emerald-950/20" data-glass>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1 max-w-[650px]">
+            <div className="flex items-center gap-2">
+              <span className="text-[22px]">📤</span>
+              <h3 className="font-[750] text-[15.5px] text-[var(--ink)]">
+                Upload Direto — Enviar Fotos & Vídeos da July
+              </h3>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/25 text-sky-300 border border-sky-500/40">
+                OPÇÃO 2 ATIVA
+              </span>
+            </div>
+            <p className="text-[12.5px] text-[var(--ink-2)] leading-relaxed">
+              Selecione ou arraste as fotos e vídeos da modelo July direto do seu computador. O bot salva no servidor seguro, organiza em <strong>lotes rotativos de 6 em 6</strong>, analisa os cenários com IA e deixa tudo pronto para publicação imediata.
+            </p>
+          </div>
+
+          <label className="btn btn-primary cursor-pointer shrink-0 flex items-center gap-2 px-4 py-2.5 text-[13px] font-[700] shadow-lg shadow-sky-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            <span>{uploading ? "⏳" : "📁"}</span>
+            <span>{uploading ? "Enviando..." : "Selecionar Fotos / Vídeos"}</span>
+            <input
+              type="file"
+              multiple
+              accept="image/*,video/*"
+              className="hidden"
+              disabled={uploading}
+              onChange={handleFileUpload}
+            />
+          </label>
+        </div>
+
+        {uploading && (
+          <div className="space-y-1.5 pt-2 border-t border-[var(--line)]">
+            <div className="flex items-center justify-between text-[11.5px] font-mono text-sky-300">
+              <span className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-sky-400 animate-ping" />
+                Fazendo upload e organizando lote de 6 na memória...
+              </span>
+              <span>{uploadProgress}</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-sky-400 via-purple-400 to-emerald-400 animate-pulse w-full" />
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* 3. BARRA DE AGENDAMENTO EM LOTE NA AGENDA */}
       <div className="p-4 rounded-xl bg-gradient-to-r from-sky-950/40 via-purple-950/30 to-emerald-950/40 border border-sky-500/30 flex flex-col md:flex-row items-center justify-between gap-4">

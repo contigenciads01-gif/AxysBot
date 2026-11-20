@@ -37,7 +37,7 @@ export interface DriveConfig {
 // =========================================================================
 // ACERVO COMPLETO DO GOOGLE DRIVE (PASTA "July" - CONTIGENCIADS01@GMAIL.COM)
 // =========================================================================
-const GOOGLE_DRIVE_FOLDER_POOL: DriveMediaItem[] = [
+export const GOOGLE_DRIVE_FOLDER_POOL: DriveMediaItem[] = [
   {
     id: "july-drive-01",
     type: "photo",
@@ -258,7 +258,7 @@ const GOOGLE_DRIVE_FOLDER_POOL: DriveMediaItem[] = [
 ];
 
 // Estado mestre em memória
-let driveStore: DriveConfig = {
+export let driveStore: DriveConfig = {
   folderUrl: "https://drive.google.com/drive/folders/1D2KCT6zX80zklkHv5mjvlixFeTAfDAXy",
   connected: true,
   folderName: "July (Google Drive · contigenciads01@gmail.com)",

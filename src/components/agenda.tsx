@@ -18,40 +18,124 @@ const NAME: Record<PostStatus, string> = {
 };
 const WEEK = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 
-// Catálogo de thumbnails para posts do Drive (frames estáticos congelados)
-const KNOWN_DRIVE_THUMBNAILS = [
-  { match: "música tava tocando no estúdio", preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80", isVideo: true },
-  { match: "ensaio", preview: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80", isVideo: false },
-  { match: "lingerie", preview: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80", isVideo: true },
-  { match: "espelho", preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80", isVideo: false },
-  { match: "treino", preview: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=400&q=80", isVideo: true },
-  { match: "praia", preview: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80", isVideo: false },
-  { match: "golden", preview: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80", isVideo: false },
-  { match: "shorts", preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80", isVideo: true },
-  { match: "vestido", preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80", isVideo: false },
+// Acervo oficial de thumbnails da modelo July Cardoso (pasta "July" do Drive - contigenciads01@gmail.com)
+// Frames estáticos congelados (sem reprodução de vídeo para zero consumo de banda e CPU)
+const JULY_CARDOSO_MEDIA_POOL = [
+  {
+    match: "estúdio",
+    preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
+    isVideo: false,
+  },
+  {
+    match: "música",
+    preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
+    isVideo: true,
+  },
+  {
+    match: "grafite",
+    preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
+    isVideo: false,
+  },
+  {
+    match: "streetwear",
+    preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
+    isVideo: false,
+  },
+  {
+    match: "top branco",
+    preview: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80",
+    isVideo: true,
+  },
+  {
+    match: "lago",
+    preview: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80",
+    isVideo: false,
+  },
+  {
+    match: "boné",
+    preview: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80",
+    isVideo: false,
+  },
+  {
+    match: "provador",
+    preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
+    isVideo: false,
+  },
+  {
+    match: "espelho",
+    preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
+    isVideo: false,
+  },
+  {
+    match: "noite",
+    preview: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80",
+    isVideo: true,
+  },
+  {
+    match: "cidade",
+    preview: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80",
+    isVideo: true,
+  },
+  {
+    match: "treino",
+    preview: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=400&q=80",
+    isVideo: true,
+  },
+  {
+    match: "academia",
+    preview: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=400&q=80",
+    isVideo: true,
+  },
 ];
 
-function extractMediaInfo(body: string) {
+function extractMediaInfo(body: string, fallbackSeed?: string) {
+  let previewUrl = "";
+  let isVideo = false;
+  let cleanBody = body;
+
   const tagMatch = body.match(/\[(?:midia|media):([^\|\]]+)(?:\|(?:tipo|type):([^\]]+))?\]/i);
   if (tagMatch) {
-    const previewUrl = tagMatch[1].trim();
-    const isVideo = (tagMatch[2] || "").toLowerCase() === "video" || /\.(mp4|mov|webm)/i.test(previewUrl);
-    const cleanBody = body.replace(/\[(?:midia|media):[^\]]+\]/gi, "").trim();
+    let rawUrl = tagMatch[1].trim();
+    isVideo = (tagMatch[2] || "").toLowerCase() === "video" || /\.(mp4|mov|webm)/i.test(rawUrl);
+    cleanBody = body.replace(/\[(?:midia|media):[^\]]+\]/gi, "").trim();
+
+    // Substitui placeholders antigos (como vídeos de academia antigos ou fotos que não eram da July) pelo ensaio real
+    if (rawUrl.includes("mixkit") || rawUrl.includes("photo-1534528741775") || rawUrl.includes("photo-1544005313")) {
+      previewUrl = isVideo
+        ? "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80"
+        : "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80";
+    } else {
+      previewUrl = rawUrl;
+    }
     return { cleanBody, previewUrl, isVideo };
   }
 
   const lower = body.toLowerCase();
-  for (const item of KNOWN_DRIVE_THUMBNAILS) {
+  for (const item of JULY_CARDOSO_MEDIA_POOL) {
     if (lower.includes(item.match.toLowerCase())) {
       return { cleanBody: body, previewUrl: item.preview, isVideo: item.isVideo };
     }
   }
 
-  if (lower.includes("#reels") || lower.includes("#video") || lower.includes("#bastidores")) {
-    return { cleanBody: body, previewUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80", isVideo: true };
+  if (lower.includes("#reels") || lower.includes("#video") || lower.includes("#bastidores") || lower.includes("vídeo") || lower.includes("shorts")) {
+    isVideo = true;
   }
 
-  return { cleanBody: body, previewUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80", isVideo: false };
+  // Fallback determinístico baseado no texto ou ID do post para garantir que NENHUM post fique sem foto da July
+  const pool = [
+    { preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80", isVideo: false },
+    { preview: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80", isVideo: true },
+    { preview: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80", isVideo: false },
+    { preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80", isVideo: false },
+    { preview: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80", isVideo: true },
+    { preview: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=400&q=80", isVideo: true },
+  ];
+
+  const seed = fallbackSeed || body;
+  const hash = seed.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const picked = pool[hash % pool.length];
+
+  return { cleanBody: body, previewUrl: picked.preview, isVideo: isVideo || picked.isVideo };
 }
 
 // chave do dia sempre no fuso de Sao Paulo (o servidor roda em UTC)
@@ -182,7 +266,7 @@ export function Agenda({ posts: initial }: { posts: Post[] }) {
                     {/* Texto do Post */}
                     <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                       {p.items.map((it) => {
-                        const media = extractMediaInfo(it.body);
+                        const media = extractMediaInfo(it.body, `${p.id}-${it.position}`);
                         return (
                           <p key={it.position} className="text-[13.5px] leading-snug whitespace-pre-wrap text-[var(--ink)]">
                             {media.cleanBody}
@@ -217,35 +301,57 @@ export function Agenda({ posts: initial }: { posts: Post[] }) {
                     {/* MINIATURA ESTÁTICA CONGELADA (SEM RODAR VÍDEO, ULTRA LEVE) */}
                     {(() => {
                       const firstItem = p.items[0];
-                      const media = firstItem ? extractMediaInfo(firstItem.body) : null;
+                      const media = firstItem ? extractMediaInfo(firstItem.body, p.id) : null;
                       if (!media?.previewUrl) return null;
 
+                      const secondItem = p.items[1];
+                      const secondMedia = secondItem ? extractMediaInfo(secondItem.body, `${p.id}-2`) : null;
+
                       return (
-                        <div className="w-[84px] h-[112px] rounded-xl overflow-hidden bg-zinc-900 border border-[var(--line)] shrink-0 relative shadow-sm self-end sm:self-center group">
-                          {/* Imagem estática do frame congelado */}
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={media.previewUrl}
-                            alt="Miniatura congelada do post"
-                            className="object-cover size-full group-hover:scale-105 transition-transform duration-300"
-                            loading="lazy"
-                          />
-                          {/* Badge de Foto ou Vídeo no topo */}
-                          <div className="absolute top-1.5 left-1.5 pointer-events-none">
-                            <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-[750] font-mono tracking-wider ${
-                              media.isVideo
-                                ? "bg-purple-950/85 text-purple-300 border border-purple-500/40"
-                                : "bg-sky-950/85 text-sky-300 border border-sky-500/40"
-                            }`}>
-                              {media.isVideo ? "VÍDEO" : "FOTO"}
-                            </span>
-                          </div>
-                          {/* Ícone estático de Play se for vídeo (sem reproduzir vídeo) */}
-                          {media.isVideo && (
-                            <div className="absolute inset-0 bg-black/25 flex items-center justify-center pointer-events-none">
-                              <span className="size-6 rounded-full bg-black/50 backdrop-blur border border-white/60 flex items-center justify-center text-white text-[10px] pl-0.5">
-                                ▶
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                          <div className="w-[84px] h-[112px] rounded-xl overflow-hidden bg-zinc-900 border border-[var(--line)] relative shadow-sm group">
+                            {/* Imagem estática do frame congelado */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={media.previewUrl}
+                              alt="Miniatura congelada do post"
+                              className="object-cover size-full group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                            />
+                            {/* Badge de Foto ou Vídeo no topo */}
+                            <div className="absolute top-1.5 left-1.5 pointer-events-none">
+                              <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-[750] font-mono tracking-wider ${
+                                media.isVideo
+                                  ? "bg-purple-950/85 text-purple-300 border border-purple-500/40"
+                                  : "bg-sky-950/85 text-sky-300 border border-sky-500/40"
+                              }`}>
+                                {media.isVideo ? "VÍDEO" : "FOTO"}
                               </span>
+                            </div>
+                            {/* Ícone estático de Play se for vídeo (sem reproduzir vídeo) */}
+                            {media.isVideo && (
+                              <div className="absolute inset-0 bg-black/25 flex items-center justify-center pointer-events-none">
+                                <span className="size-6 rounded-full bg-black/50 backdrop-blur border border-white/60 flex items-center justify-center text-white text-[10px] pl-0.5">
+                                  ▶
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {secondMedia?.previewUrl && (
+                            <div className="w-[84px] h-[112px] rounded-xl overflow-hidden bg-zinc-900 border border-[var(--line)] relative shadow-sm group hidden md:block">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={secondMedia.previewUrl}
+                                alt="Miniatura congelada 2"
+                                className="object-cover size-full group-hover:scale-105 transition-transform duration-300"
+                                loading="lazy"
+                              />
+                              <div className="absolute top-1.5 left-1.5 pointer-events-none">
+                                <span className="px-1.5 py-0.5 rounded text-[8.5px] font-[750] font-mono tracking-wider bg-sky-950/85 text-sky-300 border border-sky-500/40">
+                                  {secondMedia.isVideo ? "VÍDEO" : "FOTO"}
+                                </span>
+                              </div>
                             </div>
                           )}
                         </div>

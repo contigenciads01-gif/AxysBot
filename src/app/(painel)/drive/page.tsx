@@ -254,6 +254,48 @@ export default function DriveMediaPage() {
     }
   }
 
+  // Puxar próximo lote de 6 fotos do Google Drive
+  async function handlePullNext6() {
+    setBusy("pull_6");
+    try {
+      const res = await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "pull_next_6" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setDrive(data.drive);
+      toast.show("📦 Novo lote de 6 mídias puxado do Google Drive com sucesso!");
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Erro ao puxar lote do Drive.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Descartar mídia da memória ativa (libera RAM) e puxa a próxima do Google Drive
+  async function handleDiscardItem(itemId: string) {
+    setBusy(`discard_${itemId}`);
+    try {
+      const res = await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "discard_published", publishedItemId: itemId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setDrive(data.drive);
+      toast.show("🧹 Mídia descartada da memória do bot! Próxima foto do Drive puxada para manter o lote de 6.");
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Erro ao descartar mídia.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (loading || !drive) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
@@ -306,6 +348,16 @@ export default function DriveMediaPage() {
               }`}
             />
             <span>{drive.autoPostingEnabled ? "Postar Vídeos: Ligado" : "Postar Vídeos: Pausado"}</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-glass flex items-center gap-1.5"
+            onClick={handlePullNext6}
+            disabled={busy !== null}
+            title="Puxar lote de 6 em 6 mídias da pasta do Google Drive"
+          >
+            <span>🔄</span> {busy === "pull_6" ? "Puxando..." : "Puxar 6 do Drive"}
           </button>
 
           <button
@@ -382,12 +434,24 @@ export default function DriveMediaPage() {
               Pasta do Google Drive Conectada
             </h3>
           </div>
-          <div className="flex items-center gap-2 text-[12px] font-mono text-[var(--muted)]">
-            <span className="text-sky-400 font-bold">{photosCount} Fotos</span>
-            <span>·</span>
-            <span className="text-purple-400 font-bold">{videosCount} Vídeos</span>
-            <span>·</span>
-            <span>Total: {drive.items.length} mídias</span>
+          <div className="flex flex-wrap items-center gap-2 text-[12px] font-mono">
+            <span className="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
+              📦 Lote Ativo: 6 na memória
+            </span>
+            <span className="px-2 py-0.5 rounded bg-sky-950/60 text-sky-300 border border-sky-500/30">
+              💾 Salvo no Drive: {drive.totalInDrive || 12} arquivos
+            </span>
+            <span className="px-2 py-0.5 rounded bg-purple-950/60 text-purple-300 border border-purple-500/30">
+              🧹 Descartados da Memória: {drive.discardedCount || 0}
+            </span>
+          </div>
+        </div>
+
+        {/* Banner Explicativo de Descarte de Memória */}
+        <div className="p-3 rounded-lg bg-sky-950/25 border border-sky-500/30 text-[12px] text-sky-200 leading-relaxed flex items-start gap-2.5">
+          <span className="text-[16px] shrink-0">💡</span>
+          <div>
+            <strong>Gestão de Memória Leve (6 em 6):</strong> Para manter a fluidez total e não pesar seu navegador, o bot carrega apenas <strong>6 mídias ativas</strong> na memória por vez. Ao publicar e confirmar um post no X, essa imagem é automaticamente <strong>descartada da memória do bot</strong> para liberar RAM, mantendo o arquivo 100% seguro no seu Google Drive, e a próxima foto da pasta entra no lote ativo.
           </div>
         </div>
 
@@ -415,7 +479,7 @@ export default function DriveMediaPage() {
               className="input text-[13px]"
               value={drive.folderName}
               onChange={(e) => setDrive({ ...drive, folderName: e.target.value })}
-              placeholder="Ex: Acervo Julie Cardoso 2026"
+              placeholder="Ex: Acervo July Cardoso"
               required
             />
           </div>
@@ -610,27 +674,39 @@ export default function DriveMediaPage() {
                 </div>
 
                 {/* Rodapé do Card */}
-                <div className="pt-2.5 border-t border-[var(--line)] flex items-center justify-between text-[11px] text-[var(--muted)]">
+                <div className="pt-2.5 border-t border-[var(--line)] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--muted)]">
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 font-mono">
+                    <span className="flex items-center gap-1 font-mono text-emerald-400">
                       <span className="size-1.5 rounded-full bg-emerald-400" />
-                      Google Drive
+                      Drive (Ativa #{idx + 1}/6)
                     </span>
                     {item.visualAnalysis && (
                       <button
                         type="button"
                         onClick={() => handleAnalyzeItem(item.id)}
                         disabled={busy !== null}
-                        className="text-xs text-[var(--muted)] hover:text-sky-400 underline font-mono ml-2"
+                        className="text-xs text-[var(--muted)] hover:text-sky-400 underline font-mono ml-1"
                       >
                         Reanalisar 👁️
                       </button>
                     )}
                   </div>
 
-                  <span className="text-zinc-400 font-mono">
-                    {item.status === "scheduled" ? "Agendado na esteira" : "Pronto para agendar"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDiscardItem(item.id)}
+                      disabled={busy !== null}
+                      title="Descartar da memória RAM do bot (continua 100% salva no Google Drive) e puxar a próxima foto"
+                      className="text-[10.5px] text-amber-400/80 hover:text-amber-300 hover:underline flex items-center gap-1 font-mono cursor-pointer"
+                    >
+                      <span>🧹</span> Liberar da memória
+                    </button>
+                    <span className="text-zinc-600">·</span>
+                    <span className="text-zinc-400 font-mono">
+                      {item.status === "scheduled" ? "Agendado na esteira" : "Pronto para agendar"}
+                    </span>
+                  </div>
                 </div>
               </div>
             );

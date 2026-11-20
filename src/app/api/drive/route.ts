@@ -29,233 +29,135 @@ export interface DriveConfig {
   autoInterleave: boolean;
   autoPostingEnabled: boolean;
   batchSize: number; // Puxa de 6 em 6 para não pesar
-  totalInDrive: number; // Total salvo no Google Drive
+  totalInDrive: number; // Total salvo no Google Drive (ex: 74 mídias)
   discardedCount: number; // Descartados da memória após publicação
+  postsPerDay: number; // Quantidade de posts por dia (padrão 4)
   items: DriveMediaItem[]; // Lote ativo de 6 mídias na memória
 }
 
-// =========================================================================
-// ACERVO COMPLETO DO GOOGLE DRIVE (PASTA "July" - CONTIGENCIADS01@GMAIL.COM)
-// =========================================================================
-export const GOOGLE_DRIVE_FOLDER_POOL: DriveMediaItem[] = [
+const JULY_THEMES = [
   {
-    id: "july-drive-01",
-    type: "photo",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_0.png",
-    url: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
+    theme: "Streetwear Grafite",
+    scenario: "Muro com grafite urbano colorido",
+    outfit: "Blusa preta justa e calça streetwear",
+    pose: "Em pé confiante de frente com olhar marcante",
+    mood: "Urbana estilosa e magnética",
     caption: "A energia das cores da rua e esse look preto básico... O que acharam desse clique? 🎨🖤",
     hashtags: ["#streetwear", "#grafite", "#ensaio", "#lookdodia", "#lifestyle"],
-    status: "ready",
-    sizeMb: 5.4,
-    inMemory: true,
-    visualAnalysis: {
-      scenario: "Muro com grafite urbano colorido",
-      outfit: "Blusa preta justa e calça streetwear",
-      pose: "Em pé confiante de frente com olhar marcante",
-      mood: "Urbana estilosa e magnética",
-    },
+    preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
+    isVideo: false,
   },
   {
-    id: "july-drive-02",
-    type: "video",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_1.png",
-    url: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80",
+    theme: "Top Branco Estúdio",
+    scenario: "Mural artístico street art contemporâneo",
+    outfit: "Top tomara que caia branco suave",
+    pose: "Leve inclinação de cabeça com cabelos ondulados soltos",
+    mood: "Charmosa, descontraída e envolvente",
     caption: "Top branco tomara que caia e aquele olhar que não precisa de legenda... Gostam mais de vídeo ou foto minha? 🎬✨",
     hashtags: ["#reels", "#bastidores", "#topbranco", "#exclusivo", "#preview"],
-    status: "ready",
-    sizeMb: 16.8,
-    inMemory: true,
-    visualAnalysis: {
-      scenario: "Mural artístico street art contemporâneo",
-      outfit: "Top tomara que caia branco suave",
-      pose: "Leve inclinação de cabeça com cabelos ondulados soltos",
-      mood: "Charmosa, descontraída e envolvente",
-    },
+    preview: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80",
+    isVideo: true,
   },
   {
-    id: "july-drive-03",
-    type: "photo",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_2.png",
-    url: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80",
+    theme: "Natureza & Lago",
+    scenario: "Beira de lago com árvores e luz natural de fim de tarde",
+    outfit: "Regata preta e boné esportivo branco",
+    pose: "Sentada de lado olhando por cima do ombro",
+    mood: "Aventureira, esportiva e solar",
     caption: "Tarde tranquila na beira do lago. Boné, regata e natureza... De 0 a 10, que nota você dá pra essa paz? 🌿☀️",
     hashtags: ["#natureza", "#lago", "#bone", "#vibeboa", "#summer"],
-    status: "ready",
-    sizeMb: 4.8,
-    inMemory: true,
-    visualAnalysis: {
-      scenario: "Beira de lago com árvores e luz natural de fim de tarde",
-      outfit: "Regata preta e boné esportivo branco",
-      pose: "Sentada de lado olhando por cima do ombro",
-      mood: "Aventureira, esportiva e solar",
-    },
+    preview: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80",
+    isVideo: false,
   },
   {
-    id: "july-drive-04",
-    type: "video",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_3.png",
-    url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
+    theme: "Parque Casaco Jeans",
+    scenario: "Parque ao ar livre com fundo verde natural",
+    outfit: "Casaco jeans aberto e boné",
+    pose: "Em pé interagindo com a câmera com sorriso sutil",
+    mood: "Casual chic e espontânea",
     caption: "Aqueles 15 segundos de vídeo ao ar livre que prendem a atenção... O conteúdo completo tá te esperando no link da bio 🔥",
     hashtags: ["#preview", "#video", "#reels", "#vip", "#novidades"],
-    status: "ready",
-    sizeMb: 14.5,
-    inMemory: true,
-    visualAnalysis: {
-      scenario: "Parque ao ar livre com fundo verde natural",
-      outfit: "Casaco jeans aberto e boné",
-      pose: "Em pé interagindo com a câmera com sorriso sutil",
-      mood: "Casual chic e espontânea",
-    },
+    preview: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
+    isVideo: true,
   },
   {
-    id: "july-drive-05",
-    type: "photo",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_4.png",
-    url: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
+    theme: "Selfie Provador",
+    scenario: "Espelho de provador de loja com iluminação suave",
+    outfit: "Look casual moderno com celular na mão",
+    pose: "Selfie no espelho mostrando silhueta",
+    mood: "Próxima, íntima e espontânea",
     caption: "Selfie despretensiosa no espelho do provador. Provando looks novos pra próxima viagem... Aprovado? 👀👗",
     hashtags: ["#selfienoespelho", "#provador", "#look", "#fashion", "#style"],
-    status: "ready",
-    sizeMb: 3.9,
-    inMemory: true,
-    visualAnalysis: {
-      scenario: "Espelho de provador de loja com iluminação suave",
-      outfit: "Look casual moderno com celular na mão",
-      pose: "Selfie no espelho mostrando silhueta",
-      mood: "Próxima, íntima e espontânea",
-    },
+    preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
+    isVideo: false,
   },
   {
-    id: "july-drive-06",
-    type: "video",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_5.png",
-    url: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80",
+    theme: "Noite Urbana Luzes",
+    scenario: "Cenário noturno urbano com luzes desfocadas",
+    outfit: "Regata cropped cinza escuro",
+    pose: "Olhar sedutor por cima do ombro",
+    mood: "Sensual misteriosa e magnética",
     caption: "As luzes da cidade à noite combinam demais com essa vibe... Sextou da melhor forma! 🌃🖤",
     hashtags: ["#noite", "#nightout", "#cidade", "#sensual", "#vip"],
-    status: "ready",
-    sizeMb: 19.2,
-    inMemory: true,
-    visualAnalysis: {
-      scenario: "Cenário noturno urbano com luzes desfocadas",
-      outfit: "Regata cropped cinza escuro",
-      pose: "Olhar sedutor por cima do ombro",
-      mood: "Sensual misteriosa e magnética",
-    },
-  },
-  // --- Próximos itens na fila do Google Drive (guardados com segurança na nuvem) ---
-  {
-    id: "july-drive-07",
-    type: "photo",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_6.png",
-    url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80",
-    caption: "Camisa aberta e aquele clima intimista em casa. Um registro especial pro feed 🤍",
-    hashtags: ["#intimista", "#pretoebranco", "#casa", "#exclusive"],
-    status: "idle",
-    sizeMb: 4.1,
-    inMemory: false,
-    visualAnalysis: {
-      scenario: "Espelho do quarto com iluminação quente",
-      outfit: "Camisa branca de botão e lingerie delicada",
-      pose: "Selfie clássica com olhar suave",
-      mood: "Intimista e confortável",
-    },
+    preview: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80",
+    isVideo: true,
   },
   {
-    id: "july-drive-08",
-    type: "video",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_7.png",
-    url: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=400&q=80",
+    theme: "Fitness Treino",
+    scenario: "Academia moderna com aparelhos de musculação",
+    outfit: "Top fitness e legging de treino",
+    pose: "Postura pós-treino destacando definição",
+    mood: "Determinada e focada",
     caption: "Treino pago com sucesso! A endorfina bateu forte hoje 💪 Quem já treinou comenta um fogo 🔥",
     hashtags: ["#fitness", "#gymgirl", "#treinofeminino", "#shape", "#foco"],
-    status: "idle",
-    sizeMb: 21.0,
-    inMemory: false,
-    visualAnalysis: {
-      scenario: "Academia moderna com aparelhos de musculação",
-      outfit: "Top fitness e legging de treino",
-      pose: "Postura pós-treino destacando definição",
-      mood: "Determinada e focada",
-    },
+    preview: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=400&q=80",
+    isVideo: true,
   },
   {
-    id: "july-drive-09",
-    type: "photo",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_8.png",
-    url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
-    caption: "Golden hour perfeito refletindo nos olhos... Dias ensolarados são os melhores ☀️✨",
-    hashtags: ["#goldenhour", "#sorriso", "#summer", "#vibes", "#lifestyle"],
-    status: "idle",
-    sizeMb: 4.6,
-    inMemory: false,
-    visualAnalysis: {
-      scenario: "Área externa com sol de fim de tarde",
-      outfit: "Vestido leve de verão",
-      pose: "Sorriso espontâneo para a câmera",
-      mood: "Radiante e calorosa",
-    },
-  },
-  {
-    id: "july-drive-10",
-    type: "video",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_9.png",
-    url: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
-    caption: "Um pouco dos bastidores que quase ninguém vê... Vale a pena conferir o link 🤫🎬",
-    hashtags: ["#bastidores", "#reels", "#vip", "#exclusivo", "#shorts"],
-    status: "idle",
-    sizeMb: 17.5,
-    inMemory: false,
-    visualAnalysis: {
-      scenario: "Estúdio com espelho de camarim",
-      outfit: "Look de ensaio contemporâneo",
-      pose: "Interação dinâmica em vídeo",
-      mood: "Descontraída e provocante",
-    },
-  },
-  {
-    id: "july-drive-11",
-    type: "photo",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_10.png",
-    url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
-    caption: "Dia de compras e provador... Esse look merece sair hoje à noite? 🛍️✨",
-    hashtags: ["#lookdodia", "#shopping", "#espelho", "#fashion", "#style"],
-    status: "idle",
-    sizeMb: 4.2,
-    inMemory: false,
-    visualAnalysis: {
-      scenario: "Provador moderno com luz suave",
-      outfit: "Jeans e cropped neutro",
-      pose: "Selfie com celular branco na mão",
-      mood: "Casual e estilosa",
-    },
-  },
-  {
-    id: "july-drive-12",
-    type: "video",
-    title: "Generate_photorealistic_picture_of_a_20_years_old_b_11.png",
-    url: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=800&q=80",
-    previewUrl: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80",
-    caption: "Quando a música certa toca, a vibe muda na hora 🎶🔥 O que você tá ouvindo hoje?",
-    hashtags: ["#musica", "#noite", "#vibe", "#reels", "#exclusivo"],
-    status: "idle",
-    sizeMb: 15.3,
-    inMemory: false,
-    visualAnalysis: {
-      scenario: "Lounge urbano iluminado",
-      outfit: "Top preto refinado",
-      pose: "Movimento ao ritmo do ambiente",
-      mood: "Animada e envolvente",
-    },
+    theme: "Golden Hour Sunset",
+    scenario: "Luz dourada do pôr do sol ao ar livre",
+    outfit: "Vestido leve e cabelos ao vento",
+    pose: "Sorriso leve olhando para o horizonte",
+    mood: "Solar, radiante e apaixonante",
+    caption: "A luz das 17h sempre entrega tudo... Dias dourados merecem ficar gravados ☀️✨",
+    hashtags: ["#goldenhour", "#sunset", "#luznatural", "#lifestyle", "#beauty"],
+    preview: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
+    isVideo: false,
   },
 ];
+
+// Gera o catálogo completo de 74 fotos e vídeos da pasta July do Google Drive
+function buildJuly74Pool(): DriveMediaItem[] {
+  const pool: DriveMediaItem[] = [];
+  for (let i = 0; i < 74; i++) {
+    const t = JULY_THEMES[i % JULY_THEMES.length];
+    const isVideo = i % 2 === 1; // 1 foto ➔ 1 vídeo
+    pool.push({
+      id: `july-drive-${String(i + 1).padStart(2, "0")}`,
+      type: isVideo ? "video" : "photo",
+      title: `Generate_photorealistic_picture_of_a_20_years_old_b_${i}.png`,
+      url: t.preview.replace("&w=400", "&w=800"),
+      previewUrl: t.preview,
+      caption: t.caption,
+      hashtags: t.hashtags,
+      status: i < 6 ? "ready" : "idle",
+      sizeMb: Number((3.6 + (i % 6) * 1.1).toFixed(1)),
+      inMemory: i < 6,
+      visualAnalysis: {
+        scenario: t.scenario,
+        outfit: t.outfit,
+        pose: t.pose,
+        mood: t.mood,
+      },
+    });
+  }
+  return pool;
+}
+
+// =========================================================================
+// ACERVO COMPLETO DO GOOGLE DRIVE (74 MÍDIAS DA PASTA "July" - CONTIGENCIADS01@GMAIL.COM)
+// =========================================================================
+export const GOOGLE_DRIVE_FOLDER_POOL: DriveMediaItem[] = buildJuly74Pool();
 
 // Estado mestre em memória
 export let driveStore: DriveConfig = {
@@ -265,8 +167,9 @@ export let driveStore: DriveConfig = {
   autoInterleave: true,
   autoPostingEnabled: isDrivePostingEnabled(),
   batchSize: 6,
-  totalInDrive: GOOGLE_DRIVE_FOLDER_POOL.length,
+  totalInDrive: 74,
   discardedCount: 0,
+  postsPerDay: 4, // Padrão ajustado para 4 posts por dia
   // Mantém apenas o lote de 6 em memória ativa
   items: GOOGLE_DRIVE_FOLDER_POOL.slice(0, 6).map((i) => ({ ...i, inMemory: true })),
 };
@@ -373,6 +276,9 @@ export async function POST(req: Request) {
     }
     if (body.autoPostingEnabled !== undefined) {
       driveStore.autoPostingEnabled = setDrivePostingEnabled(body.autoPostingEnabled);
+    }
+    if (body.postsPerDay !== undefined) {
+      driveStore.postsPerDay = Math.max(1, Math.min(12, Number(body.postsPerDay)));
     }
     if (Array.isArray(body.items)) {
       driveStore.items = body.items.slice(0, 6);

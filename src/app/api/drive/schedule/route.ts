@@ -3,6 +3,41 @@ import { requireSession, fail } from "@/lib/http";
 import { getAccount, createPost } from "@/lib/data";
 import { DriveMediaItem } from "../route";
 
+// Horários de pico humano durante o dia (fuso horário biológico natural)
+const HUMAN_DAILY_SLOTS: Record<number, { h: number; m: number }[]> = {
+  1: [{ h: 18, m: 15 }],
+  2: [
+    { h: 12, m: 30 },
+    { h: 19, m: 45 },
+  ],
+  3: [
+    { h: 11, m: 15 },
+    { h: 16, m: 30 },
+    { h: 21, m: 15 },
+  ],
+  4: [
+    { h: 10, m: 15 }, // Manhã (pós despertar)
+    { h: 14, m: 30 }, // Pós almoço
+    { h: 18, m: 45 }, // Fim de tarde / Volta pra casa
+    { h: 22, m: 20 }, // Noite / Antes de dormir
+  ],
+  5: [
+    { h: 9, m: 30 },
+    { h: 12, m: 45 },
+    { h: 15, m: 40 },
+    { h: 18, m: 50 },
+    { h: 22, m: 15 },
+  ],
+  6: [
+    { h: 9, m: 15 },
+    { h: 11, m: 45 },
+    { h: 14, m: 20 },
+    { h: 17, m: 15 },
+    { h: 19, m: 45 },
+    { h: 22, m: 30 },
+  ],
+};
+
 export async function POST(req: Request) {
   const denied = await requireSession();
   if (denied) return denied;
@@ -17,6 +52,7 @@ export async function POST(req: Request) {
       items?: DriveMediaItem[];
       startDateTime?: string;
       intervalHours?: number;
+      postsPerDay?: number;
     };
 
     const items = body.items || [];
@@ -24,18 +60,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Nenhum item selecionado para agendamento." }, { status: 400 });
     }
 
-    const intervalHours = Number(body.intervalHours) || 4;
-    let baseTime = body.startDateTime ? new Date(body.startDateTime) : new Date(Date.now() + 60 * 60 * 1000); // 1h à frente por padrão
+    const postsPerDay = Math.max(1, Math.min(12, Number(body.postsPerDay) || 4));
+    const slots = HUMAN_DAILY_SLOTS[postsPerDay] || HUMAN_DAILY_SLOTS[4];
 
-    if (Number.isNaN(baseTime.getTime()) || baseTime.getTime() < Date.now()) {
-      baseTime = new Date(Date.now() + 60 * 60 * 1000);
-    }
+    // Data base inicial
+    let baseDate = body.startDateTime ? new Date(body.startDateTime) : new Date();
+    if (Number.isNaN(baseDate.getTime())) baseDate = new Date();
 
     const createdIds: string[] = [];
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      const scheduledTime = new Date(baseTime.getTime() + i * intervalHours * 60 * 60 * 1000);
+
+      // Cálculo de dia e slot do dia
+      const dayOffset = Math.floor(i / postsPerDay);
+      const slotIdx = i % postsPerDay;
+      const slot = slots[slotIdx] || { h: 10 + slotIdx * 3, m: 15 };
+
+      const scheduledTime = new Date(baseDate);
+      scheduledTime.setDate(scheduledTime.getDate() + dayOffset);
+
+      // Jitter humano (+/- 0 a 6 min) para o algoritmo do X não detectar padrão robótico
+      const jitter = ((i * 3) % 7) - 3;
+      scheduledTime.setHours(slot.h, Math.max(0, Math.min(59, slot.m + jitter)), 0, 0);
+
+      // Se o horário calculado de hoje já passou, joga pro dia seguinte no mesmo slot
+      if (scheduledTime.getTime() < Date.now() + 5 * 60 * 1000) {
+        scheduledTime.setDate(scheduledTime.getDate() + 1);
+      }
 
       // Monta o texto do post com legenda, hashtags e anexo de mídia congelada
       const tagsString = (item.hashtags || []).join(" ");
@@ -55,6 +107,8 @@ export async function POST(req: Request) {
       ok: true,
       count: createdIds.length,
       postIds: createdIds,
+      postsPerDay,
+      daysCovered: Math.ceil(createdIds.length / postsPerDay),
     });
   } catch (e) {
     return fail(e);

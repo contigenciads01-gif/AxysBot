@@ -27,6 +27,22 @@ export default function DriveMediaPage() {
     return d.toISOString().slice(0, 16);
   });
   const [intervalHours, setIntervalHours] = useState(4);
+  const [postsPerDay, setPostsPerDay] = useState(4); // Quantidade de posts por dia (padrão 4)
+
+  async function handlePostsPerDayChange(n: number) {
+    setPostsPerDay(n);
+    if (drive) setDrive({ ...drive, postsPerDay: n });
+    try {
+      await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postsPerDay: n }),
+      });
+      toast.show(`⚡ Frequência ajustada: ${n} posts por dia no piloto automático!`);
+    } catch {
+      // silencioso
+    }
+  }
 
   // Carrega configuração e acervo do Drive
   async function loadDrive() {
@@ -36,6 +52,9 @@ export default function DriveMediaPage() {
       const data = await res.json();
       if (data.ok && data.drive) {
         setDrive(data.drive);
+        if (data.drive.postsPerDay) {
+          setPostsPerDay(data.drive.postsPerDay);
+        }
       }
     } catch {
       toast.show("Erro ao carregar acervo do Drive.");
@@ -241,6 +260,7 @@ export default function DriveMediaPage() {
         body: JSON.stringify({
           items: analyzedItems,
           startDateTime,
+          postsPerDay,
           intervalHours,
         }),
       });
@@ -251,7 +271,7 @@ export default function DriveMediaPage() {
       const updated = analyzedItems.map((i) => ({ ...i, status: "scheduled" as const }));
       setDrive({ ...drive, items: updated });
 
-      toast.show(`🚀 ${data.count} posts programados com legendas dedicadas por cenário e roupa na Agenda do X!`);
+      toast.show(`🚀 ${data.count} posts programados a ${postsPerDay} posts/dia com legendas dedicadas na Agenda do X!`);
     } catch (e) {
       toast.show(e instanceof Error ? e.message : "Erro ao programar posts.");
     } finally {
@@ -558,7 +578,10 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
               📦 Lote Ativo: 6 na memória
             </span>
             <span className="px-2 py-0.5 rounded bg-sky-950/60 text-sky-300 border border-sky-500/30">
-              💾 Salvo no Drive: {drive.totalInDrive || 12} arquivos
+              💾 Salvo no Drive: {drive.totalInDrive || 74} fotos & vídeos da July
+            </span>
+            <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/30 font-bold">
+              ⚡ Ritmo: {postsPerDay} posts/dia
             </span>
             <span className="px-2 py-0.5 rounded bg-purple-950/60 text-purple-300 border border-purple-500/30">
               🧹 Descartados da Memória: {drive.discardedCount || 0}
@@ -699,18 +722,19 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
           </div>
 
           <div>
-            <span className="text-[11px] text-[var(--muted)] block">Intervalo:</span>
+            <span className="text-[11px] font-[650] text-sky-300 block">Posts por Dia:</span>
             <select
-              className="input text-[12px] h-9 mt-0.5"
-              value={intervalHours}
-              onChange={(e) => setIntervalHours(Number(e.target.value))}
+              className="input text-[12px] h-9 mt-0.5 font-bold text-sky-400 bg-zinc-900 border-sky-500/50 cursor-pointer"
+              value={postsPerDay}
+              onChange={(e) => handlePostsPerDayChange(Number(e.target.value))}
             >
-              <option value={2}>A cada 2 horas</option>
-              <option value={3}>A cada 3 horas</option>
-              <option value={4}>A cada 4 horas (Recomendado)</option>
-              <option value={6}>A cada 6 horas</option>
-              <option value={8}>A cada 8 horas</option>
-              <option value={12}>A cada 12 horas</option>
+              <option value={1}>1 post por dia</option>
+              <option value={2}>2 posts por dia</option>
+              <option value={3}>3 posts por dia</option>
+              <option value={4}>4 posts por dia (Recomendado)</option>
+              <option value={5}>5 posts por dia</option>
+              <option value={6}>6 posts por dia</option>
+              <option value={8}>8 posts por dia</option>
             </select>
           </div>
 
@@ -726,6 +750,39 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
           </div>
         </div>
       </div>
+
+      {/* BANNER DINÂMICO DE PROJEÇÃO DE POSTS POR DIA */}
+      {(() => {
+        const total = drive.totalInDrive || 74;
+        const days = (total / postsPerDay).toFixed(1).replace(".0", "");
+        return (
+          <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-950/30 via-sky-950/25 to-purple-950/30 border border-emerald-500/30 text-[12.5px] text-[var(--ink)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="text-[20px]">📊</span>
+              <div>
+                <span className="font-[750] text-emerald-300 text-[13.5px]">
+                  {total} mídias no acervo ÷ {postsPerDay} posts/dia = {days} dias de conteúdo garantido no X!
+                </span>
+                <span className="text-[var(--ink-2)] block text-[12px] mt-0.5">
+                  Horários humanos de pico (fuso natural):{" "}
+                  <strong className="text-sky-300 font-mono">
+                    {postsPerDay === 1 && "18:15"}
+                    {postsPerDay === 2 && "12:30 · 19:45"}
+                    {postsPerDay === 3 && "11:15 · 16:30 · 21:15"}
+                    {postsPerDay === 4 && "10:15 · 14:30 · 18:45 · 22:20"}
+                    {postsPerDay === 5 && "09:30 · 12:45 · 15:40 · 18:50 · 22:15"}
+                    {postsPerDay >= 6 && "09:15 · 11:45 · 14:20 · 17:15 · 19:45 · 22:30"}
+                  </strong>
+                </span>
+              </div>
+            </div>
+
+            <div className="text-[11.5px] font-mono text-emerald-300 bg-emerald-950/60 px-3 py-1.5 rounded-lg border border-emerald-500/40 font-bold shrink-0">
+              ⚡ Piloto Automático Ativo
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 4. LISTA DE ITENS INTERCALADOS (EDIÇÃO 1 A 1) */}
       <section className="space-y-3.5">

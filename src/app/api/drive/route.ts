@@ -37,145 +37,22 @@ export interface DriveConfig {
   items: DriveMediaItem[]; // Lote ativo de 6 mídias na memória
 }
 
-const JULY_THEMES = [
-  {
-    theme: "Streetwear Grafite Sexy",
-    scenario: "Muro urbano grafitado com iluminação de recorte",
-    outfit: "Top cropped preto justo decotado e calça streetwear cintura baixa",
-    pose: "Em pé provocante com olhar penetrante e mão na cintura",
-    mood: "Sensualidade urbana, ousada e magnética",
-    caption: "Aquele cropped preto coladinho que não esconde nada... O que achou desse decote? Comenta antes que eu apague 🔥👀",
-    hashtags: ["#streetwear", "#sexy", "#decote", "#ensaio", "#lifestyle", "#vip"],
-    preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
-    isVideo: false,
-  },
-  {
-    theme: "Top Branco Estúdio Ousado",
-    scenario: "Estúdio intimista com iluminação suave",
-    outfit: "Top tomara que caia branco justo sem sutiã",
-    pose: "Leve inclinação sensual de cabeça com lábios entreabertos e cabelos ondulados soltos",
-    mood: "Provocante, íntima e cheia de desejo",
-    caption: "Top tomara que caia bem justinho e aquele olhar que dispensa legenda... O que você faria se eu te mandasse esse vídeo na DM agora? 🎬🔥 Conteúdo completo no link da bio!",
-    hashtags: ["#reels", "#bastidores", "#topbranco", "#exclusivo", "#preview", "#sensual"],
-    preview: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80",
-    isVideo: true,
-  },
-  {
-    theme: "Natureza & Biquíni Lago",
-    scenario: "Beira de lago com luz natural quente dourando a pele",
-    outfit: "Regata decotada cavada e biquíni preto por baixo",
-    pose: "Sentada de lado valorizando a curvatura do quadril e olhar sedutor por cima do ombro",
-    mood: "Sensual solar, livre e provocante",
-    caption: "Dourada pelo sol e essa vibe que valorizou cada centímetro... De frente ou de costas, qual foto desse ensaio te desconcentrou mais? ☀️🔥",
-    hashtags: ["#natureza", "#lago", "#sensual", "#summer", "#bikini", "#curvas"],
-    preview: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80",
-    isVideo: false,
-  },
-  {
-    theme: "Parque Casaco Jeans & Decote",
-    scenario: "Parque natural ao ar livre com fundo desfocado",
-    outfit: "Casaco jeans aberto mostrando lingerie rendada preta",
-    pose: "Em pé provocante entreabrindo o casaco com sorriso misterioso",
-    mood: "Ousada, provocante e irresistível",
-    caption: "Aqueles 15 segundos de vídeo com esse casaco aberto que vão te fazer pausar várias vezes... O que tem por baixo tá sem censura no link da bio 😈🔥",
-    hashtags: ["#preview", "#video", "#reels", "#vip", "#lingerie", "#exclusivo"],
-    preview: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
-    isVideo: true,
-  },
-  {
-    theme: "Selfie Provador Lingerie Sexy",
-    scenario: "Espelho de provador com iluminação suave direcionada",
-    outfit: "Look provocante com decote profundo e transparência",
-    pose: "Selfie sensual no espelho marcando silhueta de corpo inteiro e curvas",
-    mood: "Safada, íntima e irresistível",
-    caption: "Confesso que esse espelho entrega mais do que deveria... Essa transparência e esse ângulo que vocês não cansam de pedir na DM 🔥 O que achou desse decote? 👀",
-    hashtags: ["#selfienoespelho", "#provador", "#sexy", "#lingerie", "#vip", "#corpo"],
-    preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
-    isVideo: false,
-  },
-  {
-    theme: "Noite Urbana Sensualidade Fatal",
-    scenario: "Cenário noturno com luzes da cidade e penumbra sedutora",
-    outfit: "Vestido curto preto justo com fenda lateral e decote acentuado",
-    pose: "Olhar fatal e sedutor por cima do ombro com costas nuas",
-    mood: "Sensual misteriosa, magnética e picante",
-    caption: "As luzes da cidade à noite e esse pretinho que marca absolutamente tudo... Sextou daquele jeito bem safado 🌃🔥 Quer ver a versão pro feed VIP?",
-    hashtags: ["#noite", "#nightout", "#sensual", "#vestidocurto", "#vip", "#mulhergostosa"],
-    preview: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80",
-    isVideo: true,
-  },
-  {
-    theme: "Fitness Treino Curvas & Bumbum",
-    scenario: "Academia moderna com iluminação dramática",
-    outfit: "Top decotado justo e shortinho de lycra coladinho",
-    pose: "Pose pós-treino destacando cintura fina, bumbum empinado e pernas torneadas",
-    mood: "Gostosa, sarada e provocante",
-    caption: "Treino pago, shape encaixado e esse shortinho fitness desenhando tudo... O calor aqui subiu de verdade 🔥 Quem aí ama uma mulher sarada e gostosa?",
-    hashtags: ["#fitness", "#gymgirl", "#shape", "#bumbumnanuca", "#sexy", "#foco"],
-    preview: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=400&q=80",
-    isVideo: true,
-  },
-  {
-    theme: "Golden Hour Pôr do Sol Transparência",
-    scenario: "Luz dourada do pôr do sol tocando a pele suavemente",
-    outfit: "Vestido leve com transparência e decote generoso",
-    pose: "Olhar sedutor sorrindo de lado com vento levantando o vestido",
-    mood: "Solar, altamente sensual e apaixonante",
-    caption: "A luz das 17h iluminando minhas curvas e esse tecido leve transparente... Dias quentes merecem pouca roupa ☀️🔥 De 0 a 10, que nota você dá pra essa visão?",
-    hashtags: ["#goldenhour", "#sunset", "#luznatural", "#transparencia", "#sexy", "#curvas"],
-    preview: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
-    isVideo: false,
-  },
-];
+export const GOOGLE_DRIVE_FOLDER_POOL: DriveMediaItem[] = [];
 
-// Gera o catálogo completo de 74 fotos e vídeos da pasta July do Google Drive
-function buildJuly74Pool(): DriveMediaItem[] {
-  const pool: DriveMediaItem[] = [];
-  for (let i = 0; i < 74; i++) {
-    const t = JULY_THEMES[i % JULY_THEMES.length];
-    const isVideo = i % 2 === 1; // 1 foto ➔ 1 vídeo
-    pool.push({
-      id: `july-drive-${String(i + 1).padStart(2, "0")}`,
-      type: isVideo ? "video" : "photo",
-      title: `Generate_photorealistic_picture_of_a_20_years_old_b_${i}.png`,
-      url: t.preview.replace("&w=400", "&w=800"),
-      previewUrl: t.preview,
-      caption: t.caption,
-      hashtags: t.hashtags,
-      status: i < 6 ? "ready" : "idle",
-      sizeMb: Number((3.6 + (i % 6) * 1.1).toFixed(1)),
-      inMemory: i < 6,
-      metadataCleaned: false,
-      visualAnalysis: {
-        scenario: t.scenario,
-        outfit: t.outfit,
-        pose: t.pose,
-        mood: t.mood,
-      },
-    });
-  }
-  return pool;
-}
-
-// =========================================================================
-// ACERVO COMPLETO DO GOOGLE DRIVE (74 MÍDIAS DA PASTA "July" - CONTIGENCIADS01@GMAIL.COM)
-// =========================================================================
-export const GOOGLE_DRIVE_FOLDER_POOL: DriveMediaItem[] = buildJuly74Pool();
-
-// Estado mestre em memória
+// Estado mestre em memória (inicia limpo sem modelos de exemplo falsos)
 export let driveStore: DriveConfig = {
-  folderUrl: "https://drive.google.com/drive/folders/1D2KCT6zX80zklkHv5mjvlixFeTAfDAXy",
+  folderUrl: "https://drive.google.com/drive/folders/1D2KCT6zX80zkIkhv5mjvIixFeTAfDAXy",
   connected: true,
   folderName: "July (Google Drive · contigenciads01@gmail.com)",
   autoInterleave: true,
   autoPostingEnabled: isDrivePostingEnabled(),
   batchSize: 6,
-  totalInDrive: 74,
+  totalInDrive: 0,
   discardedCount: 0,
   postsPerDay: 4, // Padrão ajustado para 4 posts por dia
   customPrompt: "Tom provocante, picante e sexy da modelo July, destacando decote, lingerie/biquíni, olhar sedutor e curvas femininas, com chamada irresistível para a bio e direct 🔥",
-  // Mantém apenas o lote de 6 em memória ativa
-  items: GOOGLE_DRIVE_FOLDER_POOL.slice(0, 6).map((i) => ({ ...i, inMemory: true })),
+  // Lote ativo de mídias anexadas pelo usuário
+  items: [],
 };
 
 /**

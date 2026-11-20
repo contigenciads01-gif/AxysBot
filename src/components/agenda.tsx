@@ -18,124 +18,27 @@ const NAME: Record<PostStatus, string> = {
 };
 const WEEK = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 
-// Acervo oficial de thumbnails da modelo July Cardoso (pasta "July" do Drive - contigenciads01@gmail.com)
-// Frames estáticos congelados (sem reprodução de vídeo para zero consumo de banda e CPU)
-const JULY_CARDOSO_MEDIA_POOL = [
-  {
-    match: "estúdio",
-    preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
-    isVideo: false,
-  },
-  {
-    match: "música",
-    preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
-    isVideo: true,
-  },
-  {
-    match: "grafite",
-    preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
-    isVideo: false,
-  },
-  {
-    match: "streetwear",
-    preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
-    isVideo: false,
-  },
-  {
-    match: "top branco",
-    preview: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80",
-    isVideo: true,
-  },
-  {
-    match: "lago",
-    preview: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80",
-    isVideo: false,
-  },
-  {
-    match: "boné",
-    preview: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80",
-    isVideo: false,
-  },
-  {
-    match: "provador",
-    preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
-    isVideo: false,
-  },
-  {
-    match: "espelho",
-    preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
-    isVideo: false,
-  },
-  {
-    match: "noite",
-    preview: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80",
-    isVideo: true,
-  },
-  {
-    match: "cidade",
-    preview: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80",
-    isVideo: true,
-  },
-  {
-    match: "treino",
-    preview: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=400&q=80",
-    isVideo: true,
-  },
-  {
-    match: "academia",
-    preview: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=400&q=80",
-    isVideo: true,
-  },
-];
-
-function extractMediaInfo(body: string, fallbackSeed?: string) {
+function extractMediaInfo(body: string, _seed?: string) {
   let previewUrl = "";
   let isVideo = false;
   let cleanBody = body;
 
   const tagMatch = body.match(/\[(?:midia|media):([^\|\]]+)(?:\|(?:tipo|type):([^\]]+))?\]/i);
   if (tagMatch) {
-    let rawUrl = tagMatch[1].trim();
+    const rawUrl = tagMatch[1].trim();
     isVideo = (tagMatch[2] || "").toLowerCase() === "video" || /\.(mp4|mov|webm)/i.test(rawUrl);
     cleanBody = body.replace(/\[(?:midia|media):[^\]]+\]/gi, "").trim();
-
-    // Substitui placeholders antigos (como vídeos de academia antigos ou fotos que não eram da July) pelo ensaio real
-    if (rawUrl.includes("mixkit") || rawUrl.includes("photo-1534528741775") || rawUrl.includes("photo-1544005313")) {
-      previewUrl = isVideo
-        ? "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80"
-        : "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80";
-    } else {
+    // Apenas mídias reais do usuário (bloqueia qualquer modelo/mock antigo do unsplash/mixkit)
+    if (!rawUrl.includes("mixkit") && !rawUrl.includes("photo-15") && !rawUrl.includes("unsplash.com") && !rawUrl.includes("images.unsplash")) {
       previewUrl = rawUrl;
+    } else {
+      previewUrl = "";
     }
     return { cleanBody, previewUrl, isVideo };
   }
 
-  const lower = body.toLowerCase();
-  for (const item of JULY_CARDOSO_MEDIA_POOL) {
-    if (lower.includes(item.match.toLowerCase())) {
-      return { cleanBody: body, previewUrl: item.preview, isVideo: item.isVideo };
-    }
-  }
-
-  if (lower.includes("#reels") || lower.includes("#video") || lower.includes("#bastidores") || lower.includes("vídeo") || lower.includes("shorts")) {
-    isVideo = true;
-  }
-
-  // Fallback determinístico baseado no texto ou ID do post para garantir que NENHUM post fique sem foto da July
-  const pool = [
-    { preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80", isVideo: false },
-    { preview: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80", isVideo: true },
-    { preview: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80", isVideo: false },
-    { preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80", isVideo: false },
-    { preview: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80", isVideo: true },
-    { preview: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=400&q=80", isVideo: true },
-  ];
-
-  const seed = fallbackSeed || body;
-  const hash = seed.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const picked = pool[hash % pool.length];
-
-  return { cleanBody: body, previewUrl: picked.preview, isVideo: isVideo || picked.isVideo };
+  // Se o post não tem anexo de mídia real, não inventa modelo de exemplo
+  return { cleanBody: body, previewUrl: "", isVideo: false };
 }
 
 // chave do dia sempre no fuso de Sao Paulo (o servidor roda em UTC)
@@ -319,10 +222,7 @@ export function Agenda({ posts: initial }: { posts: Post[] }) {
                               loading="lazy"
                               referrerPolicy="no-referrer"
                               onError={(e) => {
-                                const target = e.currentTarget as HTMLImageElement;
-                                if (!target.src.includes("photo-1529626455594-4ff0802cfb7e")) {
-                                  target.src = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80";
-                                }
+                                (e.currentTarget as HTMLImageElement).style.opacity = "0.3";
                               }}
                             />
                             {/* Badge de Foto ou Vídeo no topo */}
@@ -355,10 +255,7 @@ export function Agenda({ posts: initial }: { posts: Post[] }) {
                                 loading="lazy"
                                 referrerPolicy="no-referrer"
                                 onError={(e) => {
-                                  const target = e.currentTarget as HTMLImageElement;
-                                  if (!target.src.includes("photo-1531746020798-e6953c6e8e04")) {
-                                    target.src = "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80";
-                                  }
+                                  (e.currentTarget as HTMLImageElement).style.opacity = "0.3";
                                 }}
                               />
                               <div className="absolute top-1.5 left-1.5 pointer-events-none">

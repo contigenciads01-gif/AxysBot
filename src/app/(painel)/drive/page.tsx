@@ -627,6 +627,23 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
     }
   }
 
+  // Remover mídia anexada
+  async function handleRemoveItem(id: string) {
+    if (!drive) return;
+    const updated = drive.items.filter((i) => i.id !== id);
+    setDrive({ ...drive, items: updated });
+    try {
+      await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: updated }),
+      });
+      toast.show("🗑️ Mídia removida com sucesso!");
+    } catch {
+      // Silencioso
+    }
+  }
+
   if (loading || !drive) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
@@ -851,57 +868,6 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
         </div>
       </form>
 
-      {/* 2.5. UPLOAD DIRETO DE MÍDIAS DA MODELO JULY (OPÇÃO 2 - SEM GOOGLE CLOUD) */}
-      <section className="liquid-glass glass-card panel-pad space-y-3.5 border-2 border-dashed border-sky-500/40 hover:border-sky-400/80 transition-all rounded-2xl relative overflow-hidden bg-gradient-to-r from-sky-950/20 via-zinc-950/40 to-emerald-950/20" data-glass>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1 max-w-[650px]">
-            <div className="flex items-center gap-2">
-              <span className="text-[22px]">📤</span>
-              <h3 className="font-[750] text-[15.5px] text-[var(--ink)]">
-                Upload Direto — Enviar Fotos & Vídeos da July
-              </h3>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/25 text-sky-300 border border-sky-500/40">
-                OPÇÃO 2 ATIVA
-              </span>
-            </div>
-            <p className="text-[12.5px] text-[var(--ink-2)] leading-relaxed">
-              Selecione ou arraste as fotos e vídeos da modelo July direto do seu computador. O bot salva no servidor seguro, organiza em <strong>lotes rotativos de 6 em 6</strong>, analisa os cenários com IA e deixa tudo pronto para publicação imediata.
-            </p>
-          </div>
-
-          <label className="btn btn-primary cursor-pointer shrink-0 flex items-center gap-2 px-4 py-2.5 text-[13px] font-[700] shadow-lg shadow-sky-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all">
-            <span>{uploading ? "⏳" : "📁"}</span>
-            <span>{uploading ? "Enviando..." : "Selecionar Fotos / Vídeos"}</span>
-            <input
-              type="file"
-              multiple
-              accept="image/*,video/*"
-              className="hidden"
-              disabled={uploading}
-              onChange={handleFileUpload}
-            />
-          </label>
-        </div>
-
-        {uploading && (
-          <div className="space-y-1.5 pt-2 border-t border-[var(--line)]">
-            <div className="flex items-center justify-between text-[11.5px] font-mono text-sky-300">
-              <span className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-sky-400 animate-ping" />
-                Fazendo upload e organizando lote de 6 na memória...
-              </span>
-              <span>{uploadProgress}</span>
-            </div>
-            <div className="w-full h-2.5 rounded-full bg-zinc-800 overflow-hidden p-0.5 border border-zinc-700/50">
-              <div
-                className="h-full bg-gradient-to-r from-sky-400 via-purple-400 to-emerald-400 rounded-full transition-all duration-300"
-                style={{ width: `${Math.max(uploadPct, 5)}%` }}
-              />
-            </div>
-          </div>
-        )}
-      </section>
-
       {/* 3. BARRA DE AGENDAMENTO EM LOTE NA AGENDA */}
       <div className="p-4 rounded-xl bg-gradient-to-r from-sky-950/40 via-purple-950/30 to-emerald-950/40 border border-sky-500/30 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="space-y-1">
@@ -1108,171 +1074,255 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {drive.items.map((item, idx) => {
-            const isVideo = item.type === "video";
-            return (
+        {uploading && (
+          <div className="p-3.5 rounded-xl bg-sky-950/30 border border-sky-500/40 space-y-1.5">
+            <div className="flex items-center justify-between text-[11.5px] font-mono text-sky-300">
+              <span className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-sky-400 animate-ping" />
+                Fazendo upload das fotos da July...
+              </span>
+              <span>{uploadProgress}</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
               <div
-                key={item.id}
-                className="liquid-glass glass-card p-4 flex flex-col justify-between border border-[var(--line)] rounded-2xl relative overflow-hidden group hover:border-[var(--accent)]/50 transition-all"
-                data-glass
-              >
-                {/* Cabeçalho do Card */}
-                <div className="flex items-start justify-between gap-3 border-b border-[var(--line)] pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10.5px] font-[750] font-mono tracking-wider ${
-                        isVideo
-                          ? "bg-purple-950/60 text-purple-300 border border-purple-500/40"
-                          : "bg-sky-950/60 text-sky-300 border border-sky-500/40"
-                      }`}
-                    >
-                      {isVideo ? "🎥 VÍDEO" : "📸 FOTO"}
-                    </span>
-                    <span className="text-[12px] font-mono text-[var(--muted)]">#{idx + 1}</span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold ${
-                        item.metadataCleaned
-                          ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40"
-                          : "bg-amber-950/80 text-amber-300 border border-amber-500/40"
-                      }`}
-                    >
-                      {item.metadataCleaned ? "🛡️ EXIF Limpo" : "⚠️ EXIF Bruto"}
-                    </span>
-                    <span className="text-[12px] font-semibold text-[var(--ink)] truncate max-w-[180px]">
-                      {item.title}
-                    </span>
+                className="h-full bg-gradient-to-r from-sky-400 via-purple-400 to-emerald-400 rounded-full transition-all duration-300"
+                style={{ width: `${Math.max(uploadPct, 5)}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {drive.items.length === 0 ? (
+          <div className="py-4">
+            <label
+              className="liquid-glass glass-card p-12 sm:p-16 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-[var(--line)] hover:border-sky-500/80 rounded-2xl cursor-pointer transition-all bg-[var(--surface)] hover:bg-[var(--sunken)] group text-center shadow-lg hover:shadow-sky-500/10"
+              data-glass
+            >
+              <span className="text-5xl sm:text-6xl group-hover:scale-110 transition-transform select-none">
+                📸
+              </span>
+              <div className="space-y-1">
+                <span className="text-[18px] sm:text-[20px] font-[800] text-[var(--ink)] group-hover:text-sky-400 transition-colors block">
+                  Anexar Imagens
+                </span>
+                <p className="text-[13px] text-[var(--muted)] max-w-[420px]">
+                  Clique aqui para selecionar fotos ou vídeos reais da July direto do seu computador ou pasta do Drive.
+                </p>
+              </div>
+              <span className="btn btn-primary mt-2 px-6 py-2.5 text-[13px] font-[700] flex items-center gap-2 shadow-md shadow-sky-500/20">
+                <span>📁</span> Selecionar Fotos / Vídeos
+              </span>
+              <input
+                type="file"
+                multiple
+                accept="image/*,video/*"
+                className="hidden"
+                disabled={uploading}
+                onChange={handleFileUpload}
+              />
+            </label>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {drive.items.map((item, idx) => {
+              const isVideo = item.type === "video";
+              return (
+                <div
+                  key={item.id}
+                  className="liquid-glass glass-card p-4 flex flex-col justify-between border border-[var(--line)] rounded-2xl relative overflow-hidden group hover:border-[var(--accent)]/50 transition-all"
+                  data-glass
+                >
+                  {/* Cabeçalho do Card */}
+                  <div className="flex items-start justify-between gap-3 border-b border-[var(--line)] pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10.5px] font-[750] font-mono tracking-wider ${
+                          isVideo
+                            ? "bg-purple-950/60 text-purple-300 border border-purple-500/40"
+                            : "bg-sky-950/60 text-sky-300 border border-sky-500/40"
+                        }`}
+                      >
+                        {isVideo ? "🎥 VÍDEO" : "📸 FOTO"}
+                      </span>
+                      <span className="text-[12px] font-mono text-[var(--muted)]">#{idx + 1}</span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold ${
+                          item.metadataCleaned
+                            ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40"
+                            : "bg-amber-950/80 text-amber-300 border border-amber-500/40"
+                        }`}
+                      >
+                        {item.metadataCleaned ? "🛡️ EXIF Limpo" : "⚠️ EXIF Bruto"}
+                      </span>
+                      <span className="text-[12px] font-semibold text-[var(--ink)] truncate max-w-[180px]">
+                        {item.title}
+                      </span>
+                    </div>
+
+                    <span className="text-[11px] font-mono text-[var(--muted)]">{item.sizeMb} MB</span>
                   </div>
 
-                  <span className="text-[11px] font-mono text-[var(--muted)]">{item.sizeMb} MB</span>
-                </div>
+                  {/* Conteúdo: Preview + Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-[110px_1fr] gap-3 my-3">
+                    {/* Preview Visual */}
+                    <div className="relative rounded-xl overflow-hidden aspect-square bg-zinc-900 border border-[var(--line)] flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={item.previewUrl}
+                        alt={item.title}
+                        className="object-cover size-full group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.opacity = "0.3";
+                        }}
+                      />
+                      {isVideo && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <span className="size-8 rounded-full bg-white/20 backdrop-blur border border-white/50 flex items-center justify-center text-white text-[14px]">
+                            ▶
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                {/* Conteúdo: Preview + Inputs */}
-                <div className="grid grid-cols-1 sm:grid-cols-[110px_1fr] gap-3 my-3">
-                  {/* Preview Visual */}
-                  <div className="relative rounded-xl overflow-hidden aspect-square bg-zinc-900 border border-[var(--line)] flex items-center justify-center">
-                    {/* Imagem ou Poster de Vídeo */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.previewUrl}
-                      alt={item.title}
-                      className="object-cover size-full group-hover:scale-105 transition-transform duration-300"
-                    />
-                    {isVideo && (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <span className="size-8 rounded-full bg-white/20 backdrop-blur border border-white/50 flex items-center justify-center text-white text-[14px]">
-                          ▶
-                        </span>
+                    {/* Edição de Legenda e Hashtags 1 a 1 */}
+                    <div className="space-y-2">
+                      {item.visualAnalysis ? (
+                        <div className="p-2 rounded-lg bg-[var(--sunken)] border border-[var(--line)] text-[10.5px] space-y-1">
+                          <div className="flex items-center gap-1.5 text-sky-400 font-semibold truncate">
+                            <span>🏖️ Cenário:</span>
+                            <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.scenario}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-purple-400 font-semibold truncate">
+                            <span>👗 Roupa:</span>
+                            <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.outfit}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-amber-400 font-semibold truncate">
+                            <span>💃 Posição:</span>
+                            <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.pose}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between p-1.5 rounded-lg bg-[var(--sunken)]/50 border border-[var(--line)] text-[10.5px]">
+                          <span className="text-[var(--muted)]">Análise visual pendente</span>
+                          <button
+                            type="button"
+                            onClick={() => handleAnalyzeItem(item.id)}
+                            disabled={busy !== null}
+                            className="text-sky-400 font-[650] hover:underline flex items-center gap-1"
+                          >
+                            <span>👁️</span> {busy === `analyze_${item.id}` ? "Analisando..." : "Analisar Cenário & Roupa"}
+                          </button>
+                        </div>
+                      )}
+
+                      <div>
+                        <span className="text-[11px] font-[600] text-[var(--muted)] block">Legenda Dedicada:</span>
+                        <textarea
+                          className="input text-[12px] h-[68px] resize-none leading-relaxed mt-0.5"
+                          value={item.caption}
+                          onChange={(e) => handleItemChange(item.id, "caption", e.target.value)}
+                          onBlur={() => handleSaveReadyItems()}
+                          placeholder="Escreva a legenda desse post..."
+                        />
                       </div>
-                    )}
+
+                      <div>
+                        <span className="text-[11px] font-[600] text-[var(--muted)] block">Hashtags:</span>
+                        <input
+                          type="text"
+                          className="input text-[11.5px] h-8 font-mono text-sky-400 mt-0.5"
+                          value={(item.hashtags || []).join(" ")}
+                          onChange={(e) => handleItemChange(item.id, "hashtags", e.target.value)}
+                          onBlur={() => handleSaveReadyItems()}
+                          placeholder="#hashtag1 #hashtag2..."
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Edição de Legenda e Hashtags 1 a 1 */}
-                  <div className="space-y-2">
-                    {/* BADGES DA ANÁLISE VISUAL (CENÁRIO, ROUPA E POSIÇÃO) */}
-                    {item.visualAnalysis ? (
-                      <div className="p-2 rounded-lg bg-[var(--sunken)] border border-[var(--line)] text-[10.5px] space-y-1">
-                        <div className="flex items-center gap-1.5 text-sky-400 font-semibold truncate">
-                          <span>🏖️ Cenário:</span>
-                          <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.scenario}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-purple-400 font-semibold truncate">
-                          <span>👗 Roupa:</span>
-                          <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.outfit}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-amber-400 font-semibold truncate">
-                          <span>💃 Posição:</span>
-                          <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.pose}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between p-1.5 rounded-lg bg-[var(--sunken)]/50 border border-[var(--line)] text-[10.5px]">
-                        <span className="text-[var(--muted)]">Análise visual pendente</span>
+                  {/* Rodapé do Card */}
+                  <div className="pt-2.5 border-t border-[var(--line)] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--muted)]">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 font-mono text-emerald-400">
+                        <span className="size-1.5 rounded-full bg-emerald-400" />
+                        Drive (Ativa #{idx + 1})
+                      </span>
+                      {item.visualAnalysis && (
                         <button
                           type="button"
                           onClick={() => handleAnalyzeItem(item.id)}
                           disabled={busy !== null}
-                          className="text-sky-400 font-[650] hover:underline flex items-center gap-1"
+                          className="text-xs text-[var(--muted)] hover:text-sky-400 underline font-mono ml-1 cursor-pointer"
                         >
-                          <span>👁️</span> {busy === `analyze_${item.id}` ? "Analisando..." : "Analisar Cenário & Roupa"}
+                          Reanalisar 👁️
                         </button>
-                      </div>
-                    )}
-
-                    <div>
-                      <span className="text-[11px] font-[600] text-[var(--muted)] block">Legenda Dedicada:</span>
-                      <textarea
-                        className="input text-[12px] h-[68px] resize-none leading-relaxed mt-0.5"
-                        value={item.caption}
-                        onChange={(e) => handleItemChange(item.id, "caption", e.target.value)}
-                        onBlur={() => handleSaveReadyItems()}
-                        placeholder="Escreva a legenda desse post..."
-                      />
+                      )}
                     </div>
 
-                    <div>
-                      <span className="text-[11px] font-[600] text-[var(--muted)] block">Hashtags:</span>
-                      <input
-                        type="text"
-                        className="input text-[11.5px] h-8 font-mono text-sky-400 mt-0.5"
-                        value={(item.hashtags || []).join(" ")}
-                        onChange={(e) => handleItemChange(item.id, "hashtags", e.target.value)}
-                        onBlur={() => handleSaveReadyItems()}
-                        placeholder="#hashtag1 #hashtag2..."
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Rodapé do Card */}
-                <div className="pt-2.5 border-t border-[var(--line)] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--muted)]">
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 font-mono text-emerald-400">
-                      <span className="size-1.5 rounded-full bg-emerald-400" />
-                      Drive (Ativa #{idx + 1}/6)
-                    </span>
-                    {item.visualAnalysis && (
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => handleAnalyzeItem(item.id)}
-                        disabled={busy !== null}
-                        className="text-xs text-[var(--muted)] hover:text-sky-400 underline font-mono ml-1 cursor-pointer"
+                        onClick={() => handleSaveReadyItems()}
+                        disabled={savingItems}
+                        className="text-[10.5px] text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1 font-mono cursor-pointer font-bold"
+                        title="Salvar alterações de legenda e hashtags deste post"
                       >
-                        Reanalisar 👁️
+                        <span>💾</span> Salvar
                       </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleSaveReadyItems()}
-                      disabled={savingItems}
-                      className="text-[10.5px] text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1 font-mono cursor-pointer font-bold"
-                      title="Salvar alterações de legenda e hashtags deste post"
-                    >
-                      <span>💾</span> Salvar
-                    </button>
-                    <span className="text-zinc-600">·</span>
-                    <button
-                      type="button"
-                      onClick={() => handleDiscardItem(item.id)}
-                      disabled={busy !== null}
-                      title="Descartar da memória RAM do bot (continua 100% salva no Google Drive) e puxar a próxima foto"
-                      className="text-[10.5px] text-amber-400/80 hover:text-amber-300 hover:underline flex items-center gap-1 font-mono cursor-pointer"
-                    >
-                      <span>🧹</span> Liberar da memória
-                    </button>
-                    <span className="text-zinc-600">·</span>
-                    <span className="text-zinc-400 font-mono">
-                      {item.status === "scheduled" ? "Agendado na esteira" : "Pronto para agendar"}
-                    </span>
+                      <span className="text-zinc-600">·</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDiscardItem(item.id)}
+                        disabled={busy !== null}
+                        title="Descartar da memória RAM do bot (continua 100% salva no Google Drive) e puxar a próxima foto"
+                        className="text-[10.5px] text-amber-400/80 hover:text-amber-300 hover:underline flex items-center gap-1 font-mono cursor-pointer"
+                      >
+                        <span>🧹</span> Liberar da memória
+                      </button>
+                      <span className="text-zinc-600">·</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="text-[10.5px] text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1 font-mono cursor-pointer"
+                        title="Remover esta foto da esteira"
+                      >
+                        <span>🗑️</span> Remover
+                      </button>
+                      <span className="text-zinc-600">·</span>
+                      <span className="text-zinc-400 font-mono">
+                        {item.status === "scheduled" ? "Agendado na esteira" : "Pronto para agendar"}
+                      </span>
+                    </div>
                   </div>
                 </div>
+              );
+            })}
+
+            {/* Card para Anexar Mais Imagens */}
+            <label
+              className="liquid-glass glass-card p-8 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-[var(--line)] hover:border-sky-500/80 rounded-2xl cursor-pointer transition-all bg-[var(--surface)] hover:bg-[var(--sunken)] group text-center min-h-[260px]"
+              data-glass
+            >
+              <span className="text-4xl group-hover:scale-110 transition-transform select-none">
+                📸
+              </span>
+              <div className="space-y-0.5">
+                <span className="text-[15px] font-[750] text-[var(--ink)] group-hover:text-sky-400 transition-colors block">
+                  Anexar Imagens
+                </span>
+                <span className="text-[11.5px] text-[var(--muted)]">Adicionar mais fotos ou vídeos da July</span>
               </div>
-            );
-          })}
-        </div>
+              <input
+                type="file"
+                multiple
+                accept="image/*,video/*"
+                className="hidden"
+                disabled={uploading}
+                onChange={handleFileUpload}
+              />
+            </label>
+          </div>
+        )}
       </section>
 
       {/* 5. MODAL DE EDIÇÃO EM MASSA */}
@@ -1558,10 +1608,7 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
                               loading="lazy"
                               referrerPolicy="no-referrer"
                               onError={(e) => {
-                                const target = e.currentTarget as HTMLImageElement;
-                                if (!target.src.includes("photo-1529626455594-4ff0802cfb7e")) {
-                                  target.src = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80";
-                                }
+                                (e.currentTarget as HTMLImageElement).style.opacity = "0.3";
                               }}
                             />
 

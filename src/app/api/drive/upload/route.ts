@@ -5,14 +5,13 @@ import {
   DriveMediaItem,
   GOOGLE_DRIVE_FOLDER_POOL,
   driveStore,
-  pullNextBatchOf6,
 } from "@/app/api/drive/route";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Upload direto de fotos e vídeos da modelo para o Supabase Storage (Bucket 'media').
- * As mídias entram direto na fila do bot em lotes de 6 em 6.
+ * Suporta uploads individuais ou em fila/lote concorrente (otimizado para 74+ arquivos).
  */
 export async function POST(req: Request) {
   const denied = await requireSession();
@@ -20,7 +19,9 @@ export async function POST(req: Request) {
 
   try {
     const formData = await req.formData();
-    const files = formData.getAll("files") as File[];
+    const single = formData.get("file") as File | null;
+    const all = formData.getAll("files") as File[];
+    const files = single ? [single, ...all.filter((f) => f !== single)] : all;
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
@@ -34,9 +35,8 @@ export async function POST(req: Request) {
       if (!file || typeof file.arrayBuffer !== "function") continue;
 
       const isVideo = file.type.startsWith("video/") || /\.(mp4|mov|webm)$/i.test(file.name);
-      const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "png");
       const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const storagePath = `july/${Date.now()}_${i}_${cleanName}`;
+      const storagePath = `july/${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${cleanName}`;
 
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       const { error: uploadError } = await supabase.storage
         .from("media")
         .upload(storagePath, buffer, {
-          contentType: file.type || (isVideo ? "video/mp4" : "image/png"),
+          contentType: file.type || (isVideo ? "video/mp4" : "image/jpeg"),
           upsert: true,
         });
 
@@ -55,12 +55,12 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Obtém URL pública permanente
+      // Obtém URL pública permanente do Supabase Storage
       const { data: pubData } = supabase.storage.from("media").getPublicUrl(storagePath);
       const publicUrl = pubData.publicUrl;
 
       const newItem: DriveMediaItem = {
-        id: `upload-${Date.now()}-${i}`,
+        id: `upload-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         type: isVideo ? "video" : "photo",
         title: file.name,
         url: publicUrl,
@@ -86,14 +86,14 @@ export async function POST(req: Request) {
     }
 
     if (uploadedItems.length === 0) {
-      return NextResponse.json({ error: "Falha ao processar arquivos." }, { status: 500 });
+      return NextResponse.json({ error: "Falha ao processar arquivo." }, { status: 500 });
     }
 
-    // Adiciona as novas mídias no início do pool do acervo
+    // Adiciona as novas mídias reais no início do pool do acervo
     GOOGLE_DRIVE_FOLDER_POOL.unshift(...uploadedItems);
     driveStore.totalInDrive = GOOGLE_DRIVE_FOLDER_POOL.length;
 
-    // Atualiza o lote ativo de 6 mídias
+    // Mantém exatamente o lote ativo de 6 mídias na memória do bot
     driveStore.items = GOOGLE_DRIVE_FOLDER_POOL.slice(0, 6).map((item) => ({
       ...item,
       inMemory: true,
@@ -102,6 +102,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       count: uploadedItems.length,
+      item: uploadedItems[0],
       items: uploadedItems,
       drive: driveStore,
     });

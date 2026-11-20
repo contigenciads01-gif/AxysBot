@@ -14,6 +14,7 @@ export default function DriveMediaPage() {
   // Estados de upload direto (Opção 2)
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
+  const [uploadPct, setUploadPct] = useState(0);
 
   // Estados de edição em massa
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
@@ -300,39 +301,116 @@ export default function DriveMediaPage() {
     }
   }
 
-  // Upload direto de fotos e vídeos da pasta July (Opção 2 - Imediato)
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+// Otimiza imagem no cliente se for muito pesada para envio ultra veloz e sem travar a rede
+async function optimizeImageForUpload(file: File): Promise<File | Blob> {
+  if (!file.type.startsWith("image/") || file.size <= 2 * 1024 * 1024) {
+    return file;
+  }
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 1920;
+        let { width, height } = img;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(file);
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob && blob.size < file.size) {
+              const optFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              resolve(optFile);
+            } else {
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          0.85
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
 
+  // Upload direto de fotos e vídeos da pasta July (Opção 2 - Suporta 74+ arquivos em fila simultânea)
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    const files = Array.from(fileList);
+    const total = files.length;
     setUploading(true);
-    setUploadProgress(`0 / ${files.length}`);
+    setUploadProgress(`0 / ${total} (0%)`);
+
+    let completed = 0;
+    let failed = 0;
+    const CONCURRENCY = 3; // 3 uploads simultâneos para máxima velocidade e zero sobrecarga
+
+    let currentIdx = 0;
+    async function worker() {
+      while (currentIdx < files.length) {
+        const idx = currentIdx++;
+        const file = files[idx];
+        try {
+          const processed = await optimizeImageForUpload(file);
+          const formData = new FormData();
+          formData.append("file", processed, file.name);
+
+          const res = await fetch("/api/drive/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!res.ok) throw new Error("Erro no upload");
+          const data = await res.json();
+          if (data.drive) {
+            setDrive(data.drive);
+          }
+          completed++;
+        } catch {
+          failed++;
+        } finally {
+          const pct = Math.round((completed / total) * 100);
+          setUploadProgress(`${completed} / ${total} (${pct}%)`);
+          setUploadPct(pct);
+        }
+      }
+    }
 
     try {
-      const formData = new FormData();
-      for (let i = 0; i < files.length; i++) {
-        formData.append("files", files[i]);
-      }
+      const workers = Array.from({ length: Math.min(CONCURRENCY, files.length) }, () => worker());
+      await Promise.all(workers);
 
-      setUploadProgress(`Enviando ${files.length} arquivo(s)...`);
-
-      const res = await fetch("/api/drive/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro ao processar upload.");
-
-      if (data.ok && data.drive) {
-        setDrive(data.drive);
-        toast.show(`🚀 ${data.count} foto(s)/vídeo(s) da July adicionados ao acervo com sucesso! Lote de 6 ativo atualizado.`);
-      }
+      await loadDrive();
+      toast.show(
+        `🎉 ${completed} arquivo(s) enviados com sucesso para o acervo da July! Lote de 6 ativas pronto.`
+      );
     } catch (err) {
-      toast.show(err instanceof Error ? err.message : "Erro ao enviar fotos.");
+      toast.show(err instanceof Error ? err.message : "Erro ao enviar mídias.");
     } finally {
       setUploading(false);
       setUploadProgress("");
+      setUploadPct(0);
       e.target.value = "";
     }
   }
@@ -588,8 +666,11 @@ export default function DriveMediaPage() {
               </span>
               <span>{uploadProgress}</span>
             </div>
-            <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-sky-400 via-purple-400 to-emerald-400 animate-pulse w-full" />
+            <div className="w-full h-2.5 rounded-full bg-zinc-800 overflow-hidden p-0.5 border border-zinc-700/50">
+              <div
+                className="h-full bg-gradient-to-r from-sky-400 via-purple-400 to-emerald-400 rounded-full transition-all duration-300"
+                style={{ width: `${Math.max(uploadPct, 5)}%` }}
+              />
             </div>
           </div>
         )}

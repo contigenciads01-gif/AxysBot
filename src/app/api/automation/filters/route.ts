@@ -14,17 +14,17 @@ export async function GET() {
       .maybeSingle();
 
     const defaultFilters = {
-      keywords: "marketing, tech, crypto, startup, ia, empreendedorismo, business",
-      targetProfiles: "@elonmusk, @sama, @paulg",
+      keywords: "big ass, gostosas, beautiful woman, loirinhas, vazados, modelo, privacy, onlyfans, biquini, decote, sensual, ensaio",
+      targetProfiles: "@JulyCardosoCirc, @modelos_brasil, @privacybrasil, @onlyfansbrasil",
       targetLinks: "",
       mirrorOwnReposts: true,
-      discoveryMode: "hybrid" as const, // "hybrid" | "links" | "mirror" | "niche"
+      discoveryMode: "niche" as const, // "niche" | "hybrid" | "links" | "mirror"
       autoLike: true,
       autoBookmark: true,
       autoRetweet: true,
       autoVisitProfile: true,
       autoComment: false,
-      commentTemplates: "Excelente visão! 👏\nMuito bom esse insight.\nConcordo totalmente com esse ponto.",
+      commentTemplates: "Maravilhosa demais! 🔥\nPerfeita essa foto! 😍\nLinda demais, acompanhando aqui! ❤️",
     };
 
     return NextResponse.json({
@@ -47,10 +47,18 @@ export async function POST(req: Request) {
     }
 
     // Salva ou atualiza os filtros
-    await db().from("settings").update({
-      target_filters: body.filters,
-      updated_at: new Date().toISOString(),
-    });
+    const { data: existing } = await db().from("settings").select("id").limit(1).maybeSingle();
+    if (existing?.id) {
+      await db().from("settings").update({
+        target_filters: body.filters,
+        updated_at: new Date().toISOString(),
+      }).eq("id", existing.id);
+    } else {
+      await db().from("settings").insert({
+        target_filters: body.filters,
+        updated_at: new Date().toISOString(),
+      });
+    }
 
     return NextResponse.json({ ok: true, filters: body.filters });
   } catch (e) {

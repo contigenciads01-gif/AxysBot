@@ -24,7 +24,7 @@ export function Shell({ children, username }: { children: React.ReactNode; usern
   const active = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[228px_1fr]">
+    <div className="min-h-dvh w-full max-w-full md:grid md:grid-cols-[228px_1fr]">
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 btn btn-primary">
         Pular para o conteúdo
       </a>

@@ -24,7 +24,7 @@ export default async function BotPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-[var(--gap)]">
+    <div className="flex flex-col gap-[var(--gap)] w-full max-w-full">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="h1">Aquecedor de Contas & Multi-Perfil</h1>

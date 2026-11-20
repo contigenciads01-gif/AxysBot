@@ -25,11 +25,11 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     const targetFilters = settingsData?.target_filters || {};
-    const rawKeywords = targetFilters.keywords || "marketing, tech, crypto, startup, ia, empreendedorismo, business";
-    const rawProfiles = targetFilters.targetProfiles || "@elonmusk, @sama, @paulg, @x, @techcrunch";
+    const rawKeywords = targetFilters.keywords || "big ass, gostosas, beautiful woman, loirinhas, vazados, modelo, privacy, onlyfans, biquini, decote, sensual, ensaio";
+    const rawProfiles = targetFilters.targetProfiles || "@JulyCardosoCirc, @modelos_brasil, @privacybrasil, @onlyfansbrasil";
     const rawLinks = targetFilters.targetLinks || "";
     const mirrorOwnReposts = targetFilters.mirrorOwnReposts !== false;
-    const discoveryMode = targetFilters.discoveryMode || "hybrid";
+    const discoveryMode = targetFilters.discoveryMode || "niche";
 
     const keywords = rawKeywords
       .split(/[,;\n]+/)
@@ -107,8 +107,8 @@ export async function POST(req: Request) {
     }> = [];
 
     for (const acc of accounts) {
-      const targetProfile = profiles[Math.floor(Math.random() * profiles.length)] || "@elonmusk";
-      const targetKeyword = keywords[Math.floor(Math.random() * keywords.length)] || "tecnologia";
+      const targetProfile = profiles[Math.floor(Math.random() * profiles.length)] || "@JulyCardosoCirc";
+      const targetKeyword = keywords[Math.floor(Math.random() * keywords.length)] || "gostosas";
       const chosenLink = directLinks.length > 0 ? directLinks[Math.floor(Math.random() * directLinks.length)] : null;
       const randomTweetId = Math.floor(1800000000000000000 + Math.random() * 9000000000000000);
 
@@ -156,44 +156,44 @@ export async function POST(req: Request) {
           detail: `[ESPELHAMENTO] Mapeou gostos de reposts de @${acc.username}`,
         };
       }
-      // Ações orgânicas de nicho baseadas nos perfis e palavras-chave
+      // Ações orgânicas de nicho baseadas nos perfis e palavras-chave (Nicho Hot)
       else {
         const roll = Math.random();
         if (roll < 0.35) {
           chosen = {
             type: "SCROLL_FEED",
-            text: `📜 Rolando feed 'Para Você' — profundidade ${scrollPx}px (intervalo quebrado de ${jitterSeconds}s)`,
-            detail: `[SCROLL] Rolou ${scrollPx}px no feed 'Para Você'`,
+            text: `📜 Rolando feed 'Para Você' do Nicho Hot — profundidade ${scrollPx}px (intervalo quebrado de ${jitterSeconds}s)`,
+            detail: `[FEED NICHO HOT] Calibrando algoritmo 'Para Você' com scroll humano de ${scrollPx}px`,
           };
         } else if (roll < 0.60) {
           chosen = {
             type: "READ_TWEET",
-            text: `📖 Lendo publicação de ${targetProfile} sobre "${targetKeyword}" (tempo de retenção: ${readSeconds}s)`,
-            detail: `[LEITURA] Leu post de ${targetProfile} sobre "${targetKeyword}" (${readSeconds}s)`,
+            text: `📖 Analisando publicação similar de ${targetProfile} sobre "${targetKeyword}" no Nicho Hot (retenção: ${readSeconds}s)`,
+            detail: `[RETENÇÃO HOT] Leu post de ${targetProfile} sobre "${targetKeyword}" (${readSeconds}s)`,
           };
         } else if (roll < 0.75) {
           chosen = {
             type: "VISIT_PROFILE",
-            text: `👀 Acessando perfil de ${targetProfile} — inspecionando biografia e últimos 4 tweets`,
-            detail: `[PERFIL] Acessou perfil de ${targetProfile}`,
+            text: `👀 Acessando perfil referência de ${targetProfile} no Nicho Hot — inspecionando biografia e mídias recentes`,
+            detail: `[PERFIL HOT] Inspecionou perfil de ${targetProfile}`,
           };
         } else if (roll < 0.88) {
           chosen = {
             type: "AUTO_LIKE",
-            text: `❤️ Curtindo post de ${targetProfile} sobre "${targetKeyword}" [ID #${String(randomTweetId).slice(-6)}]`,
-            detail: `[LIKE] Curtiu tweet #${String(randomTweetId).slice(-6)} de ${targetProfile}`,
+            text: `❤️ Curtindo post similar de ${targetProfile} sobre "${targetKeyword}" [ID #${String(randomTweetId).slice(-6)}] (Sinalizando interesse no Nicho Hot)`,
+            detail: `[LIKE NICHO HOT] Curtiu tweet #${String(randomTweetId).slice(-6)} de ${targetProfile} ("${targetKeyword}")`,
           };
         } else if (roll < 0.95) {
           chosen = {
             type: "AUTO_BOOKMARK",
-            text: `🔖 Salvando tweet nos itens salvos de ${targetProfile} para referência futura`,
-            detail: `[SALVAR] Guardou link do post de ${targetProfile}`,
+            text: `🔖 Salvando publicação de referência de ${targetProfile} sobre "${targetKeyword}" para o algoritmo registrar alta afinidade`,
+            detail: `[BOOKMARK HOT] Salvou post de ${targetProfile} ("${targetKeyword}")`,
           };
         } else {
           chosen = {
             type: "AUTO_RETWEET",
-            text: `🔁 Retweet orgânico realizado na publicação em alta de ${targetProfile}`,
-            detail: `[RETWEET] Retweetou publicação de ${targetProfile}`,
+            text: `🔁 Retweet orgânico em publicação viral de ${targetProfile} no Nicho Hot`,
+            detail: `[RETWEET HOT] Retweetou publicação em alta de ${targetProfile}`,
           };
         }
       }

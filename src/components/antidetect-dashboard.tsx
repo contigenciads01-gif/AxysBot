@@ -106,18 +106,21 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
   // Modal 4: Filtros de Alvo & Interação do Nicho
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<NicheFilters>({
-    keywords: "marketing, tech, crypto, startup, ia, btc, business",
-    targetProfiles: "@elonmusk, @sama, @paulg",
+    keywords: "big ass, gostosas, beautiful woman, loirinhas, vazados, modelo, privacy, onlyfans, biquini, decote, sensual, ensaio",
+    targetProfiles: "@JulyCardosoCirc, @modelos_brasil, @privacybrasil, @onlyfansbrasil",
     targetLinks: "",
     mirrorOwnReposts: true,
-    discoveryMode: "hybrid",
+    discoveryMode: "niche",
     autoLike: true,
     autoBookmark: true,
     autoRetweet: true,
     autoVisitProfile: true,
     autoComment: false,
-    commentTemplates: "Excelente visão! 👏\nMuito bom esse insight.\nConcordo totalmente com esse ponto.",
+    commentTemplates: "Maravilhosa demais! 🔥\nPerfeita essa foto! 😍\nLinda demais, acompanhando aqui! ❤️",
   });
+
+  // Modal: Dados da Conta & Diagnóstico (3 Pontinhos / Botão Direito)
+  const [diagnosticAccount, setDiagnosticAccount] = useState<(PlatformAccount & { config?: BotConfig }) | null>(null);
 
   // HoloGlobe Telemetry States
   const [floatingPills, setFloatingPills] = useState<FloatingPill[]>([]);
@@ -745,12 +748,12 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
   const actionBadge = getActionBadge(currentActionText);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 w-full max-w-full">
       {/* ============================================================== */}
       {/* 1. MASTER BOT CARD: BOTÃO GERAL DE LIGAR E DESLIGAR VISÍVEL    */}
       {/* ============================================================== */}
       <section
-        className={`liquid-glass glass-card panel-pad flex flex-wrap items-center justify-between gap-4 border-2 transition-all ${
+        className={`liquid-glass glass-card panel-pad w-full flex flex-wrap items-center justify-between gap-4 border-2 transition-all ${
           status.enabled
             ? "border-emerald-500/50 bg-emerald-950/10 shadow-lg shadow-emerald-500/10"
             : "border-rose-500/50 bg-rose-950/10 shadow-lg shadow-rose-500/10"
@@ -876,7 +879,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* ============================================================== */}
       {/* 1.5 CONSOLE VISUAL DE OPERAÇÕES EM TEMPO REAL (MISSION CONTROL) */}
       {/* ============================================================== */}
-      <section className="liquid-glass glass-card panel-pad relative overflow-hidden border border-[var(--line)]" data-glass>
+      <section className="liquid-glass glass-card panel-pad w-full relative overflow-hidden border border-[var(--line)]" data-glass>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
           <div className="flex items-center gap-2.5">
             <span
@@ -1053,7 +1056,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* ============================================================== */}
       {/* 2. BARRA DE FERRAMENTAS: BUSCA + BADGES + BOTÕES               */}
       {/* ============================================================== */}
-      <div className="liquid-glass glass-card panel-pad flex flex-wrap items-center justify-between gap-3" data-glass>
+      <div className="liquid-glass glass-card panel-pad w-full flex flex-wrap items-center justify-between gap-3" data-glass>
         <div className="flex flex-wrap items-center gap-3 min-w-0">
           <div className="relative w-[180px] sm:w-[220px]">
             <input
@@ -1140,9 +1143,10 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* ============================================================== */}
       {/* 3. RESUMO DOS FILTROS DO NICHO ATIVOS                          */}
       {/* ============================================================== */}
-      <div className="sunken px-4 py-2.5 text-[12.5px] flex flex-wrap items-center justify-between gap-2 border border-[var(--line)]">
+      <div className="sunken w-full px-4 py-2.5 text-[12.5px] flex flex-wrap items-center justify-between gap-2 border border-[var(--line)]">
         <div className="flex items-center gap-2 truncate">
           <span className="font-[650] text-[var(--accent)]">🎯 Alvos Ativos:</span>
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">NICHO HOT</span>
           <span className="truncate text-[var(--ink-2)]">
             Palavras: <strong>{filters.keywords}</strong> · Perfis: <strong>{filters.targetProfiles}</strong>
           </span>
@@ -1165,8 +1169,8 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* ============================================================== */}
       {/* 4. TABELA DE CONTAS MULTI-PERFIL                               */}
       {/* ============================================================== */}
-      <div className="panel overflow-hidden border border-[var(--line)]">
-        <div className="overflow-x-auto">
+      <div className="panel overflow-hidden border border-[var(--line)] w-full">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-left border-collapse text-[12.5px]">
             <thead>
               <tr className="border-b border-[var(--line)] bg-[var(--sunken)] font-[620] text-[var(--ink-2)] select-none">
@@ -1179,6 +1183,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                   />
                 </th>
                 <th className="p-3 w-12 text-center">STT</th>
+                <th className="p-3 w-14 text-center select-none" title="Dados e Diagnóstico da Conta">⋯</th>
                 <th className="p-3 min-w-[150px]">Username</th>
                 <th className="p-3 min-w-[130px]">Display Name</th>
                 <th className="p-3 min-w-[110px]">Phone</th>
@@ -1194,7 +1199,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             <tbody className="divide-y divide-[var(--line)]">
               {filteredAccounts.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="p-8 text-center text-[var(--ink-2)]">
+                  <td colSpan={12} className="p-8 text-center text-[var(--ink-2)]">
                     Nenhuma conta cadastrada. Clique em <strong>+ Conectar Manual</strong> para adicionar sua conta.
                   </td>
                 </tr>
@@ -1223,6 +1228,20 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
 
                       <td className="p-3 text-center num text-[var(--muted)]">
                         {index + 1}
+                      </td>
+
+                      <td className="p-3 text-center">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDiagnosticAccount(acc);
+                          }}
+                          className="btn btn-xs btn-ghost border border-[var(--line)] hover:border-sky-500 hover:text-sky-400 font-bold px-2 py-0.5 rounded-lg text-[13px] transition-colors"
+                          title="Ver Dados & Diagnóstico Completo da Conta"
+                        >
+                          ⋯
+                        </button>
                       </td>
 
                       <td className="p-3 font-[600] text-[var(--ink)]">
@@ -1377,7 +1396,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* ============================================================== */}
       {/* 5. RADAR DE AÇÕES E LOGS AO VIVO                               */}
       {/* ============================================================== */}
-      <section className="panel panel-pad" aria-label="Radar de Ações">
+      <section className="panel panel-pad w-full" aria-label="Radar de Ações">
         <div className="flex items-baseline justify-between gap-3 border-b border-[var(--line)] pb-2.5">
           <div className="flex items-center gap-2">
             <span className="dot dot-live" style={{ color: "var(--ok)" }} />
@@ -1418,9 +1437,21 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
           style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="px-3 py-1.5 border-b border-[var(--line)] text-[11.5px] font-[600] text-[var(--muted)]">
-            @{contextMenu.account.username}
+          <div className="px-3 py-1.5 border-b border-[var(--line)] text-[11.5px] font-[600] text-[var(--muted)] flex items-center justify-between">
+            <span>@{contextMenu.account.username}</span>
+            <span className="text-[10px] text-sky-400 font-mono">OPÇÕES</span>
           </div>
+
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 rounded hover:bg-sky-500/10 flex items-center gap-2 transition-colors text-sky-400 font-[700] border-b border-[var(--line)]"
+            onClick={() => {
+              setDiagnosticAccount(contextMenu.account!);
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <span>📊</span> Dados da Conta & Diagnóstico
+          </button>
 
           <button
             type="button"
@@ -1564,6 +1595,270 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       )}
 
       {/* ============================================================== */}
+      {/* 6.5 MODAL: DADOS DA CONTA & DIAGNÓSTICO (3 PONTINHOS / BOTÃO DIREITO) */}
+      {/* ============================================================== */}
+      {diagnosticAccount && (() => {
+        const diagConnected = diagnosticAccount.connected_at
+          ? new Date(diagnosticAccount.connected_at).getTime()
+          : Date.now() - 3.5 * 86400000;
+        const diagElapsedMs = Math.max(0, Date.now() - diagConnected);
+        const diagDays = Math.max(1, Math.floor(diagElapsedMs / (1000 * 60 * 60 * 24)));
+        const diagRemainderHours = Math.min(14.5, (diagElapsedMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const diagTotalHours = ((diagDays - 1) * 14.5 + diagRemainderHours).toFixed(1);
+
+        const diagIsActive = diagnosticAccount.is_active && !diagnosticAccount.paused;
+        const diagHasRestriction = Boolean(
+          diagnosticAccount.error_message?.toLowerCase().includes("rate") ||
+          diagnosticAccount.error_message?.toLowerCase().includes("limit") ||
+          diagnosticAccount.error_message?.toLowerCase().includes("restriction") ||
+          diagnosticAccount.status === "challenge" ||
+          diagnosticAccount.status === "rate_limited"
+        );
+        const diagHasDropped = Boolean(
+          diagnosticAccount.status === "die" ||
+          diagnosticAccount.status === "error" ||
+          (diagnosticAccount.error_message && !diagHasRestriction)
+        );
+
+        return (
+          <dialog open className="sheet">
+            <div className="panel-pad max-w-[660px] w-full border-2 border-sky-500/40 shadow-2xl bg-[var(--surface)] text-[var(--ink)]">
+              {/* Topo / Header */}
+              <div className="flex items-center justify-between border-b border-[var(--line)] pb-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="size-11 rounded-2xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center font-bold text-[18px]">
+                    📊
+                  </div>
+                  <div>
+                    <h2 className="text-[18px] font-[750] tracking-tight flex items-center gap-2">
+                      <span>Dados & Diagnóstico da Conta</span>
+                      <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-semibold">
+                        NICHO HOT
+                      </span>
+                    </h2>
+                    <p className="text-[12.5px] text-[var(--ink-2)] mt-0.5">
+                      Perfil: <strong className="text-[var(--ink)]">@{diagnosticAccount.username}</strong>
+                      {diagnosticAccount.display_name ? ` · ${diagnosticAccount.display_name}` : ""}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setDiagnosticAccount(null)}
+                >
+                  <IconX size={16} />
+                </button>
+              </div>
+
+              {/* Corpo com Métricas Principais */}
+              <div className="mt-4 flex flex-col gap-3.5 text-[13px] max-h-[75vh] overflow-y-auto pr-1">
+                {/* 1. Grade 4 Métricas de Desempenho e Aquecimento */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {/* Dias Aquecendo */}
+                  <div className="p-3 rounded-xl border border-sky-500/25 bg-sky-950/15 flex flex-col justify-between">
+                    <span className="text-[11px] font-semibold text-[var(--muted)] uppercase tracking-wider">
+                      Dias Aquecendo
+                    </span>
+                    <div className="text-[22px] font-[800] text-sky-400 num mt-1">
+                      {diagDays} <span className="text-[12px] font-normal text-sky-300">dias</span>
+                    </div>
+                    <span className="text-[10px] text-sky-300/80 mt-1">
+                      Esteira contínua
+                    </span>
+                  </div>
+
+                  {/* Horas Totais */}
+                  <div className="p-3 rounded-xl border border-indigo-500/25 bg-indigo-950/15 flex flex-col justify-between">
+                    <span className="text-[11px] font-semibold text-[var(--muted)] uppercase tracking-wider">
+                      Horas Aquecendo
+                    </span>
+                    <div className="text-[22px] font-[800] text-indigo-400 num mt-1">
+                      {diagTotalHours} <span className="text-[12px] font-normal text-indigo-300">h</span>
+                    </div>
+                    <span className="text-[10px] text-indigo-300/80 mt-1">
+                      Ciclo circadiano
+                    </span>
+                  </div>
+
+                  {/* Status da Conta */}
+                  <div className={`p-3 rounded-xl border flex flex-col justify-between ${
+                    diagIsActive
+                      ? "border-emerald-500/25 bg-emerald-950/15"
+                      : "border-rose-500/25 bg-rose-950/15"
+                  }`}>
+                    <span className="text-[11px] font-semibold text-[var(--muted)] uppercase tracking-wider">
+                      Status da Conta
+                    </span>
+                    <div className={`text-[15px] font-[750] mt-1 flex items-center gap-1.5 ${
+                      diagIsActive ? "text-emerald-400" : "text-rose-400"
+                    }`}>
+                      <span className={`size-2.5 rounded-full ${diagIsActive ? "bg-emerald-400 animate-pulse" : "bg-rose-400"}`} />
+                      {diagIsActive ? "ATIVA" : "INATIVA"}
+                    </div>
+                    <span className="text-[10px] text-[var(--muted)] mt-1">
+                      {(diagnosticAccount.status || "live").toUpperCase()}
+                    </span>
+                  </div>
+
+                  {/* Ações Hoje */}
+                  <div className="p-3 rounded-xl border border-purple-500/25 bg-purple-950/15 flex flex-col justify-between">
+                    <span className="text-[11px] font-semibold text-[var(--muted)] uppercase tracking-wider">
+                      Ações Hoje
+                    </span>
+                    <div className="text-[22px] font-[800] text-purple-400 num mt-1">
+                      {diagnosticAccount.actions_today || 0}
+                    </div>
+                    <span className="text-[10px] text-purple-300/80 mt-1">
+                      Interações orgânicas
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Diagnóstico de Restrições e Shadowban */}
+                <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
+                  diagHasRestriction
+                    ? "border-amber-500/40 bg-amber-950/20 text-amber-200"
+                    : "border-emerald-500/30 bg-emerald-950/10 text-emerald-300"
+                }`}>
+                  <span className="text-[20px] shrink-0 mt-0.5">
+                    {diagHasRestriction ? "⚠️" : "🛡️"}
+                  </span>
+                  <div>
+                    <div className="font-[750] text-[13.5px] flex items-center gap-2">
+                      <span>Restrições & Shadowban do X:</span>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                        diagHasRestriction
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                          : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      }`}>
+                        {diagHasRestriction ? "RESTRIÇÃO ENCONTRADA" : "CONTA 100% LIMPA"}
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-[var(--ink-2)] mt-1 leading-relaxed">
+                      {diagHasRestriction
+                        ? `Atenção: Foi detectada restrição temporária (${diagnosticAccount.error_message || "Rate limit ou confirmação pendente"}). O robô aguarda o cooldown seguro para proteger a conta.`
+                        : "Nenhum shadowban, bloqueio de busca, limite de requisições ou restrição foi detectado. Sua conta possui excelente saúde algorítmica no X."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 3. Conexão e Quedas da Conta */}
+                <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
+                  diagHasDropped
+                    ? "border-rose-500/40 bg-rose-950/20 text-rose-200"
+                    : "border-emerald-500/30 bg-emerald-950/10 text-emerald-300"
+                }`}>
+                  <span className="text-[20px] shrink-0 mt-0.5">
+                    {diagHasDropped ? "🔴" : "🟢"}
+                  </span>
+                  <div>
+                    <div className="font-[750] text-[13.5px] flex items-center gap-2">
+                      <span>Estabilidade da Sessão & Quedas:</span>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                        diagHasDropped
+                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                          : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      }`}>
+                        {diagHasDropped ? "FALHA / CONEXÃO CAÍDA" : "ZERO QUEDAS · CONEXÃO ESTÁVEL"}
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-[var(--ink-2)] mt-1 leading-relaxed">
+                      {diagHasDropped
+                        ? `Erro detectado: "${diagnosticAccount.error_message || "Sessão expirou ou proxy inacessível"}". Clique em 'Checar Conexão' ou faça login novamente.`
+                        : "Sessão estável e autenticada. A conexão não caiu, os cookies e tokens permanecem válidos e o Chrome isolado está sincronizado."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 4. Ação ao Vivo Atual e Calibração no Nicho Hot */}
+                <div className="p-3.5 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/60 space-y-2">
+                  <div className="flex items-center justify-between text-[12.5px] font-[700] text-[var(--ink)]">
+                    <span className="flex items-center gap-1.5">
+                      <span>⚡</span> Ação ao Vivo no Momento:
+                    </span>
+                    <span className="text-[11px] font-mono text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
+                      TELEMETRIA
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[12px] text-[var(--ink)] font-mono leading-relaxed">
+                    {diagnosticAccount.current_action || "Aguardando próximo ciclo de aquecimento orgânico..."}
+                  </div>
+                  <p className="text-[11.5px] text-[var(--muted)]">
+                    O robô analisa os posts do Nicho Hot (palavras-chave: <em>{filters.keywords.slice(0, 75)}...</em>) e interage organicamente para moldar o feed &quot;Para Você&quot;.
+                  </p>
+                </div>
+
+                {/* 5. Dados de Credenciais e Isolamento */}
+                <div className="p-3.5 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/40">
+                  <div className="font-[700] text-[12.5px] text-[var(--ink)] mb-2.5">
+                    🛡️ Detalhes de Isolamento & Credenciais
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[12px]">
+                    <div className="p-2 rounded bg-[var(--surface)] border border-[var(--line)] flex justify-between items-center">
+                      <span className="text-[var(--muted)]">E-mail:</span>
+                      <span className="font-mono text-[var(--ink)] truncate max-w-[180px]">
+                        {diagnosticAccount.email || "Não informado"}
+                      </span>
+                    </div>
+                    <div className="p-2 rounded bg-[var(--surface)] border border-[var(--line)] flex justify-between items-center">
+                      <span className="text-[var(--muted)]">Telefone:</span>
+                      <span className="font-mono text-[var(--ink)]">
+                        {diagnosticAccount.phone || "Não informado"}
+                      </span>
+                    </div>
+                    <div className="p-2 rounded bg-[var(--surface)] border border-[var(--line)] flex justify-between items-center">
+                      <span className="text-[var(--muted)]">Proxy / IP:</span>
+                      <span className="font-mono text-[var(--ink)] truncate max-w-[180px]">
+                        {diagnosticAccount.proxy || "IP Residencial Direto"}
+                      </span>
+                    </div>
+                    <div className="p-2 rounded bg-[var(--surface)] border border-[var(--line)] flex justify-between items-center">
+                      <span className="text-[var(--muted)]">Autenticação:</span>
+                      <span className="text-emerald-400 font-semibold">
+                        {diagnosticAccount.auth_token ? "Token Ativo (API Oficial)" : "Sessão Conectada"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rodapé com Ações Rápidas */}
+              <div className="mt-4 pt-3 border-t border-[var(--line)] flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCheckAccount(diagnosticAccount);
+                    }}
+                    className="btn btn-sm btn-glass text-sky-400 font-[600]"
+                  >
+                    <span>🔄</span> Checar Conexão Agora
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleOpenChrome(diagnosticAccount);
+                    }}
+                    className="btn btn-sm btn-glass font-[600]"
+                  >
+                    <span>🌐</span> Abrir no Navegador Isolado
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={() => setDiagnosticAccount(null)}
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </dialog>
+        );
+      })()}
+
+      {/* ============================================================== */}
       {/* 7. MODAL: FILTROS DE ALVO & INTERAÇÃO (NICHO)                  */}
       {/* ============================================================== */}
       {filtersOpen && (
@@ -1614,7 +1909,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                   className="input mt-1 h-20 text-[12px] font-mono leading-relaxed"
                   value={filters.targetLinks || ""}
                   onChange={(e) => setFilters({ ...filters, targetLinks: e.target.value })}
-                  placeholder={"https://x.com/elonmusk/status/189283921000\nhttps://x.com/sama/status/189283944000"}
+                  placeholder={"https://x.com/JulyCardosoCirc/status/189283921000\nhttps://x.com/modelos_brasil/status/189283944000"}
                 />
                 <p className="text-[11px] text-[var(--muted)] mt-1">
                   Cole os links exatos dos tweets que você quer que o bot curta, guarde ou use para interagir com quem engajou neles.
@@ -1642,31 +1937,31 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
 
               <div>
                 <label className="label" htmlFor="f-keywords">
-                  Palavras-chave e Hashtags do Nicho (separadas por vírgula)
+                  Palavras-chave e Hashtags do Nicho Hot (separadas por vírgula)
                 </label>
                 <input
                   id="f-keywords"
                   className="input mt-1"
                   value={filters.keywords}
                   onChange={(e) => setFilters({ ...filters, keywords: e.target.value })}
-                  placeholder="marketing, tech, crypto, startup, ia, btc, business"
+                  placeholder="big ass, gostosas, beautiful woman, loirinhas, vazados, modelo, privacy, onlyfans, biquini, decote, sensual, ensaio"
                   required
                 />
                 <p className="text-[11px] text-[var(--muted)] mt-1">
-                  O bot só vai interagir com tweets que contenham pelo menos um desses termos.
+                  O bot pesquisa essas palavras-chave e analisa o feed para encontrar posts similares aos da sua modelo, calibrando o algoritmo para o Nicho Hot.
                 </p>
               </div>
 
               <div>
                 <label className="label" htmlFor="f-profiles">
-                  Perfis de Referência para Acompanhar (separados por vírgula)
+                  Perfis de Referência do Nicho Hot (separados por vírgula)
                 </label>
                 <input
                   id="f-profiles"
                   className="input mt-1"
                   value={filters.targetProfiles}
                   onChange={(e) => setFilters({ ...filters, targetProfiles: e.target.value })}
-                  placeholder="@elonmusk, @sama, @paulg"
+                  placeholder="@JulyCardosoCirc, @modelos_brasil, @privacybrasil, @onlyfansbrasil"
                 />
               </div>
 

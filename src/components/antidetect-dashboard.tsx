@@ -135,6 +135,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
 
   // Modal 8: Ritmo Humano, Intervalos & Pausas Biológicas
   const [cadenceModalOpen, setCadenceModalOpen] = useState(false);
+  const [drivePostingEnabled, setDrivePostingEnabled] = useState(false);
   const [cadence, setCadence] = useState({
     sessionDurationMinMinutes: 7.5,
     sessionDurationMaxMinutes: 14.0,
@@ -184,6 +185,42 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     } catch {}
   }, []);
 
+  const fetchDrivePosting = useCallback(async () => {
+    try {
+      const res = await fetch("/api/drive", { cache: "no-store" });
+      const data = await res.json();
+      if (data.ok && data.drive) {
+        setDrivePostingEnabled(Boolean(data.drive.autoPostingEnabled));
+      }
+    } catch {}
+  }, []);
+
+  // Alternar Ligar / Desligar Postagem de Vídeos do Drive
+  async function toggleDrivePosting() {
+    setBusy("toggle_drive_posting");
+    try {
+      const next = !drivePostingEnabled;
+      const res = await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ autoPostingEnabled: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setDrivePostingEnabled(Boolean(data.drive.autoPostingEnabled));
+      toast.show(
+        next
+          ? "🚀 Postagens de Vídeos do Drive LIGADAS (Modo Completo)"
+          : "🔥 Modo APENAS AQUECIMENTO ATIVO (Vídeos do Drive Pausados)"
+      );
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Erro ao alternar postagens.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   // Polling automático
   const refresh = useCallback(async () => {
     try {
@@ -206,10 +243,12 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
   useEffect(() => {
     refresh();
     fetchCadence();
+    fetchDrivePosting();
     const poll = setInterval(() => {
       if (document.visibilityState === "visible") {
         refresh();
         fetchCadence();
+        fetchDrivePosting();
       }
     }, 8_000);
     const tick = setInterval(() => setNow(Date.now()), 15_000);
@@ -780,6 +819,32 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             ⏰ Ritmo & Pausas
           </button>
 
+          {/* CONTROLE SEPARADO: POSTAR VÍDEOS DO DRIVE (LIGAR / DESLIGAR) */}
+          <button
+            type="button"
+            onClick={toggleDrivePosting}
+            disabled={busy === "toggle_drive_posting"}
+            className={`px-3 py-1.5 rounded-full text-[12px] font-[650] flex items-center gap-1.5 border transition-all cursor-pointer shadow-sm select-none ${
+              drivePostingEnabled
+                ? "bg-purple-950/40 border-purple-500/50 text-purple-300 hover:bg-purple-900/50"
+                : "bg-amber-950/40 border-amber-500/50 text-amber-300 hover:bg-amber-900/50"
+            }`}
+            title={
+              drivePostingEnabled
+                ? "Postagens de vídeo ativas. Clique para pausar e apenas aquecer a conta."
+                : "Postagens de vídeo pausadas. O bot apenas aquece a conta sem postar."
+            }
+          >
+            <span
+              className={`size-2 rounded-full transition-all ${
+                drivePostingEnabled
+                  ? "bg-purple-400 shadow-[0_0_8px_#c084fc] animate-pulse"
+                  : "bg-amber-400 shadow-[0_0_8px_#fbbf24]"
+              }`}
+            />
+            <span>{drivePostingEnabled ? "Postar Vídeos: Ligado" : "Postar Vídeos: Pausado"}</span>
+          </button>
+
           {/* BOTÃO COMPACTO ARREDONDADO (LIGADO / DESLIGADO) */}
           <button
             type="button"
@@ -820,6 +885,15 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             </h3>
             <span className="liquid-glass-chip px-2.5 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
               {status.enabled ? "LIVE TELEMETRY" : "IDLE"}
+            </span>
+            <span
+              className={`liquid-glass-chip px-2.5 py-0.5 text-[11px] font-semibold ${
+                !drivePostingEnabled
+                  ? "text-amber-400 border border-amber-500/30 bg-amber-950/30"
+                  : "text-purple-300 border border-purple-500/30 bg-purple-950/30"
+              }`}
+            >
+              {!drivePostingEnabled ? "🔥 APENAS AQUECIMENTO (VÍDEOS PAUSADOS)" : "🚀 AQUECIMENTO + VÍDEOS"}
             </span>
           </div>
 

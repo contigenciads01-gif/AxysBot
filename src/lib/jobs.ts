@@ -1,5 +1,6 @@
 import "server-only";
 import { db, logRun } from "./supabase";
+import { isDrivePostingEnabled } from "./posting-switch";
 
 /**
  * Agendador SEM API paga do X.
@@ -10,6 +11,10 @@ import { db, logRun } from "./supabase";
  * claimed_at guarda quando o aviso foi dado: cada post avisa uma vez so.
  */
 export async function runPublisher(max = 50) {
+  // Se o usuário optou por APENAS AQUECER a conta, não avisa nem agenda mídias do Drive
+  if (!isDrivePostingEnabled()) {
+    return { due: 0, notified: 0, ms: 0, paused: true, message: "Modo Apenas Aquecimento ativo: postagens do Drive pausadas." };
+  }
   const started = Date.now();
   const nowIso = new Date().toISOString();
   const { data: paused } = await db().from("settings").select("account_id").eq("paused", true);

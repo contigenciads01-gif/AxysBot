@@ -131,6 +131,7 @@ export default function DriveMediaPage() {
           folderUrl: drive.folderUrl,
           folderName: drive.folderName,
           autoInterleave: drive.autoInterleave,
+          autoPostingEnabled: drive.autoPostingEnabled,
           items: drive.items,
         }),
       });
@@ -146,16 +147,94 @@ export default function DriveMediaPage() {
     }
   }
 
-  // Programar todos os posts na Agenda do X
+  // Alternar Ligar / Desligar Postagens do Drive (Modo Apenas Aquecimento)
+  async function togglePosting() {
+    if (!drive) return;
+    const next = !drive.autoPostingEnabled;
+    setBusy("toggle_posting");
+    try {
+      const res = await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ autoPostingEnabled: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setDrive(data.drive);
+      toast.show(
+        next
+          ? "🚀 Postagens de Vídeos/Fotos ATIVADAS! O bot postará na agenda."
+          : "🔥 Modo APENAS AQUECIMENTO ATIVO! Postagens de vídeos pausadas."
+      );
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Erro ao alterar postagens.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Analisar Cenário, Roupa e Posição de um item individual com Visão IA
+  async function handleAnalyzeItem(id: string) {
+    if (!drive) return;
+    const item = drive.items.find((i) => i.id === id);
+    if (!item) return;
+
+    setBusy(`analyze_${id}`);
+    try {
+      const res = await fetch("/api/drive/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      const updated = drive.items.map((i) => (i.id === id ? data.item : i));
+      setDrive({ ...drive, items: updated });
+      toast.show(`👁️ Visão IA: Cenário e Roupa analisados! Legenda dedicada pronta.`);
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Erro na análise visual.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Programar todos os posts na Agenda do X (analisando cenário, roupa e posição antes de agendar)
   async function handleScheduleAll() {
     if (!drive || drive.items.length === 0) return;
     setBusy("schedule_all");
     try {
+      toast.show("👁️ Visão IA: Puxando mídias do Drive e analisando cenário, roupa e posição de cada uma...");
+
+      // 1. Analisa itens que ainda não tiveram visão IA processada
+      const analyzedItems: DriveMediaItem[] = [];
+      for (const it of drive.items) {
+        if (it.visualAnalysis) {
+          analyzedItems.push(it);
+        } else {
+          try {
+            const aRes = await fetch("/api/drive/analyze", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ item: it }),
+            });
+            const aData = await aRes.json();
+            analyzedItems.push(aData.ok && aData.item ? aData.item : it);
+          } catch {
+            analyzedItems.push(it);
+          }
+        }
+      }
+
+      setDrive({ ...drive, items: analyzedItems });
+
+      // 2. Agenda os posts com as legendas dedicadas
       const res = await fetch("/api/drive/schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: drive.items,
+          items: analyzedItems,
           startDateTime,
           intervalHours,
         }),
@@ -164,10 +243,10 @@ export default function DriveMediaPage() {
       if (!res.ok) throw new Error(data.error);
 
       // Marca itens como agendados
-      const updated = drive.items.map((i) => ({ ...i, status: "scheduled" as const }));
+      const updated = analyzedItems.map((i) => ({ ...i, status: "scheduled" as const }));
       setDrive({ ...drive, items: updated });
 
-      toast.show(`🚀 ${data.count} posts programados com sucesso na Agenda do X!`);
+      toast.show(`🚀 ${data.count} posts programados com legendas dedicadas por cenário e roupa na Agenda do X!`);
     } catch (e) {
       toast.show(e instanceof Error ? e.message : "Erro ao programar posts.");
     } finally {
@@ -207,6 +286,28 @@ export default function DriveMediaPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* BOTÃO INDEPENDENTE: LIGAR / DESLIGAR POSTAGENS DE VÍDEO DO DRIVE */}
+          <button
+            type="button"
+            onClick={togglePosting}
+            disabled={busy === "toggle_posting"}
+            className={`px-3.5 py-1.5 rounded-full text-[12.5px] font-[650] flex items-center gap-2 border transition-all cursor-pointer shadow-sm select-none ${
+              drive.autoPostingEnabled
+                ? "bg-emerald-950/40 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/50"
+                : "bg-amber-950/40 border-amber-500/50 text-amber-300 hover:bg-amber-900/50"
+            }`}
+            title="Alternar entre postar vídeos na agenda ou apenas aquecer a conta"
+          >
+            <span
+              className={`size-2 rounded-full transition-all ${
+                drive.autoPostingEnabled
+                  ? "bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"
+                  : "bg-amber-400 shadow-[0_0_8px_#fbbf24]"
+              }`}
+            />
+            <span>{drive.autoPostingEnabled ? "Postar Vídeos: Ligado" : "Postar Vídeos: Pausado"}</span>
+          </button>
+
           <button
             type="button"
             className="btn btn-glass flex items-center gap-1.5"
@@ -234,6 +335,43 @@ export default function DriveMediaPage() {
           </button>
         </div>
       </section>
+
+      {/* BANNER INFORMATIVO DO MODO SELECIONADO */}
+      {!drive.autoPostingEnabled ? (
+        <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[12.5px] text-amber-200">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[18px]">🔥</span>
+            <div>
+              <span className="font-[750] text-amber-300 block sm:inline">Modo Apenas Aquecimento Ativo:</span>{" "}
+              <span>O bot está ligado e aquecendo a conta (curtidas, scroll, retenção), mas a postagem de vídeos e fotos do Drive está <strong>PAUSADA</strong>.</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={togglePosting}
+            className="btn btn-xs bg-amber-500 hover:bg-amber-400 text-black font-[700] shrink-0"
+          >
+            Ligar Postagens
+          </button>
+        </div>
+      ) : (
+        <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[12.5px] text-emerald-200">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[18px]">🚀</span>
+            <div>
+              <span className="font-[750] text-emerald-300 block sm:inline">Modo Completo Ativo:</span>{" "}
+              <span>O robô aquece a conta normalmente no X e <strong>publica</strong> as fotos e vídeos intercalados do Drive conforme a agenda.</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={togglePosting}
+            className="btn btn-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-[650] shrink-0 border border-zinc-700"
+          >
+            Pausar Vídeos (Apenas Aquecer)
+          </button>
+        </div>
+      )}
 
       {/* 2. CARD DE CONFIGURAÇÃO DA PASTA DO DRIVE */}
       <form onSubmit={handleSaveDriveFolder} className="liquid-glass glass-card panel-pad space-y-4" data-glass>
@@ -418,10 +556,40 @@ export default function DriveMediaPage() {
 
                   {/* Edição de Legenda e Hashtags 1 a 1 */}
                   <div className="space-y-2">
+                    {/* BADGES DA ANÁLISE VISUAL (CENÁRIO, ROUPA E POSIÇÃO) */}
+                    {item.visualAnalysis ? (
+                      <div className="p-2 rounded-lg bg-[var(--sunken)] border border-[var(--line)] text-[10.5px] space-y-1">
+                        <div className="flex items-center gap-1.5 text-sky-400 font-semibold truncate">
+                          <span>🏖️ Cenário:</span>
+                          <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.scenario}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-purple-400 font-semibold truncate">
+                          <span>👗 Roupa:</span>
+                          <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.outfit}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-amber-400 font-semibold truncate">
+                          <span>💃 Posição:</span>
+                          <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.pose}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-1.5 rounded-lg bg-[var(--sunken)]/50 border border-[var(--line)] text-[10.5px]">
+                        <span className="text-[var(--muted)]">Análise visual pendente</span>
+                        <button
+                          type="button"
+                          onClick={() => handleAnalyzeItem(item.id)}
+                          disabled={busy !== null}
+                          className="text-sky-400 font-[650] hover:underline flex items-center gap-1"
+                        >
+                          <span>👁️</span> {busy === `analyze_${item.id}` ? "Analisando..." : "Analisar Cenário & Roupa"}
+                        </button>
+                      </div>
+                    )}
+
                     <div>
-                      <span className="text-[11px] font-[600] text-[var(--muted)] block">Legenda (1 a 1):</span>
+                      <span className="text-[11px] font-[600] text-[var(--muted)] block">Legenda Dedicada:</span>
                       <textarea
-                        className="input text-[12px] h-[72px] resize-none leading-relaxed mt-0.5"
+                        className="input text-[12px] h-[68px] resize-none leading-relaxed mt-0.5"
                         value={item.caption}
                         onChange={(e) => handleItemChange(item.id, "caption", e.target.value)}
                         placeholder="Escreva a legenda desse post..."
@@ -443,10 +611,22 @@ export default function DriveMediaPage() {
 
                 {/* Rodapé do Card */}
                 <div className="pt-2.5 border-t border-[var(--line)] flex items-center justify-between text-[11px] text-[var(--muted)]">
-                  <span className="flex items-center gap-1 font-mono">
-                    <span className="size-1.5 rounded-full bg-emerald-400" />
-                    Puxando direto do Drive
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 font-mono">
+                      <span className="size-1.5 rounded-full bg-emerald-400" />
+                      Google Drive
+                    </span>
+                    {item.visualAnalysis && (
+                      <button
+                        type="button"
+                        onClick={() => handleAnalyzeItem(item.id)}
+                        disabled={busy !== null}
+                        className="text-xs text-[var(--muted)] hover:text-sky-400 underline font-mono ml-2"
+                      >
+                        Reanalisar 👁️
+                      </button>
+                    )}
+                  </div>
 
                   <span className="text-zinc-400 font-mono">
                     {item.status === "scheduled" ? "Agendado na esteira" : "Pronto para agendar"}

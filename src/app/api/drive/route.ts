@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireSession, fail } from "@/lib/http";
+import { isDrivePostingEnabled, setDrivePostingEnabled } from "@/lib/posting-switch";
 
 export interface DriveMediaItem {
   id: string;
@@ -12,6 +13,12 @@ export interface DriveMediaItem {
   scheduledTime?: string;
   status: "idle" | "ready" | "scheduled";
   sizeMb?: number;
+  visualAnalysis?: {
+    scenario: string;
+    outfit: string;
+    pose: string;
+    mood: string;
+  };
 }
 
 export interface DriveConfig {
@@ -19,6 +26,7 @@ export interface DriveConfig {
   connected: boolean;
   folderName: string;
   autoInterleave: boolean; // Intercalar Foto / Vídeo
+  autoPostingEnabled: boolean; // Ligar / Desligar postagem de vídeos/fotos (Modo Apenas Aquecimento)
   items: DriveMediaItem[];
 }
 
@@ -97,6 +105,7 @@ let driveStore: DriveConfig = {
   connected: true,
   folderName: "Acervo de Conteúdo Modelo (Fotos & Vídeos HD)",
   autoInterleave: true,
+  autoPostingEnabled: isDrivePostingEnabled(),
   items: [...DEFAULT_DRIVE_ITEMS],
 };
 
@@ -105,6 +114,7 @@ export async function GET() {
   if (denied) return denied;
 
   try {
+    driveStore.autoPostingEnabled = isDrivePostingEnabled();
     return NextResponse.json({
       ok: true,
       drive: driveStore,
@@ -130,6 +140,9 @@ export async function POST(req: Request) {
     }
     if (body.autoInterleave !== undefined) {
       driveStore.autoInterleave = Boolean(body.autoInterleave);
+    }
+    if (body.autoPostingEnabled !== undefined) {
+      driveStore.autoPostingEnabled = setDrivePostingEnabled(body.autoPostingEnabled);
     }
     if (Array.isArray(body.items)) {
       driveStore.items = body.items;

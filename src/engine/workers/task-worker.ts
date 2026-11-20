@@ -4,6 +4,7 @@ import { TokenVault } from "../security/token-vault";
 import { XConnector, RateLimitError, AuthError, type XHeadersInfo } from "../connectors/x-connector";
 import { RateLimiter } from "../services/rate-limiter";
 import { MetricsCollector } from "../metrics/collector";
+import { isDrivePostingEnabled } from "@/lib/posting-switch";
 import type { AutomationTask } from "../types";
 
 export interface WorkerProcessResult {
@@ -164,6 +165,10 @@ export class TaskWorker {
 
       switch (task.task_type) {
         case "post": {
+          if (!isDrivePostingEnabled()) {
+            await this.markTaskPaused(task, "Modo Apenas Aquecimento ativo: postagens do Drive pausadas.");
+            return "completed";
+          }
           const text = String(task.payload.text ?? "");
           const res = await connector.createPost(text, {
             quotePostId: task.payload.quote_post_id ? String(task.payload.quote_post_id) : undefined,

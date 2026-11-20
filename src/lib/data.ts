@@ -98,6 +98,21 @@ export async function deletePost(accountId: string, id: string) {
   if (error) throw error;
 }
 
+export async function deletePosts(accountId: string, ids: string[]) {
+  if (!ids.length) return;
+  const { error } = await db().from("posts").delete().in("id", ids).eq("account_id", accountId).neq("status", "publicado");
+  if (error) throw error;
+}
+
+export async function setPostsStatus(accountId: string, ids: string[], status: PostStatus, scheduledFor?: string | null) {
+  if (!ids.length) return;
+  const patch: Record<string, unknown> = { status, error: null };
+  if (scheduledFor !== undefined) patch.scheduled_for = scheduledFor;
+  if (status === "agendado") { patch.attempts = 0; patch.claimed_at = null; }
+  const { error } = await db().from("posts").update(patch).in("id", ids).eq("account_id", accountId);
+  if (error) throw error;
+}
+
 // ------------------------------------------------------------------ dashboard
 export interface DashboardData {
   metrics: { day: string; followers: number | null; impressions: number | null; likes: number | null; replies: number | null; reposts: number | null }[];

@@ -45,6 +45,33 @@ export default function DriveMediaPage() {
   const [promptSaved, setPromptSaved] = useState(false);
   const [savingItems, setSavingItems] = useState(false);
   const [itemsSaved, setItemsSaved] = useState(false);
+  const [activeItemMenu, setActiveItemMenu] = useState<string | null>(null);
+  const [driveContextMenu, setDriveContextMenu] = useState<{ x: number; y: number; item: DriveMediaItem } | null>(null);
+
+  useEffect(() => {
+    function handleClose() {
+      setActiveItemMenu(null);
+      setDriveContextMenu(null);
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setActiveItemMenu(null);
+        setDriveContextMenu(null);
+      }
+    }
+    window.addEventListener("click", handleClose);
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      window.removeEventListener("click", handleClose);
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, []);
+
+  function copyItemCaption(item: DriveMediaItem) {
+    const text = `${item.caption}\n\n${(item.hashtags || []).join(" ")}`.trim();
+    navigator.clipboard.writeText(text);
+    toast.show("📋 Legenda e hashtags copiadas!");
+  }
 
   async function handlePostsPerDayChange(n: number) {
     setPostsPerDay(n);
@@ -1129,6 +1156,12 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
               return (
                 <div
                   key={item.id}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDriveContextMenu({ x: e.clientX, y: e.clientY, item });
+                    setActiveItemMenu(null);
+                  }}
                   className="liquid-glass glass-card p-4 flex flex-col justify-between border border-[var(--line)] rounded-2xl relative overflow-hidden group hover:border-[var(--accent)]/50 transition-all"
                   data-glass
                 >
@@ -1159,7 +1192,83 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
                       </span>
                     </div>
 
-                    <span className="text-[11px] font-mono text-[var(--muted)]">{item.sizeMb} MB</span>
+                    <div className="flex items-center gap-2 relative">
+                      <span className="text-[11px] font-mono text-[var(--muted)]">{item.sizeMb} MB</span>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          className={`btn btn-xs btn-ghost px-1.5 text-[15px] font-bold leading-none cursor-pointer ${
+                            activeItemMenu === item.id ? "bg-[var(--sunken)]" : ""
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveItemMenu(activeItemMenu === item.id ? null : item.id);
+                            setDriveContextMenu(null);
+                          }}
+                          title="Ações da mídia"
+                        >
+                          ⋯
+                        </button>
+                        {activeItemMenu === item.id && (
+                          <div
+                            className="absolute right-0 top-full mt-1 w-48 rounded-xl bg-[var(--surface)] border border-[var(--line)] shadow-2xl p-1.5 z-50 enter flex flex-col gap-0.5 text-[12px]"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 cursor-pointer"
+                              onClick={() => {
+                                handleAnalyzeItem(item.id);
+                                setActiveItemMenu(null);
+                              }}
+                            >
+                              <span>👁️</span> Analisar com IA
+                            </button>
+                            <button
+                              type="button"
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 cursor-pointer"
+                              onClick={() => {
+                                copyItemCaption(item);
+                                setActiveItemMenu(null);
+                              }}
+                            >
+                              <span>📋</span> Copiar Legenda
+                            </button>
+                            <button
+                              type="button"
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 cursor-pointer"
+                              onClick={() => {
+                                handleSaveReadyItems();
+                                setActiveItemMenu(null);
+                              }}
+                            >
+                              <span>💾</span> Salvar Post
+                            </button>
+                            <button
+                              type="button"
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 text-amber-400 cursor-pointer"
+                              onClick={() => {
+                                handleDiscardItem(item.id);
+                                setActiveItemMenu(null);
+                              }}
+                            >
+                              <span>🧹</span> Liberar da Memória
+                            </button>
+                            <div className="my-1 border-t border-[var(--line)]" />
+                            <button
+                              type="button"
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--bad)]/15 text-[var(--bad)] flex items-center gap-2 font-[650] cursor-pointer"
+                              onClick={() => {
+                                handleRemoveItem(item.id);
+                                setActiveItemMenu(null);
+                              }}
+                            >
+                              <span>🗑️</span> Remover
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Conteúdo: Preview + Inputs */}
@@ -1722,6 +1831,80 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
             </div>
           </div>
         </dialog>
+      )}
+
+      {/* MENU DE CONTEXTO PELO BOTÃO DIREITO DO MOUSE (DRIVE) */}
+      {driveContextMenu && (
+        <div
+          className="fixed z-[100] w-56 rounded-xl bg-[var(--surface)]/95 backdrop-blur-md border border-[var(--line)] shadow-2xl p-1.5 enter flex flex-col gap-0.5 text-[12.5px]"
+          style={{
+            left: Math.min(
+              driveContextMenu.x,
+              typeof window !== "undefined" ? window.innerWidth - 240 : driveContextMenu.x
+            ),
+            top: Math.min(
+              driveContextMenu.y,
+              typeof window !== "undefined" ? window.innerHeight - 260 : driveContextMenu.y
+            ),
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-2.5 py-1 text-[11px] font-mono text-[var(--muted)] border-b border-[var(--line)] mb-0.5 truncate flex items-center justify-between">
+            <span>Mídia #{drive.items.findIndex((i) => i.id === driveContextMenu.item.id) + 1}</span>
+            <span className="text-[10px] text-sky-400">Botão Direito</span>
+          </div>
+          <button
+            type="button"
+            className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 cursor-pointer font-medium"
+            onClick={() => {
+              handleAnalyzeItem(driveContextMenu.item.id);
+              setDriveContextMenu(null);
+            }}
+          >
+            <span>👁️</span> Analisar Cenário & Roupa
+          </button>
+          <button
+            type="button"
+            className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 cursor-pointer"
+            onClick={() => {
+              copyItemCaption(driveContextMenu.item);
+              setDriveContextMenu(null);
+            }}
+          >
+            <span>📋</span> Copiar Legenda Dedicada
+          </button>
+          <button
+            type="button"
+            className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 cursor-pointer"
+            onClick={() => {
+              handleSaveReadyItems();
+              setDriveContextMenu(null);
+            }}
+          >
+            <span>💾</span> Salvar Post Editado
+          </button>
+          <button
+            type="button"
+            className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 text-amber-400 cursor-pointer"
+            onClick={() => {
+              handleDiscardItem(driveContextMenu.item.id);
+              setDriveContextMenu(null);
+            }}
+          >
+            <span>🧹</span> Liberar da Memória RAM
+          </button>
+          <div className="my-1 border-t border-[var(--line)]" />
+          <button
+            type="button"
+            className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--bad)]/15 text-[var(--bad)] flex items-center gap-2 font-[650] cursor-pointer"
+            onClick={() => {
+              handleRemoveItem(driveContextMenu.item.id);
+              setDriveContextMenu(null);
+            }}
+          >
+            <span>🗑️</span> Remover Mídia
+          </button>
+        </div>
       )}
 
       {toast.node}

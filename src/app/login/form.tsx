@@ -36,6 +36,10 @@ export function LoginForm() {
       </label>
       {error ? <p className="text-[13px] text-[var(--bad)]" role="alert">{error}</p> : null}
       <button type="submit" className="btn btn-primary mt-1" data-glass disabled={loading || !pw || !user}>{loading ? "Entrando…" : "Entrar"}</button>
+      <div className="mt-2 pt-3 border-t border-[var(--line)] text-[12px] text-[var(--muted)] leading-relaxed">
+        <span className="font-semibold text-sky-400 block mb-0.5">💡 Conexão simples e rápida com o X:</span>
+        Após entrar, você só precisa do seu <strong>@ de usuário</strong> no X (ou Client ID) para ativar o robô. Zero API paga.
+      </div>
     </form>
   );
 }

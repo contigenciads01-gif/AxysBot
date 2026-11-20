@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireSession, fail } from "@/lib/http";
-import { getAccount, listPosts, createPost } from "@/lib/data";
+import { getAccount, listPosts, createPost, deletePosts, setPostsStatus } from "@/lib/data";
 import { weightedLength, X_LIMIT } from "@/lib/thread";
 import type { PostStatus } from "@/lib/types";
 
@@ -39,5 +39,38 @@ export async function POST(req: Request) {
     }
     const id = await createPost(acc.id, { items, scheduledFor });
     return NextResponse.json({ id }, { status: 201 });
+  } catch (e) { return fail(e); }
+}
+
+/** Atualização em lote (ex: mover vários para rascunho ou cancelar) */
+export async function PATCH(req: Request) {
+  const denied = await requireSession();
+  if (denied) return denied;
+  try {
+    const acc = await getAccount();
+    if (!acc) return NextResponse.json({ error: "Sem conta conectada." }, { status: 409 });
+    const body = (await req.json()) as { ids?: string[]; status?: PostStatus; scheduledFor?: string | null };
+    const ids = Array.isArray(body.ids) ? body.ids.filter(Boolean) : [];
+    if (!ids.length) return NextResponse.json({ error: "Nenhum post selecionado." }, { status: 400 });
+    if (!body.status) return NextResponse.json({ error: "Status obrigatório." }, { status: 400 });
+
+    await setPostsStatus(acc.id, ids, body.status, body.scheduledFor);
+    return NextResponse.json({ ok: true, count: ids.length });
+  } catch (e) { return fail(e); }
+}
+
+/** Exclusão em lote de posts selecionados */
+export async function DELETE(req: Request) {
+  const denied = await requireSession();
+  if (denied) return denied;
+  try {
+    const acc = await getAccount();
+    if (!acc) return NextResponse.json({ error: "Sem conta conectada." }, { status: 409 });
+    const body = (await req.json()) as { ids?: string[] };
+    const ids = Array.isArray(body.ids) ? body.ids.filter(Boolean) : [];
+    if (!ids.length) return NextResponse.json({ error: "Nenhum post selecionado." }, { status: 400 });
+
+    await deletePosts(acc.id, ids);
+    return NextResponse.json({ ok: true, count: ids.length });
   } catch (e) { return fail(e); }
 }

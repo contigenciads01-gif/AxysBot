@@ -128,6 +128,16 @@ a, button, input, textarea, select, label { touch-action: manipulation; }
 .skeleton { background: linear-gradient(90deg, var(--sunken), var(--line), var(--sunken)); background-size: 200% 100%; animation: sk 1.4s linear infinite; border-radius: 6px; }
 @keyframes sk { to { background-position: -200% 0 } }
 
+@keyframes holoFloatUp {
+  0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+  20% { transform: translate(-50%, -10px) scale(1.05); opacity: 1; }
+  75% { transform: translate(-50%, -32px) scale(0.98); opacity: 0.95; }
+  100% { transform: translate(-50%, -48px) scale(0.85); opacity: 0; }
+}
+.holo-pill-float {
+  animation: holoFloatUp 1.8s cubic-bezier(.2, .8, .2, 1) forwards;
+}
+
 }
 
 @media (prefers-reduced-motion: reduce) {

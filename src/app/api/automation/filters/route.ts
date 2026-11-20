@@ -16,6 +16,9 @@ export async function GET() {
     const defaultFilters = {
       keywords: "marketing, tech, crypto, startup, ia, empreendedorismo, business",
       targetProfiles: "@elonmusk, @sama, @paulg",
+      targetLinks: "",
+      mirrorOwnReposts: true,
+      discoveryMode: "hybrid" as const, // "hybrid" | "links" | "mirror" | "niche"
       autoLike: true,
       autoBookmark: true,
       autoRetweet: true,
@@ -26,7 +29,7 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
-      filters: data?.target_filters || defaultFilters,
+      filters: data?.target_filters ? { ...defaultFilters, ...data.target_filters } : defaultFilters,
     });
   } catch (e) {
     return fail(e);

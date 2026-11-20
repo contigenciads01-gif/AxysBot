@@ -30,12 +30,22 @@ interface ContextMenuState {
 interface NicheFilters {
   keywords: string;
   targetProfiles: string;
+  targetLinks?: string;
+  mirrorOwnReposts?: boolean;
+  discoveryMode?: "hybrid" | "links" | "mirror" | "niche";
   autoLike: boolean;
   autoBookmark: boolean;
   autoRetweet: boolean;
   autoVisitProfile: boolean;
   autoComment: boolean;
   commentTemplates: string;
+}
+
+interface FloatingPill {
+  id: string;
+  text: string;
+  icon: string;
+  color: string;
 }
 
 export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
@@ -98,6 +108,9 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
   const [filters, setFilters] = useState<NicheFilters>({
     keywords: "marketing, tech, crypto, startup, ia, btc, business",
     targetProfiles: "@elonmusk, @sama, @paulg",
+    targetLinks: "",
+    mirrorOwnReposts: true,
+    discoveryMode: "hybrid",
     autoLike: true,
     autoBookmark: true,
     autoRetweet: true,
@@ -105,6 +118,14 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     autoComment: false,
     commentTemplates: "Excelente visão! 👏\nMuito bom esse insight.\nConcordo totalmente com esse ponto.",
   });
+
+  // HoloGlobe & Smartphone Simulator States
+  const [floatingPills, setFloatingPills] = useState<FloatingPill[]>([]);
+  const [showMobileSim, setShowMobileSim] = useState(true);
+  const [phoneScrollY, setPhoneScrollY] = useState(0);
+  const [phoneTouchActive, setPhoneTouchActive] = useState(false);
+  const [phoneLikeActive, setPhoneLikeActive] = useState(false);
+  const [phoneRetweetActive, setPhoneRetweetActive] = useState(false);
 
   // Modal 5: Retweet Real de Teste
   const [retweetModalOpen, setRetweetModalOpen] = useState(false);
@@ -209,11 +230,57 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
 
     const runWarmupStep = async () => {
       try {
-        await fetch("/api/automation/warmup/run", {
+        const res = await fetch("/api/automation/warmup/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "step" }),
         });
+        const data = await res.json();
+        if (data.steps && data.steps.length > 0) {
+          const s = data.steps[0];
+          const pillId = Math.random().toString(36).slice(2);
+          let pIcon = "⚡";
+          let pText = s.targetProfile || "Ação";
+          let pColor = "text-emerald-400 border-emerald-500/50 bg-emerald-950/80";
+
+          if (s.actionType.includes("LIKE")) {
+            pIcon = "❤️";
+            pText = `Like ${s.targetProfile || ""}`;
+            pColor = "text-rose-400 border-rose-500/50 bg-rose-950/80";
+            setPhoneLikeActive(true);
+            setTimeout(() => setPhoneLikeActive(false), 1600);
+          } else if (s.actionType.includes("RETWEET")) {
+            pIcon = "🔁";
+            pText = `RT ${s.targetProfile || ""}`;
+            pColor = "text-teal-400 border-teal-500/50 bg-teal-950/80";
+            setPhoneRetweetActive(true);
+            setTimeout(() => setPhoneRetweetActive(false), 1600);
+          } else if (s.actionType.includes("SCROLL")) {
+            pIcon = "📜";
+            pText = "Scroll 380px";
+            pColor = "text-sky-400 border-sky-500/50 bg-sky-950/80";
+            setPhoneTouchActive(true);
+            setPhoneScrollY((prev) => (prev > 300 ? 0 : prev + 90));
+            setTimeout(() => setPhoneTouchActive(false), 1200);
+          } else if (s.actionType.includes("DIRECT_LINK")) {
+            pIcon = "🔗";
+            pText = "Link Alvo";
+            pColor = "text-amber-400 border-amber-500/50 bg-amber-950/80";
+          } else if (s.actionType.includes("MIRROR")) {
+            pIcon = "🪞";
+            pText = "Espelhando";
+            pColor = "text-indigo-400 border-indigo-500/50 bg-indigo-950/80";
+          } else if (s.actionType.includes("PROFILE")) {
+            pIcon = "👀";
+            pText = `Perfil ${s.targetProfile || ""}`;
+            pColor = "text-purple-400 border-purple-500/50 bg-purple-950/80";
+          }
+
+          setFloatingPills((prev) => [...prev.slice(-2), { id: pillId, text: pText, icon: pIcon, color: pColor }]);
+          setTimeout(() => {
+            setFloatingPills((prev) => prev.filter((p) => p.id !== pillId));
+          }, 1800);
+        }
         await refresh();
       } catch {
         // ignora falhas temporárias
@@ -776,9 +843,44 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-[12px] text-[var(--ink-2)]">
-            <span className="font-mono text-[var(--muted)]">Ciclo contínuo:</span>
-            <span className="font-semibold text-emerald-400">8s (Anti-Detection Jitter)</span>
+          <div className="flex items-center gap-3 text-[12px] text-[var(--ink-2)]">
+            {/* MINI GLOBO HOLOGRÁFICO COM PARTÍCULAS EMERGINDO */}
+            <div className="relative size-12 flex items-center justify-center shrink-0" title="Radar Holográfico do Bot">
+              {/* Esfera / Globo com rotação 3D */}
+              <div className="size-11 rounded-full border-2 border-emerald-400/60 bg-emerald-950/40 shadow-[0_0_15px_rgba(16,185,129,0.35)] relative flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(56,189,248,0.5),rgba(16,185,129,0.2),transparent)]" />
+                <div className="absolute inset-x-0 h-[1.5px] bg-emerald-400/70 top-1/2 -translate-y-1/2 shadow-[0_0_8px_#34d399]" />
+                <div className="absolute inset-y-0 w-[1.5px] bg-emerald-400/70 left-1/2 -translate-x-1/2 shadow-[0_0_8px_#34d399]" />
+                <div className="size-8 rounded-full border border-sky-400/50 animate-[spin_6s_linear_infinite]" />
+                <span className="text-[13px] relative z-10 select-none">🌐</span>
+              </div>
+
+              {/* Partículas / Pills que saem de dentro do globo e somem em 1.8s */}
+              {floatingPills.map((pill) => (
+                <div
+                  key={pill.id}
+                  className={`holo-pill-float absolute pointer-events-none z-30 px-2 py-0.5 rounded-full text-[10px] font-bold border shadow-lg flex items-center gap-1 whitespace-nowrap ${pill.color}`}
+                  style={{ top: "5%", left: "50%" }}
+                >
+                  <span>{pill.icon}</span>
+                  <span className="truncate max-w-[90px]">{pill.text}</span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className={`btn btn-xs ${showMobileSim ? "btn-primary" : "btn-glass"} flex items-center gap-1.5`}
+              onClick={() => setShowMobileSim(!showMobileSim)}
+              title="Alternar simulador de celular ativo"
+            >
+              <span>📱</span> {showMobileSim ? "Ocultar Celular" : "Ver Celular"}
+            </button>
+
+            <div className="hidden sm:flex items-center gap-1.5">
+              <span className="font-mono text-[var(--muted)]">Ciclo:</span>
+              <span className="font-semibold text-emerald-400">8s (Jitter Quebrado)</span>
+            </div>
           </div>
         </div>
 
@@ -897,6 +999,191 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             </div>
           </div>
         </div>
+
+        {/* ============================================================== */}
+        {/* SIMULADOR VISUAL DE SMARTPHONE (CELULAR MEXENDO NA CONTA)     */}
+        {/* ============================================================== */}
+        {showMobileSim && (
+          <div className="mt-4 pt-4 border-t border-[var(--line)] flex flex-col md:flex-row items-center justify-center gap-6 enter">
+            {/* Moldura de Smartphone (iPhone Style) */}
+            <div className="w-[280px] h-[480px] rounded-[38px] border-[5px] border-zinc-700 bg-zinc-950 shadow-2xl relative overflow-hidden flex flex-col p-2 shadow-emerald-950/20 shrink-0">
+              {/* Dynamic Island / Notch */}
+              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-24 h-3.5 bg-black rounded-full z-40 flex items-center justify-between px-2">
+                <span className={`size-1.5 rounded-full ${status.enabled ? "bg-emerald-500 animate-pulse" : "bg-zinc-700"}`} />
+                <span className="size-1.5 rounded-full bg-zinc-800" />
+              </div>
+
+              {/* Barra de Status do Celular */}
+              <div className="h-5 flex items-center justify-between px-3 text-[9.5px] font-semibold text-zinc-400 z-30 pt-0.5">
+                <span>01:45</span>
+                <div className="flex items-center gap-1.5 text-[8.5px]">
+                  <span>5G</span>
+                  <span>📶</span>
+                  <span>96% 🔋</span>
+                </div>
+              </div>
+
+              {/* Tela do Aplicativo do X */}
+              <div className="flex-1 bg-black rounded-[28px] overflow-hidden flex flex-col relative text-white text-[11.5px]">
+                {/* Header do X */}
+                <div className="h-9 border-b border-zinc-800/80 flex items-center justify-between px-2.5 bg-black/90 backdrop-blur z-20">
+                  <div className="size-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-bold text-sky-400">
+                    {activeAccount ? activeAccount.username.slice(0, 2).toUpperCase() : "X"}
+                  </div>
+                  <span className="text-[14px] font-black tracking-tight select-none">𝕏</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">60fps</span>
+                </div>
+
+                {/* Abas Para Você / Seguindo */}
+                <div className="flex border-b border-zinc-800 text-[10.5px] font-semibold text-zinc-400 bg-black z-20">
+                  <div className="flex-1 py-1 text-center text-white border-b-2 border-sky-500">
+                    Para você
+                  </div>
+                  <div className="flex-1 py-1 text-center text-zinc-500">
+                    Seguindo
+                  </div>
+                </div>
+
+                {/* Feed Interativo com Scroll e Efeitos de Toque */}
+                <div className="flex-1 overflow-hidden relative">
+                  <div
+                    className="p-2.5 space-y-2.5 transition-transform duration-700 ease-out"
+                    style={{ transform: `translateY(-${phoneScrollY}px)` }}
+                  >
+                    {/* Post 1 */}
+                    <div className="border-b border-zinc-800/80 pb-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="size-6 rounded-full bg-purple-900/60 border border-purple-500/40 grid place-items-center text-[8.5px] font-bold text-purple-200">
+                          EM
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-[10.5px] flex items-center gap-1 truncate">
+                            <span>{filters.targetProfiles.split(",")[0] || "@elonmusk"}</span>
+                            <span className="text-sky-400 text-[8px]">☑</span>
+                          </div>
+                          <span className="text-zinc-500 text-[9px]">há 12 min</span>
+                        </div>
+                      </div>
+                      <p className="mt-1 text-[10.5px] text-zinc-200 leading-relaxed">
+                        A automação inteligente e modelos autônomos no nicho de {filters.keywords.split(",")[0] || "marketing"} aceleram tudo.
+                      </p>
+                      <div className="flex items-center justify-between text-zinc-500 mt-1.5 px-1 text-[10px]">
+                        <span>💬 142</span>
+                        <span className={`flex items-center gap-1 transition-all ${phoneRetweetActive ? "text-emerald-400 font-bold scale-125" : ""}`}>
+                          🔁 {phoneRetweetActive ? "1.8K" : "1.7K"}
+                        </span>
+                        <span className={`flex items-center gap-1 transition-all ${phoneLikeActive ? "text-rose-500 font-bold scale-125" : ""}`}>
+                          ❤️ {phoneLikeActive ? "14.2K" : "14.1K"}
+                        </span>
+                        <span>🔖 89</span>
+                      </div>
+                    </div>
+
+                    {/* Post 2 */}
+                    <div className="border-b border-zinc-800/80 pb-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="size-6 rounded-full bg-sky-900/60 border border-sky-500/40 grid place-items-center text-[8.5px] font-bold text-sky-200">
+                          SM
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-[10.5px] flex items-center gap-1 truncate">
+                            <span>{filters.targetProfiles.split(",")[1] || "@sama"}</span>
+                            <span className="text-sky-400 text-[8px]">☑</span>
+                          </div>
+                          <span className="text-zinc-500 text-[9px]">há 34 min</span>
+                        </div>
+                      </div>
+                      <p className="mt-1 text-[10.5px] text-zinc-200 leading-relaxed">
+                        Agentes com comportamento orgânico que simulam pausas biológicas estão redefinindo interações reais.
+                      </p>
+                      <div className="flex items-center justify-between text-zinc-500 mt-1.5 px-1 text-[10px]">
+                        <span>💬 88</span>
+                        <span>🔁 612</span>
+                        <span>❤️ 3.9K</span>
+                        <span>🔖 55</span>
+                      </div>
+                    </div>
+
+                    {/* Post 3 */}
+                    <div className="border-b border-zinc-800/80 pb-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="size-6 rounded-full bg-emerald-900/60 border border-emerald-500/40 grid place-items-center text-[8.5px] font-bold text-emerald-200">
+                          PG
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-[10.5px] flex items-center gap-1 truncate">
+                            <span>{filters.targetProfiles.split(",")[2] || "@paulg"}</span>
+                          </div>
+                          <span className="text-zinc-500 text-[9px]">há 1h</span>
+                        </div>
+                      </div>
+                      <p className="mt-1 text-[10.5px] text-zinc-200 leading-relaxed">
+                        A persistência e cadência humana superam qualquer esforço desordenado no nicho de {filters.keywords.split(",")[1] || "startups"}.
+                      </p>
+                      <div className="flex items-center justify-between text-zinc-500 mt-1.5 px-1 text-[10px]">
+                        <span>💬 41</span>
+                        <span>🔁 289</span>
+                        <span>❤️ 1.5K</span>
+                        <span>🔖 32</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Indicador Tátil (Polegar Humano Simulando Toque na Tela) */}
+                  {phoneTouchActive && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30">
+                      <div className="size-8 rounded-full bg-sky-400/30 border-2 border-sky-400/80 shadow-[0_0_12px_#38bdf8] animate-ping" />
+                    </div>
+                  )}
+
+                  {/* Coração Explodindo quando Dá Like */}
+                  {phoneLikeActive && (
+                    <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 text-[32px] animate-bounce">
+                      ❤️
+                    </div>
+                  )}
+                </div>
+
+                {/* Barra Inferior de Navegação do X */}
+                <div className="h-8 border-t border-zinc-800/80 flex items-center justify-around text-zinc-400 text-[12px] bg-black/95 z-20">
+                  <span className="text-white">🏠</span>
+                  <span>🔍</span>
+                  <span>⚡</span>
+                  <span>🔔</span>
+                  <span>✉️</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Explicação e Telemetria do Simulador */}
+            <div className="max-w-[440px] text-[12.5px] space-y-2.5">
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                <h4 className="font-[750] text-[14px] text-[var(--ink)]">
+                  Simulação Visual em Tempo Real (Mobile View)
+                </h4>
+              </div>
+              <p className="text-[var(--ink-2)] leading-relaxed">
+                Este simulador reflete em tempo real o que o motor de automação executa no navegador isolado: 
+                <strong> rolagem do feed com curvas de Bezier</strong>, retenção de leitura em tweets, curtidas orgânicas e pausas humanas.
+              </p>
+              <div className="p-3 rounded-xl bg-[var(--sunken)]/60 border border-[var(--line)] space-y-1.5 text-[11.5px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[var(--muted)]">Modelo Ativa:</span>
+                  <span className="font-semibold text-emerald-400">@{activeAccount?.username || "JulyCardosoCirc"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[var(--muted)]">Ação Física Simulada:</span>
+                  <span className="font-mono text-sky-400">{phoneTouchActive ? "Polegar Arrastando Feed 👆" : phoneLikeActive ? "Toque de Curtida ❤️" : phoneRetweetActive ? "Retweetando 🔁" : "Lendo Publicação 👀"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[var(--muted)]">Modo de Alvo:</span>
+                  <span className="font-mono text-amber-400 uppercase font-semibold">{filters.discoveryMode || "Híbrido"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ============================================================== */}
@@ -1439,7 +1726,65 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </button>
             </div>
 
-            <form onSubmit={handleSaveFilters} className="mt-4 flex flex-col gap-3.5 text-[13px]">
+            <form onSubmit={handleSaveFilters} className="mt-4 flex flex-col gap-3.5 text-[13px] max-h-[75vh] overflow-y-auto pr-1">
+              {/* Modo de Descoberta */}
+              <div className="p-3 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/60">
+                <label className="label text-[12px] font-bold text-[var(--accent)]" htmlFor="f-mode">
+                  Modo de Leitura e Descoberta de Alvos:
+                </label>
+                <select
+                  id="f-mode"
+                  className="input mt-1 font-medium"
+                  value={filters.discoveryMode || "hybrid"}
+                  onChange={(e) => setFilters({ ...filters, discoveryMode: e.target.value as any })}
+                >
+                  <option value="hybrid">🎯 Híbrido: Links Diretos + Espelhar Reposts + Nicho (Recomendado)</option>
+                  <option value="links">🔗 Focar Apenas nos Links Diretos Fornecidos</option>
+                  <option value="mirror">🪞 Espelhar Exclusivamente Reposts e Gostos da Própria Conta</option>
+                  <option value="niche">🔍 Pesquisa por Palavras-chave e Perfis de Referência</option>
+                </select>
+                <p className="text-[11px] text-[var(--muted)] mt-1.5">
+                  Escolha como o robô deve encontrar o que você realmente quer curtir e interagir.
+                </p>
+              </div>
+
+              {/* Links Diretos de Posts */}
+              <div className="p-3 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/60">
+                <label className="label text-[12px] font-bold flex items-center justify-between" htmlFor="f-links">
+                  <span>🔗 Links Diretos de Publicações do X (O que curtir/retuitar)</span>
+                  <span className="text-[10px] text-amber-400 font-mono">1 por linha</span>
+                </label>
+                <textarea
+                  id="f-links"
+                  className="input mt-1 h-20 text-[12px] font-mono leading-relaxed"
+                  value={filters.targetLinks || ""}
+                  onChange={(e) => setFilters({ ...filters, targetLinks: e.target.value })}
+                  placeholder={"https://x.com/elonmusk/status/189283921000\nhttps://x.com/sama/status/189283944000"}
+                />
+                <p className="text-[11px] text-[var(--muted)] mt-1">
+                  Cole os links exatos dos tweets que você quer que o bot curta, guarde ou use para interagir com quem engajou neles.
+                </p>
+              </div>
+
+              {/* Espelhamento de Reposts da Própria Conta */}
+              <div className="p-3 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/60 flex items-center justify-between">
+                <div>
+                  <label className="font-[650] text-[12.5px] cursor-pointer flex items-center gap-1.5" htmlFor="f-mirror">
+                    <span>🪞</span> Espelhar Reposts e Histórico da Própria Conta
+                  </label>
+                  <p className="text-[11px] text-[var(--muted)] mt-0.5">
+                    O bot analisa o que a sua conta já repostou e curtiu no passado para interagir com posts do mesmo gosto.
+                  </p>
+                </div>
+                <input
+                  id="f-mirror"
+                  type="checkbox"
+                  checked={filters.mirrorOwnReposts !== false}
+                  onChange={(e) => setFilters({ ...filters, mirrorOwnReposts: e.target.checked })}
+                  className="size-4 cursor-pointer shrink-0"
+                />
+              </div>
+
               <div>
                 <label className="label" htmlFor="f-keywords">
                   Palavras-chave e Hashtags do Nicho (separadas por vírgula)

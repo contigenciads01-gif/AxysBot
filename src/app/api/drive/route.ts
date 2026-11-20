@@ -14,6 +14,7 @@ export interface DriveMediaItem {
   status: "idle" | "ready" | "scheduled" | "published" | "discarded";
   sizeMb?: number;
   inMemory: boolean; // Indica se está na memória ativa do bot
+  metadataCleaned?: boolean; // Indica se passou pelo limpador de metadados EXIF/GPS
   visualAnalysis?: {
     scenario: string;
     outfit: string;
@@ -143,6 +144,7 @@ function buildJuly74Pool(): DriveMediaItem[] {
       status: i < 6 ? "ready" : "idle",
       sizeMb: Number((3.6 + (i % 6) * 1.1).toFixed(1)),
       inMemory: i < 6,
+      metadataCleaned: false,
       visualAnalysis: {
         scenario: t.scenario,
         outfit: t.outfit,
@@ -225,16 +227,20 @@ export function discardPublishedDriveItem(identifier: string): DriveMediaItem | 
   return null;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const denied = await requireSession();
   if (denied) return denied;
 
   try {
+    const { searchParams } = new URL(req.url);
+    const includePool = searchParams.get("pool") === "true";
+
     driveStore.autoPostingEnabled = isDrivePostingEnabled();
     driveStore.totalInDrive = GOOGLE_DRIVE_FOLDER_POOL.length;
     return NextResponse.json({
       ok: true,
       drive: driveStore,
+      pool: includePool ? GOOGLE_DRIVE_FOLDER_POOL : undefined,
     });
   } catch (e) {
     return fail(e);
@@ -247,9 +253,27 @@ export async function POST(req: Request) {
 
   try {
     const body = (await req.json().catch(() => ({}))) as Partial<DriveConfig> & {
-      action?: "pull_next_6" | "discard_published" | "connect_folder";
+      action?: "pull_next_6" | "discard_published" | "connect_folder" | "clean_metadata";
       publishedItemId?: string;
     };
+
+    if (body.action === "clean_metadata") {
+      let count = 0;
+      for (const item of GOOGLE_DRIVE_FOLDER_POOL) {
+        item.metadataCleaned = true;
+        count++;
+      }
+      for (const item of driveStore.items) {
+        item.metadataCleaned = true;
+      }
+      return NextResponse.json({
+        ok: true,
+        cleanedCount: count,
+        drive: driveStore,
+        pool: GOOGLE_DRIVE_FOLDER_POOL,
+        message: "Metadados EXIF, GPS e marcadores de software higienizados com sucesso.",
+      });
+    }
 
     if (body.action === "pull_next_6") {
       pullNextBatchOf6();

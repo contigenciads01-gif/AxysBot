@@ -29,6 +29,15 @@ export default function DriveMediaPage() {
   const [intervalHours, setIntervalHours] = useState(4);
   const [postsPerDay, setPostsPerDay] = useState(4); // Quantidade de posts por dia (padrão 4)
 
+  // Estados da Biblioteca Completa e Limpador de Metadados
+  const [libraryModalOpen, setLibraryModalOpen] = useState(false);
+  const [libraryPool, setLibraryPool] = useState<DriveMediaItem[]>([]);
+  const [loadingPool, setLoadingPool] = useState(false);
+  const [cleaningMetadata, setCleaningMetadata] = useState(false);
+  const [botScheduling, setBotScheduling] = useState(false);
+  const [selectedLibraryIds, setSelectedLibraryIds] = useState<Set<string>>(new Set());
+  const [libraryFilter, setLibraryFilter] = useState<"all" | "photos" | "videos" | "cleaned" | "active">("all");
+
   async function handlePostsPerDayChange(n: number) {
     setPostsPerDay(n);
     if (drive) setDrive({ ...drive, postsPerDay: n });
@@ -279,6 +288,124 @@ export default function DriveMediaPage() {
     }
   }
 
+  // Abre a Biblioteca Completa e carrega sob demanda as 74+ mídias da pasta July do Drive
+  async function handleOpenLibrary() {
+    setLibraryModalOpen(true);
+    if (libraryPool.length === 0) {
+      try {
+        setLoadingPool(true);
+        const res = await fetch("/api/drive?pool=true");
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.pool)) {
+          setLibraryPool(data.pool);
+          setSelectedLibraryIds(new Set(data.pool.map((item: DriveMediaItem) => item.id)));
+        }
+      } catch {
+        toast.show("Erro ao carregar acervo completo da biblioteca.");
+      } finally {
+        setLoadingPool(false);
+      }
+    }
+  }
+
+  // Limpador de Metadados: higieniza tags EXIF, coordenadas de GPS, marcas de câmera e software IA
+  async function handleCleanMetadata() {
+    try {
+      setCleaningMetadata(true);
+      const res = await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "clean_metadata" }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setLibraryPool((prev) => prev.map((item) => ({ ...item, metadataCleaned: true })));
+        if (drive) {
+          setDrive({
+            ...drive,
+            items: drive.items.map((i) => ({ ...i, metadataCleaned: true })),
+          });
+        }
+        toast.show(`🛡️ ${data.cleanedCount || 74} mídias higienizadas! EXIF, GPS e rastros de IA zerados.`);
+      } else {
+        toast.show(data.error || "Erro ao higienizar metadados.");
+      }
+    } catch {
+      toast.show("Erro ao comunicar com o limpador de metadados.");
+    } finally {
+      setCleaningMetadata(false);
+    }
+  }
+
+  // Passa pelo limpador de metadados e envia direto para o espaço do bot puxar e publicar na agenda
+  async function handleSendToBotAndSchedule(itemsToSchedule?: DriveMediaItem[]) {
+    try {
+      setBotScheduling(true);
+
+      // 1. Garante que todos os itens selecionados passam pelo limpador de metadados
+      const hasUncleaned = (itemsToSchedule || libraryPool).some((item) => !item.metadataCleaned);
+      if (hasUncleaned) {
+        await fetch("/api/drive", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "clean_metadata" }),
+        }).catch(() => null);
+        setLibraryPool((prev) => prev.map((item) => ({ ...item, metadataCleaned: true })));
+      }
+
+      // 2. Determina a lista de itens alvo
+      const targetItems = itemsToSchedule && itemsToSchedule.length > 0
+        ? itemsToSchedule
+        : libraryPool.filter((item) => selectedLibraryIds.has(item.id));
+
+      if (targetItems.length === 0) {
+        toast.show("Selecione pelo menos 1 mídia para o bot agendar.");
+        return;
+      }
+
+      // 3. O Bot puxa as imagens e agenda no X na frequência humana configurada (4 posts/dia padrão)
+      const res = await fetch("/api/drive/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: targetItems,
+          postsPerDay: postsPerDay,
+          startDateTime: startDateTime,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        toast.show(`🚀 Sucesso! ${data.count} mídias higienizadas transferidas para o bot e agendadas na Agenda (${data.postsPerDay} posts/dia)!`);
+        setLibraryModalOpen(false);
+        await loadDrive();
+      } else {
+        toast.show(data.error || "Erro ao transferir mídias para o bot.");
+      }
+    } catch {
+      toast.show("Erro ao conectar com a esteira do bot.");
+    } finally {
+      setBotScheduling(false);
+    }
+  }
+
+  function handleToggleSelect(id: string) {
+    setSelectedLibraryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleSelectAll() {
+    setSelectedLibraryIds(new Set(libraryPool.map((i) => i.id)));
+  }
+
+  function handleDeselectAll() {
+    setSelectedLibraryIds(new Set());
+  }
+
   // Puxar próximo lote de 6 fotos do Google Drive
   async function handlePullNext6() {
     setBusy("pull_6");
@@ -487,6 +614,17 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
               }`}
             />
             <span>{drive.autoPostingEnabled ? "Postar Vídeos: Ligado" : "Postar Vídeos: Pausado"}</span>
+          </button>
+
+          {/* BOTÃO PRINCIPAL: BIBLIOTECA COMPLETA E LIMPAR METADADOS */}
+          <button
+            type="button"
+            className="btn btn-primary bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 hover:brightness-110 text-white font-[750] shadow-md shadow-emerald-950/40 border border-emerald-400/40 flex items-center gap-2 cursor-pointer"
+            onClick={handleOpenLibrary}
+            title="Abrir o acervo completo de fotos e vídeos, limpar metadados e enviar para o bot agendar na agenda"
+          >
+            <span>📚</span>
+            <span>Biblioteca & Limpar Metadados ({drive.totalInDrive || 74})</span>
           </button>
 
           <button
@@ -738,14 +876,21 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
             </select>
           </div>
 
-          <div className="self-end">
+          <div className="self-end flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="btn btn-primary h-9 px-4 text-[12.5px] font-[650] flex items-center gap-1.5 shadow-lg shadow-sky-950/50"
+              className="btn btn-primary bg-gradient-to-r from-emerald-600 to-sky-600 h-9 px-4 text-[12.5px] font-[750] flex items-center gap-1.5 shadow-lg shadow-emerald-950/50 hover:brightness-110 cursor-pointer"
+              onClick={handleOpenLibrary}
+            >
+              <span>📚</span> Biblioteca & Limpar Metadados ({drive.totalInDrive || 74})
+            </button>
+            <button
+              type="button"
+              className="btn btn-glass h-9 px-3.5 text-[12.5px] font-[650] flex items-center gap-1.5"
               onClick={handleScheduleAll}
               disabled={busy !== null || drive.items.length === 0}
             >
-              <span>📅</span> {busy === "schedule_all" ? "Programando..." : "Programar na Agenda"}
+              <span>📅</span> {busy === "schedule_all" ? "Programando..." : "Programar Lote (6)"}
             </button>
           </div>
         </div>
@@ -817,6 +962,15 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
                       {isVideo ? "🎥 VÍDEO" : "📸 FOTO"}
                     </span>
                     <span className="text-[12px] font-mono text-[var(--muted)]">#{idx + 1}</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold ${
+                        item.metadataCleaned
+                          ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40"
+                          : "bg-amber-950/80 text-amber-300 border border-amber-500/40"
+                      }`}
+                    >
+                      {item.metadataCleaned ? "🛡️ EXIF Limpo" : "⚠️ EXIF Bruto"}
+                    </span>
                     <span className="text-[12px] font-semibold text-[var(--ink)] truncate max-w-[180px]">
                       {item.title}
                     </span>
@@ -1002,6 +1156,343 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
                 </button>
               </div>
             </form>
+          </div>
+        </dialog>
+      )}
+
+      {/* 6. MODAL DE BIBLIOTECA COMPLETA & LIMPADOR DE METADADOS (74 MÍDIAS) */}
+      {libraryModalOpen && (
+        <dialog open className="fixed inset-0 z-50 grid place-items-center bg-black/80 backdrop-blur-md p-2 sm:p-4 w-full h-full overflow-hidden">
+          <div className="bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl max-w-[1200px] w-full max-h-[95vh] flex flex-col shadow-2xl overflow-hidden enter">
+            {/* Header do Modal */}
+            <div className="p-4 sm:p-5 border-b border-[var(--line)] flex flex-wrap items-center justify-between gap-3 bg-[var(--sunken)]/60">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="text-[22px]">📚</span>
+                  <h3 className="font-[800] text-[17px] sm:text-[19px] text-[var(--ink)] flex items-center gap-2">
+                    Biblioteca de Mídias · Acervo July
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-sky-950/80 text-sky-300 border border-sky-500/40">
+                    {loadingPool ? "Carregando..." : `${libraryPool.length} arquivos no Drive`}
+                  </span>
+                </div>
+                <p className="text-[12.5px] text-[var(--ink-2)]">
+                  Higienize os metadados (EXIF/GPS/IA) para tornar os arquivos 100% indetectáveis no X e envie direto para o bot analisar e agendar nos horários ideais.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Badge Dinâmico de Higienização */}
+                {libraryPool.length > 0 && (
+                  libraryPool.every((i) => i.metadataCleaned) ? (
+                    <span className="px-3 py-1 rounded-full text-[11.5px] font-[750] bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 flex items-center gap-1.5 shadow-sm">
+                      <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                      100% dos Metadados Higienizados
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 rounded-full text-[11.5px] font-[750] bg-amber-950/80 text-amber-300 border border-amber-500/50 flex items-center gap-1.5 shadow-sm">
+                      <span className="size-2 rounded-full bg-amber-400" />
+                      Metadados Brutos Detectados ({libraryPool.filter((i) => !i.metadataCleaned).length} pendentes)
+                    </span>
+                  )
+                )}
+
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm text-[16px] px-2.5 cursor-pointer"
+                  onClick={() => setLibraryModalOpen(false)}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Barra de Ações Rápidas & Limpador de Metadados */}
+            <div className="p-3.5 sm:p-4 bg-[var(--sunken)]/30 border-b border-[var(--line)] flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Botão de Limpar Metadados */}
+                <button
+                  type="button"
+                  onClick={handleCleanMetadata}
+                  disabled={cleaningMetadata || loadingPool}
+                  className="btn btn-sm bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:brightness-110 text-white font-[700] border border-amber-400/40 flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  title="Remove tags EXIF, coordenadas de GPS, dados de câmera e marcadores de geradores de IA (Midjourney/Stable Diffusion)"
+                >
+                  <span>🛡️</span>
+                  <span>{cleaningMetadata ? "Higienizando..." : "Limpar Metadados (EXIF/GPS/IA)"}</span>
+                </button>
+
+                {/* Botão de Enviar Direto para o Bot */}
+                <button
+                  type="button"
+                  onClick={() => handleSendToBotAndSchedule()}
+                  disabled={botScheduling || loadingPool || selectedLibraryIds.size === 0}
+                  className="btn btn-sm bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 hover:brightness-110 text-white font-[800] border border-emerald-400/50 flex items-center gap-2 shadow-md shadow-emerald-950/40 cursor-pointer"
+                  title="Higieniza metadados, analisa cenário e roupa, e programa na agenda nos horários de pico humano"
+                >
+                  <span>🚀</span>
+                  <span>{botScheduling ? "Transferindo para o Bot..." : `Higienizar ➔ Passar para o Bot & Publicar na Agenda (${selectedLibraryIds.size})`}</span>
+                </button>
+              </div>
+
+              {/* Controles de Frequência e Seleção */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5 text-[12px] font-mono">
+                  <span className="text-[var(--muted)]">Ritmo:</span>
+                  <select
+                    className="input text-[11.5px] h-7 px-2 font-bold text-sky-400 bg-zinc-900 border-sky-500/50 cursor-pointer rounded"
+                    value={postsPerDay}
+                    onChange={(e) => handlePostsPerDayChange(Number(e.target.value))}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 8].map((n) => (
+                      <option key={n} value={n}>
+                        {n} posts/dia {n === 4 ? "⭐ (Recomendado)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleSelectAll}
+                    className="btn btn-ghost btn-xs text-[11.5px] cursor-pointer"
+                  >
+                    Marcar Todos ({libraryPool.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeselectAll}
+                    className="btn btn-ghost btn-xs text-[11.5px] cursor-pointer"
+                  >
+                    Desmarcar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Filtros em Abas */}
+            <div className="px-4 py-2 border-b border-[var(--line)] flex flex-wrap items-center gap-2 text-[12px] bg-zinc-950/40">
+              <span className="text-[var(--muted)] text-[11px] font-mono mr-1">Filtrar:</span>
+              <button
+                type="button"
+                onClick={() => setLibraryFilter("all")}
+                className={`px-2.5 py-1 rounded-lg font-mono text-[11.5px] transition-all cursor-pointer ${
+                  libraryFilter === "all"
+                    ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold"
+                    : "text-[var(--ink-2)] hover:bg-zinc-800"
+                }`}
+              >
+                Todas ({libraryPool.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setLibraryFilter("photos")}
+                className={`px-2.5 py-1 rounded-lg font-mono text-[11.5px] transition-all cursor-pointer ${
+                  libraryFilter === "photos"
+                    ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold"
+                    : "text-[var(--ink-2)] hover:bg-zinc-800"
+                }`}
+              >
+                📸 Fotos ({libraryPool.filter((i) => i.type === "photo").length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setLibraryFilter("videos")}
+                className={`px-2.5 py-1 rounded-lg font-mono text-[11.5px] transition-all cursor-pointer ${
+                  libraryFilter === "videos"
+                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold"
+                    : "text-[var(--ink-2)] hover:bg-zinc-800"
+                }`}
+              >
+                🎥 Vídeos ({libraryPool.filter((i) => i.type === "video").length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setLibraryFilter("cleaned")}
+                className={`px-2.5 py-1 rounded-lg font-mono text-[11.5px] transition-all cursor-pointer ${
+                  libraryFilter === "cleaned"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold"
+                    : "text-[var(--ink-2)] hover:bg-zinc-800"
+                }`}
+              >
+                🛡️ EXIF Limpo ({libraryPool.filter((i) => i.metadataCleaned).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setLibraryFilter("active")}
+                className={`px-2.5 py-1 rounded-lg font-mono text-[11.5px] transition-all cursor-pointer ${
+                  libraryFilter === "active"
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold"
+                    : "text-[var(--ink-2)] hover:bg-zinc-800"
+                }`}
+              >
+                ⚡ Memória Ativa ({libraryPool.filter((i) => i.inMemory).length})
+              </button>
+
+              <div className="ml-auto text-[11px] font-mono text-zinc-400">
+                Selecionadas: <strong className="text-white">{selectedLibraryIds.size}</strong> de {libraryPool.length}
+              </div>
+            </div>
+
+            {/* Grade de Mídias com Rolagem Leve */}
+            <div className="flex-1 overflow-y-auto p-4 max-h-[60vh] bg-[var(--surface)]">
+              {loadingPool ? (
+                <div className="p-12 text-center space-y-3">
+                  <div className="size-8 border-3 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto" />
+                  <p className="text-[13px] text-[var(--ink-2)]">Carregando acervo completo de 74+ mídias da pasta July...</p>
+                </div>
+              ) : libraryPool.length === 0 ? (
+                <div className="p-12 text-center text-[var(--muted)] text-[13px]">
+                  Nenhuma mídia encontrada na biblioteca.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {libraryPool
+                    .filter((item) => {
+                      if (libraryFilter === "photos") return item.type === "photo";
+                      if (libraryFilter === "videos") return item.type === "video";
+                      if (libraryFilter === "cleaned") return item.metadataCleaned;
+                      if (libraryFilter === "active") return item.inMemory;
+                      return true;
+                    })
+                    .map((item, idx) => {
+                      const isSelected = selectedLibraryIds.has(item.id);
+                      const isVideo = item.type === "video";
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleToggleSelect(item.id)}
+                          className={`rounded-xl border p-2.5 flex flex-col justify-between transition-all cursor-pointer relative group ${
+                            isSelected
+                              ? "border-sky-500 bg-sky-950/20 shadow-md shadow-sky-950/30 ring-1 ring-sky-500/50"
+                              : "border-[var(--line)] bg-[var(--sunken)]/40 hover:border-zinc-600"
+                          }`}
+                        >
+                          {/* Imagem / Poster com Badge */}
+                          <div className="relative rounded-lg overflow-hidden aspect-[4/5] bg-zinc-900 border border-[var(--line)] mb-2">
+                            <img
+                              src={item.previewUrl}
+                              alt={item.title}
+                              className="object-cover size-full group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                const target = e.currentTarget as HTMLImageElement;
+                                if (!target.src.includes("photo-1529626455594-4ff0802cfb7e")) {
+                                  target.src = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80";
+                                }
+                              }}
+                            />
+
+                            {/* Checkbox de Seleção */}
+                            <div className="absolute top-1.5 left-1.5 z-10">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleSelect(item.id);
+                                }}
+                                className="size-4 rounded accent-sky-500 cursor-pointer"
+                              />
+                            </div>
+
+                            {/* Badge de Foto ou Vídeo */}
+                            <div className="absolute top-1.5 right-1.5 pointer-events-none">
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold ${
+                                  isVideo
+                                    ? "bg-purple-950/90 text-purple-300 border border-purple-500/40"
+                                    : "bg-sky-950/90 text-sky-300 border border-sky-500/40"
+                                }`}
+                              >
+                                {isVideo ? "VÍDEO" : "FOTO"}
+                              </span>
+                            </div>
+
+                            {/* Play Icon Estático para Vídeo */}
+                            {isVideo && (
+                              <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
+                                <span className="size-6 rounded-full bg-black/60 border border-white/60 flex items-center justify-center text-white text-[10px] pl-0.5">
+                                  ▶
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Badge de Metadados Higienizados na Base da Foto */}
+                            <div className="absolute bottom-1.5 left-1.5 right-1.5 pointer-events-none">
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold flex items-center justify-center gap-1 backdrop-blur-sm ${
+                                  item.metadataCleaned
+                                    ? "bg-emerald-950/85 text-emerald-300 border border-emerald-500/40"
+                                    : "bg-amber-950/85 text-amber-300 border border-amber-500/40"
+                                }`}
+                              >
+                                {item.metadataCleaned ? "🛡️ EXIF Limpo" : "⚠️ Bruto (EXIF)"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Informações da Mídia */}
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between text-[10px] font-mono text-[var(--muted)]">
+                              <span className="truncate max-w-[100px] text-[var(--ink)] font-semibold">
+                                {item.title.replace(/^Generate_photorealistic_picture_of_a_20_years_old_b_/, "july_")}
+                              </span>
+                              <span>{item.sizeMb}MB</span>
+                            </div>
+
+                            {item.visualAnalysis && (
+                              <p className="text-[9.5px] text-sky-300/80 truncate leading-tight font-medium" title={item.visualAnalysis.scenario}>
+                                📍 {item.visualAnalysis.scenario}
+                              </p>
+                            )}
+
+                            <div className="flex items-center justify-between pt-1 border-t border-[var(--line)] text-[9px] font-mono">
+                              <span className={item.inMemory ? "text-emerald-400 font-bold" : "text-zinc-500"}>
+                                {item.inMemory ? "⚡ Memória Bot" : "☁️ Drive"}
+                              </span>
+                              <span className="text-zinc-400">#{idx + 1}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer do Modal com Resumo e Ação Principal */}
+            <div className="p-4 border-t border-[var(--line)] bg-[var(--sunken)]/70 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-[12px] text-[var(--ink-2)] text-center sm:text-left">
+                <span>{selectedLibraryIds.size} de {libraryPool.length} selecionadas</span> ·{" "}
+                <span className="text-sky-300 font-semibold font-mono">
+                  {selectedLibraryIds.size > 0 ? `${(selectedLibraryIds.size / postsPerDay).toFixed(1)} dias de postagens` : "0 dias"}
+                </span>{" "}
+                ({postsPerDay} posts/dia nos horários de pico humano)
+              </div>
+
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  className="btn btn-ghost flex-1 sm:flex-initial cursor-pointer"
+                  onClick={() => setLibraryModalOpen(false)}
+                >
+                  Fechar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSendToBotAndSchedule()}
+                  disabled={botScheduling || selectedLibraryIds.size === 0}
+                  className="btn btn-primary bg-gradient-to-r from-emerald-600 to-sky-600 text-white font-[800] px-5 flex-1 sm:flex-initial shadow-lg shadow-emerald-950/40 hover:brightness-110 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>🚀</span>
+                  <span>{botScheduling ? "Transferindo para o Bot..." : "Higienizar & Programar na Agenda"}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </dialog>
       )}

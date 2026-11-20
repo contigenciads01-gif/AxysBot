@@ -262,8 +262,8 @@ export function Agenda({ posts: initial }: { posts: Post[] }) {
                     {p.status === "agendado" || p.status === "rascunho" ? <button type="button" className="ml-auto btn btn-sm" onClick={() => setPublishing(p)}>Publicar no X</button> : null}
                   </div>
                   {/* Conteúdo com Texto e Miniatura Congelada */}
-                  <div className="mt-2.5 flex flex-col sm:flex-row items-start justify-between gap-4">
-                    {/* Texto do Post */}
+                  <div className="mt-2.5 flex flex-row items-start justify-between gap-3 sm:gap-4">
+                    {/* Texto do Post e Botões */}
                     <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                       {p.items.map((it) => {
                         const media = extractMediaInfo(it.body, `${p.id}-${it.position}`);
@@ -301,15 +301,15 @@ export function Agenda({ posts: initial }: { posts: Post[] }) {
                     {/* MINIATURA ESTÁTICA CONGELADA (SEM RODAR VÍDEO, ULTRA LEVE) */}
                     {(() => {
                       const firstItem = p.items[0];
-                      const media = firstItem ? extractMediaInfo(firstItem.body, p.id) : null;
+                      const media = extractMediaInfo(firstItem ? firstItem.body : "", p.id);
                       if (!media?.previewUrl) return null;
 
                       const secondItem = p.items[1];
                       const secondMedia = secondItem ? extractMediaInfo(secondItem.body, `${p.id}-2`) : null;
 
                       return (
-                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                          <div className="w-[84px] h-[112px] rounded-xl overflow-hidden bg-zinc-900 border border-[var(--line)] relative shadow-sm group">
+                        <div className="flex items-center gap-2 shrink-0 self-start">
+                          <div className="w-[78px] h-[104px] sm:w-[88px] sm:h-[116px] rounded-xl overflow-hidden bg-zinc-900 border border-[var(--line)] relative shadow-sm group">
                             {/* Imagem estática do frame congelado */}
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -317,10 +317,17 @@ export function Agenda({ posts: initial }: { posts: Post[] }) {
                               alt="Miniatura congelada do post"
                               className="object-cover size-full group-hover:scale-105 transition-transform duration-300"
                               loading="lazy"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                const target = e.currentTarget as HTMLImageElement;
+                                if (!target.src.includes("photo-1529626455594-4ff0802cfb7e")) {
+                                  target.src = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80";
+                                }
+                              }}
                             />
                             {/* Badge de Foto ou Vídeo no topo */}
                             <div className="absolute top-1.5 left-1.5 pointer-events-none">
-                              <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-[750] font-mono tracking-wider ${
+                              <span className={`px-1.5 py-0.5 rounded text-[8px] sm:text-[8.5px] font-[750] font-mono tracking-wider ${
                                 media.isVideo
                                   ? "bg-purple-950/85 text-purple-300 border border-purple-500/40"
                                   : "bg-sky-950/85 text-sky-300 border border-sky-500/40"
@@ -339,16 +346,23 @@ export function Agenda({ posts: initial }: { posts: Post[] }) {
                           </div>
 
                           {secondMedia?.previewUrl && (
-                            <div className="w-[84px] h-[112px] rounded-xl overflow-hidden bg-zinc-900 border border-[var(--line)] relative shadow-sm group hidden md:block">
+                            <div className="w-[78px] h-[104px] sm:w-[88px] sm:h-[116px] rounded-xl overflow-hidden bg-zinc-900 border border-[var(--line)] relative shadow-sm group hidden md:block">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={secondMedia.previewUrl}
                                 alt="Miniatura congelada 2"
                                 className="object-cover size-full group-hover:scale-105 transition-transform duration-300"
                                 loading="lazy"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  const target = e.currentTarget as HTMLImageElement;
+                                  if (!target.src.includes("photo-1531746020798-e6953c6e8e04")) {
+                                    target.src = "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80";
+                                  }
+                                }}
                               />
                               <div className="absolute top-1.5 left-1.5 pointer-events-none">
-                                <span className="px-1.5 py-0.5 rounded text-[8.5px] font-[750] font-mono tracking-wider bg-sky-950/85 text-sky-300 border border-sky-500/40">
+                                <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[8.5px] font-[750] font-mono tracking-wider bg-sky-950/85 text-sky-300 border border-sky-500/40">
                                   {secondMedia.isVideo ? "VÍDEO" : "FOTO"}
                                 </span>
                               </div>

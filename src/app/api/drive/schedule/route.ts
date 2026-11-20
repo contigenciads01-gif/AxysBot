@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession, fail } from "@/lib/http";
-import { getAccount, createPost } from "@/lib/data";
+import { getAccount } from "@/lib/data";
+import { db } from "@/lib/supabase";
 import { DriveMediaItem } from "../route";
 
 // Horários de pico humano durante o dia (fuso horário biológico natural)
@@ -67,7 +68,17 @@ export async function POST(req: Request) {
     let baseDate = body.startDateTime ? new Date(body.startDateTime) : new Date();
     if (Number.isNaN(baseDate.getTime())) baseDate = new Date();
 
+    const supabase = db();
     const createdIds: string[] = [];
+
+    // Prepara os dados calculados para inserção em lote de alta performance
+    const postsToInsert: {
+      account_id: string;
+      status: "agendado";
+      scheduled_for: string;
+    }[] = [];
+
+    const postTexts: string[] = [];
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -94,13 +105,45 @@ export async function POST(req: Request) {
       const mediaTag = item.previewUrl ? `\n\n[midia:${item.previewUrl}|tipo:${item.type}]` : "";
       const postText = `${item.caption}\n\n${tagsString}${mediaTag}`.trim();
 
-      // Cria na tabela posts
-      const postId = await createPost(acc.id, {
-        items: [postText],
-        scheduledFor: scheduledTime.toISOString(),
+      postsToInsert.push({
+        account_id: acc.id,
+        status: "agendado",
+        scheduled_for: scheduledTime.toISOString(),
       });
+      postTexts.push(postText);
+    }
 
-      createdIds.push(postId);
+    // Inserção em lotes de 20 para evitar limites de tamanho e garantir velocidade instantânea
+    const CHUNK_SIZE = 25;
+    for (let i = 0; i < postsToInsert.length; i += CHUNK_SIZE) {
+      const chunkPosts = postsToInsert.slice(i, i + CHUNK_SIZE);
+      const chunkTexts = postTexts.slice(i, i + CHUNK_SIZE);
+
+      const { data: insertedPosts, error: postErr } = await supabase
+        .from("posts")
+        .insert(chunkPosts)
+        .select("id");
+
+      if (postErr || !insertedPosts) {
+        console.error("Erro na inserção de posts em lote:", postErr);
+        throw postErr || new Error("Falha ao criar posts na agenda");
+      }
+
+      const itemsToInsert = insertedPosts.map((p, idx) => ({
+        post_id: p.id,
+        position: 0,
+        body: chunkTexts[idx],
+      }));
+
+      const { error: itemErr } = await supabase.from("post_items").insert(itemsToInsert);
+      if (itemErr) {
+        console.error("Erro na inserção de post_items em lote:", itemErr);
+        throw itemErr;
+      }
+
+      for (const p of insertedPosts) {
+        createdIds.push(p.id);
+      }
     }
 
     return NextResponse.json({

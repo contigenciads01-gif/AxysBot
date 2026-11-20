@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useToast } from "@/components/toast";
 import { DriveMediaItem, DriveConfig } from "@/app/api/drive/route";
 
@@ -48,15 +49,29 @@ export default function DriveMediaPage() {
   const [activeItemMenu, setActiveItemMenu] = useState<string | null>(null);
   const [driveContextMenu, setDriveContextMenu] = useState<{ x: number; y: number; item: DriveMediaItem } | null>(null);
 
+  const sp = useSearchParams();
+  const [topMoreMenuOpen, setTopMoreMenuOpen] = useState(false);
+  const [driveCardMenuOpen, setDriveCardMenuOpen] = useState(false);
+  const [promptMenuOpen, setPromptMenuOpen] = useState(false);
+  const [promptTagsOpen, setPromptTagsOpen] = useState(false);
+
   useEffect(() => {
     function handleClose() {
       setActiveItemMenu(null);
       setDriveContextMenu(null);
+      setTopMoreMenuOpen(false);
+      setDriveCardMenuOpen(false);
+      setPromptMenuOpen(false);
+      setPromptTagsOpen(false);
     }
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setActiveItemMenu(null);
         setDriveContextMenu(null);
+        setTopMoreMenuOpen(false);
+        setDriveCardMenuOpen(false);
+        setPromptMenuOpen(false);
+        setPromptTagsOpen(false);
       }
     }
     window.addEventListener("click", handleClose);
@@ -66,6 +81,22 @@ export default function DriveMediaPage() {
       window.removeEventListener("keydown", handleKey);
     };
   }, []);
+
+  useEffect(() => {
+    if (sp.get("modal") === "library") {
+      handleOpenLibrary();
+    }
+  }, [sp]);
+
+  function handleAppendPromptTag(tagText: string) {
+    const current = customPrompt.trim();
+    const updated =
+      current.endsWith(".") || current.endsWith("🔥") || current.endsWith("!")
+        ? `${current} ${tagText}`
+        : `${current}, ${tagText}`;
+    handleSaveCustomPrompt(updated);
+    setPromptTagsOpen(false);
+  }
 
   function copyItemCaption(item: DriveMediaItem) {
     const text = `${item.caption}\n\n${(item.hashtags || []).join(" ")}`.trim();
@@ -418,7 +449,7 @@ export default function DriveMediaPage() {
             items: drive.items.map((i) => ({ ...i, metadataCleaned: true })),
           });
         }
-        toast.show(`🛡️ ${data.cleanedCount || 74} mídias higienizadas! EXIF, GPS e rastros de IA zerados.`);
+        toast.show(`🛡️ ${data.cleanedCount || libraryPool.length || drive?.items.length || 0} mídias higienizadas! EXIF, GPS e rastros de IA zerados.`);
       } else {
         toast.show(data.error || "Erro ao higienizar metadados.");
       }
@@ -684,8 +715,8 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
   const videosCount = drive.items.filter((i) => i.type === "video").length;
 
   return (
-    <div className="space-y-6 max-w-[1240px]">
-      {/* 1. TOPO: TÍTULO & PAINEL DE CONEXÃO DO DRIVE */}
+    <div className="space-y-6 w-full max-w-full">
+      {/* 1. TOPO: TÍTULO & AÇÕES RÁPIDAS DESPOLUÍDAS */}
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--line)] pb-5">
         <div>
           <div className="flex items-center gap-2">
@@ -702,75 +733,113 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* BOTÃO INDEPENDENTE: LIGAR / DESLIGAR POSTAGENS DE VÍDEO DO DRIVE */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* INTERRUPTOR CLARO E VISÍVEL: LIGAR / DESLIGAR POSTAGENS DE VÍDEO DO DRIVE */}
           <button
             type="button"
             onClick={togglePosting}
             disabled={busy === "toggle_posting"}
-            className={`px-3.5 py-1.5 rounded-full text-[12.5px] font-[650] flex items-center gap-2 border transition-all cursor-pointer shadow-sm select-none ${
+            className={`px-3.5 py-1.5 rounded-xl text-[12px] font-[700] flex items-center gap-2 border transition-all cursor-pointer shadow-md select-none ${
               drive.autoPostingEnabled
-                ? "bg-emerald-950/40 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/50"
-                : "bg-amber-950/40 border-amber-500/50 text-amber-300 hover:bg-amber-900/50"
+                ? "bg-emerald-950/60 border-emerald-500/60 text-emerald-300 hover:bg-emerald-900/70 shadow-emerald-950/30"
+                : "bg-zinc-900/90 border-amber-500/50 text-amber-300 hover:bg-zinc-800"
             }`}
-            title="Alternar entre postar vídeos na agenda ou apenas aquecer a conta"
+            title="Clique para alternar entre publicar fotos/vídeos do Drive na agenda ou apenas aquecer a conta"
           >
+            <span className="text-[13px]">{drive.autoPostingEnabled ? "▶️" : "⏸️"}</span>
+            <div className="flex flex-col text-left leading-none">
+              <span className="text-[9.5px] text-[var(--muted)] uppercase tracking-wider font-mono">
+                Mídias Drive
+              </span>
+              <span className="text-[11.5px] font-[750]">
+                {drive.autoPostingEnabled ? "Postar: Ligado" : "Postar: Pausado"}
+              </span>
+            </div>
             <span
               className={`size-2 rounded-full transition-all ${
                 drive.autoPostingEnabled
-                  ? "bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"
-                  : "bg-amber-400 shadow-[0_0_8px_#fbbf24]"
+                  ? "bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse"
+                  : "bg-amber-400 shadow-[0_0_6px_#f59e0b]"
               }`}
             />
-            <span>{drive.autoPostingEnabled ? "Postar Vídeos: Ligado" : "Postar Vídeos: Pausado"}</span>
           </button>
 
-          {/* BOTÃO PRINCIPAL: BIBLIOTECA COMPLETA E LIMPAR METADADOS */}
+          {/* BOTÃO PRINCIPAL EM DESTAQUE: GERAR COM IA */}
           <button
             type="button"
-            className="btn btn-primary bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 hover:brightness-110 text-white font-[750] shadow-md shadow-emerald-950/40 border border-emerald-400/40 flex items-center gap-2 cursor-pointer"
-            onClick={handleOpenLibrary}
-            title="Abrir o acervo completo de fotos e vídeos, limpar metadados e enviar para o bot agendar na agenda"
-          >
-            <span>📚</span>
-            <span>Biblioteca & Limpar Metadados ({drive.totalInDrive || 74})</span>
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-glass flex items-center gap-1.5"
-            onClick={handlePullNext6}
-            disabled={busy !== null}
-            title="Puxar lote de 6 em 6 mídias da pasta do Google Drive"
-          >
-            <span>🔄</span> {busy === "pull_6" ? "Puxando..." : "Puxar 6 do Drive"}
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-glass flex items-center gap-1.5"
-            onClick={handleInterleave}
-            title="Intercalar automaticamente Foto ➔ Vídeo ➔ Foto ➔ Vídeo"
-          >
-            <span>🔀</span> Intercalar Foto/Vídeo
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-glass flex items-center gap-1.5"
-            onClick={() => setBulkModalOpen(true)}
-          >
-            <span>📝</span> Edição em Massa
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-primary flex items-center gap-1.5"
+            className="btn btn-primary flex items-center gap-1.5 shadow-md shadow-sky-500/20 font-[700] px-4 py-2 cursor-pointer"
             onClick={handleGenerateCaptions}
             disabled={busy !== null}
           >
             <span>✨</span> {busy === "generate" ? "Gerando com IA..." : "Gerar com IA"}
           </button>
+
+          {/* MENU COMPACTO DE TRÊS PONTINHOS (⋯) PARA DESPOLUIR A BARRA */}
+          <div className="relative">
+            <button
+              type="button"
+              className={`btn btn-glass px-2.5 py-2 font-bold text-[18px] leading-none transition-all cursor-pointer ${
+                topMoreMenuOpen ? "bg-[var(--sunken)] ring-1 ring-[var(--accent)]" : ""
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTopMoreMenuOpen(!topMoreMenuOpen);
+                setDriveCardMenuOpen(false);
+                setPromptMenuOpen(false);
+                setPromptTagsOpen(false);
+              }}
+              title="Mais opções e ferramentas"
+              aria-label="Mais opções"
+            >
+              ⋯
+            </button>
+
+            {topMoreMenuOpen && (
+              <div
+                className="absolute right-0 top-full mt-1.5 w-64 rounded-xl bg-[var(--surface)] border border-[var(--line)] shadow-2xl p-1.5 z-50 enter flex flex-col gap-0.5 text-[12.5px]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 text-[var(--ink)] cursor-pointer font-medium"
+                  onClick={() => {
+                    handleInterleave();
+                    setTopMoreMenuOpen(false);
+                  }}
+                >
+                  <span>🔀</span>
+                  <span>Intercalar Foto/Vídeo</span>
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 text-[var(--ink)] cursor-pointer font-medium"
+                  onClick={() => {
+                    setBulkModalOpen(true);
+                    setTopMoreMenuOpen(false);
+                  }}
+                >
+                  <span>📝</span>
+                  <span>Edição em Massa</span>
+                </button>
+                <div className="my-1 border-t border-[var(--line)]" />
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--sunken)] flex items-center justify-between text-emerald-400 cursor-pointer font-[650]"
+                  onClick={() => {
+                    handleOpenLibrary();
+                    setTopMoreMenuOpen(false);
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>📚</span> Biblioteca & Limpar Metadados
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/30">
+                    {drive.totalInDrive > 0 ? drive.totalInDrive : drive.items.length}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -787,7 +856,7 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
           <button
             type="button"
             onClick={togglePosting}
-            className="btn btn-xs bg-amber-500 hover:bg-amber-400 text-black font-[700] shrink-0"
+            className="btn btn-xs bg-amber-500 hover:bg-amber-400 text-black font-[700] shrink-0 cursor-pointer"
           >
             Ligar Postagens
           </button>
@@ -804,43 +873,86 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
           <button
             type="button"
             onClick={togglePosting}
-            className="btn btn-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-[650] shrink-0 border border-zinc-700"
+            className="btn btn-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-[650] shrink-0 border border-zinc-700 cursor-pointer"
           >
             Pausar Vídeos (Apenas Aquecer)
           </button>
         </div>
       )}
 
-      {/* 2. CARD DE CONFIGURAÇÃO DA PASTA DO DRIVE */}
+      {/* 2. CARD DE CONFIGURAÇÃO DA PASTA DO DRIVE (DESPOLUÍDO COM TRÊS PONTINHOS) */}
       <form onSubmit={handleSaveDriveFolder} className="liquid-glass glass-card panel-pad space-y-4" data-glass>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-3">
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-3">
           <div className="flex items-center gap-2">
             <span className="size-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
             <h3 className="font-[700] text-[14.5px] text-[var(--ink)]">
               Pasta do Google Drive Conectada
             </h3>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-[12px] font-mono">
-            <span className="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
-              📦 Lote Ativo: 6 na memória
-            </span>
-            <span className="px-2 py-0.5 rounded bg-sky-950/60 text-sky-300 border border-sky-500/30">
-              💾 Salvo no Drive: {drive.totalInDrive || 74} fotos & vídeos da July
-            </span>
-            <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/30 font-bold">
-              ⚡ Ritmo: {postsPerDay} posts/dia
-            </span>
-            <span className="px-2 py-0.5 rounded bg-purple-950/60 text-purple-300 border border-purple-500/30">
-              🧹 Descartados da Memória: {drive.discardedCount || 0}
+            <span className="liquid-glass-chip px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+              CONECTADO
             </span>
           </div>
-        </div>
 
-        {/* Banner Explicativo de Descarte de Memória */}
-        <div className="p-3 rounded-lg bg-sky-950/25 border border-sky-500/30 text-[12px] text-sky-200 leading-relaxed flex items-start gap-2.5">
-          <span className="text-[16px] shrink-0">💡</span>
-          <div>
-            <strong>Gestão de Memória Leve (6 em 6):</strong> Para manter a fluidez total e não pesar seu navegador, o bot carrega apenas <strong>6 mídias ativas</strong> na memória por vez. Ao publicar e confirmar um post no X, essa imagem é automaticamente <strong>descartada da memória do bot</strong> para liberar RAM, mantendo o arquivo 100% seguro no seu Google Drive, e a próxima foto da pasta entra no lote ativo.
+          {/* TRÊS PONTINHOS (⋯) COM DADOS DA ESTEIRA: LOTE ATIVO, SALVOS, RITMO E DESCARTADOS */}
+          <div className="relative">
+            <button
+              type="button"
+              className={`btn btn-xs btn-ghost px-2.5 py-1 text-[16px] font-bold leading-none cursor-pointer border border-[var(--line)] hover:bg-[var(--sunken)] transition-all ${
+                driveCardMenuOpen ? "bg-[var(--sunken)] ring-1 ring-[var(--accent)]" : ""
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDriveCardMenuOpen(!driveCardMenuOpen);
+                setTopMoreMenuOpen(false);
+                setPromptMenuOpen(false);
+                setPromptTagsOpen(false);
+              }}
+              title="Ver Dados da Esteira, Lote Ativo, Salvos, Ritmo e Descartados"
+              aria-label="Dados do card"
+            >
+              ⋯
+            </button>
+
+            {driveCardMenuOpen && (
+              <div
+                className="absolute right-0 top-full mt-1.5 w-72 rounded-xl bg-[var(--surface)] border border-[var(--line)] shadow-2xl p-3 z-50 enter flex flex-col gap-2.5 text-[12px]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between pb-1.5 border-b border-[var(--line)]">
+                  <span className="font-bold text-[var(--ink)] text-[12.5px] flex items-center gap-1.5">
+                    📊 Dados da Esteira & Memória
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                    Ativo
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 font-mono text-[11.5px]">
+                  <div className="flex items-center justify-between p-1.5 rounded-lg bg-[var(--sunken)]">
+                    <span className="text-[var(--muted)] flex items-center gap-1">📦 Lote Ativo:</span>
+                    <span className="text-emerald-400 font-bold">{drive.items.length} na memória</span>
+                  </div>
+                  <div className="flex items-center justify-between p-1.5 rounded-lg bg-[var(--sunken)]">
+                    <span className="text-[var(--muted)] flex items-center gap-1">💾 Salvos no Drive:</span>
+                    <span className="text-sky-300 font-bold">
+                      {drive.totalInDrive > 0 ? drive.totalInDrive : drive.items.length} mídias
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-1.5 rounded-lg bg-[var(--sunken)]">
+                    <span className="text-[var(--muted)] flex items-center gap-1">⚡ Ritmo Diário:</span>
+                    <span className="text-amber-300 font-bold">{postsPerDay} posts/dia</span>
+                  </div>
+                  <div className="flex items-center justify-between p-1.5 rounded-lg bg-[var(--sunken)]">
+                    <span className="text-[var(--muted)] flex items-center gap-1">🧹 Descartados:</span>
+                    <span className="text-purple-300 font-bold">{drive.discardedCount || 0} liberados</span>
+                  </div>
+                </div>
+
+                <div className="p-2 rounded-lg bg-sky-950/25 border border-sky-500/25 text-[11px] text-sky-200/90 leading-tight">
+                  💡 <strong>Memória Leve:</strong> O robô mantém apenas as mídias ativas na RAM. Ao publicar no X, descarta da memória e carrega a próxima, mantendo o arquivo original 100% preservado no seu Google Drive.
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -887,7 +999,7 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
 
           <button
             type="submit"
-            className="btn btn-sm btn-glass text-[12px] font-[600]"
+            className="btn btn-sm btn-glass text-[12px] font-[600] cursor-pointer"
             disabled={busy !== null}
           >
             {busy === "save_drive" ? "Salvando..." : "Salvar Pasta do Drive"}
@@ -937,34 +1049,29 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
           <div className="self-end flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="btn btn-primary bg-gradient-to-r from-emerald-600 to-sky-600 h-9 px-4 text-[12.5px] font-[750] flex items-center gap-1.5 shadow-lg shadow-emerald-950/50 hover:brightness-110 cursor-pointer"
-              onClick={handleOpenLibrary}
-            >
-              <span>📚</span> Biblioteca & Limpar Metadados ({drive.totalInDrive || 74})
-            </button>
-            <button
-              type="button"
-              className="btn btn-glass h-9 px-3.5 text-[12.5px] font-[650] flex items-center gap-1.5"
+              className="btn btn-primary bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 h-9 px-4 text-[12.5px] font-[750] flex items-center gap-1.5 shadow-md shadow-sky-950/50 hover:brightness-110 cursor-pointer"
               onClick={handleScheduleAll}
               disabled={busy !== null || drive.items.length === 0}
             >
-              <span>📅</span> {busy === "schedule_all" ? "Programando..." : "Programar Lote (6)"}
+              <span>📅</span> {busy === "schedule_all" ? "Programando..." : `Programar Lote (${drive.items.length})`}
             </button>
           </div>
         </div>
       </div>
 
-      {/* BANNER DINÂMICO DE PROJEÇÃO DE POSTS POR DIA */}
+      {/* BANNER DINÂMICO DE PROJEÇÃO DE POSTS POR DIA (ADAPTATIVO AO QUE FOI CARREGADO) */}
       {(() => {
-        const total = drive.totalInDrive || 74;
-        const days = (total / postsPerDay).toFixed(1).replace(".0", "");
+        const total = drive.totalInDrive > 0 ? drive.totalInDrive : drive.items.length;
+        const days = total > 0 ? (total / postsPerDay).toFixed(1).replace(".0", "") : "0";
         return (
           <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-950/30 via-sky-950/25 to-purple-950/30 border border-emerald-500/30 text-[12.5px] text-[var(--ink)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <span className="text-[20px]">📊</span>
               <div>
                 <span className="font-[750] text-emerald-300 text-[13.5px]">
-                  {total} mídias no acervo ÷ {postsPerDay} posts/dia = {days} dias de conteúdo garantido no X!
+                  {total > 0
+                    ? `${total} mídias no acervo ÷ ${postsPerDay} posts/dia = ${days} dias de conteúdo garantido no X!`
+                    : `0 mídias no acervo · Anexe fotos ou conecte a pasta para calcular os dias de conteúdo`}
                 </span>
                 <span className="text-[var(--ink-2)] block text-[12px] mt-0.5">
                   Horários humanos de pico (fuso natural):{" "}
@@ -987,7 +1094,7 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
         );
       })()}
 
-      {/* 3.8. PROMPT DE ESTILO IA & LADO SEXY PERSISTENTE */}
+      {/* 3.8. PROMPT DE ESTILO IA & LADO SEXY (COM BLOCO ÚNICO DE ELEMENTOS E POP-UP) */}
       <section className="liquid-glass glass-card panel-pad space-y-3.5 border border-pink-500/40 rounded-2xl bg-gradient-to-r from-pink-950/25 via-zinc-950/50 to-purple-950/25 shadow-lg shadow-pink-950/20" data-glass>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
           <div className="flex items-center gap-2.5">
@@ -1016,6 +1123,67 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
             >
               <span>💾</span> Salvar Prompt
             </button>
+
+            {/* TRÊS PONTINHOS DO PROMPT */}
+            <div className="relative">
+              <button
+                type="button"
+                className={`btn btn-xs btn-ghost px-2 py-1 text-[16px] font-bold leading-none cursor-pointer border border-pink-500/30 hover:bg-pink-950/40 text-pink-300 transition-all ${
+                  promptMenuOpen ? "bg-pink-950/80 ring-1 ring-pink-400" : ""
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPromptMenuOpen(!promptMenuOpen);
+                  setTopMoreMenuOpen(false);
+                  setDriveCardMenuOpen(false);
+                  setPromptTagsOpen(false);
+                }}
+                title="Ações do prompt"
+              >
+                ⋯
+              </button>
+
+              {promptMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1.5 w-60 rounded-xl bg-[var(--surface)] border border-[var(--line)] shadow-2xl p-1.5 z-50 enter flex flex-col gap-0.5 text-[12px]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 cursor-pointer font-medium"
+                    onClick={() => {
+                      handleSaveCustomPrompt(
+                        "Tom altamente provocante, picante e sexy da modelo July, destacando decote, lingerie rendada, biquíni cavado, olhar sedutor e curvas femininas, com chamada irresistível para a bio e direct 🔥"
+                      );
+                      setPromptMenuOpen(false);
+                    }}
+                  >
+                    <span>🔄</span> Restaurar Padrão Picante
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 cursor-pointer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(customPrompt);
+                      toast.show("📋 Diretriz copiada para a área de transferência!");
+                      setPromptMenuOpen(false);
+                    }}
+                  >
+                    <span>📋</span> Copiar Diretriz
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--sunken)] text-[var(--muted)] flex items-center gap-2 cursor-pointer"
+                    onClick={() => {
+                      handleSaveCustomPrompt("");
+                      setPromptMenuOpen(false);
+                    }}
+                  >
+                    <span>🧹</span> Limpar Campo
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1036,37 +1204,115 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
           />
         </div>
 
-        {/* Presets Rápidos do Lado Sexy */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[var(--line)]">
-          <span className="text-[11px] font-mono text-[var(--muted)] mr-1">Presets do Lado Sexy:</span>
-          <button
-            type="button"
-            onClick={() => handleSaveCustomPrompt("Tom altamente provocante e sexy da modelo July, destacando decote, lingerie rendada, olhar penetrante e curvas femininas, instigando a curiosidade e convidando pro VIP 🔥")}
-            className="px-2.5 py-1 rounded-lg text-[11px] bg-pink-950/60 hover:bg-pink-900/80 text-pink-300 border border-pink-500/40 font-mono transition-all cursor-pointer font-semibold"
-          >
-            🔥 Sexy & Decote
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSaveCustomPrompt("Vibe íntima de quarto e provador, destacando transparência, marquinha de sol, poses no espelho e clima misterioso com convite na DM 😈")}
-            className="px-2.5 py-1 rounded-lg text-[11px] bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-500/40 font-mono transition-all cursor-pointer font-semibold"
-          >
-            😈 Intimista & Lingerie
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSaveCustomPrompt("Sensualidade solar na praia, biquíni cavado valorizando cintura fina e bumbum empinado, com tom leve, quente e provocador ☀️🌊")}
-            className="px-2.5 py-1 rounded-lg text-[11px] bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/40 font-mono transition-all cursor-pointer font-semibold"
-          >
-            👙 Praia & Biquíni
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSaveCustomPrompt("Mulher fitness gostosa, shortinho coladinho desenhando curvas pós-treino, energia quente e provocação esportiva 💪🔥")}
-            className="px-2.5 py-1 rounded-lg text-[11px] bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 font-mono transition-all cursor-pointer font-semibold"
-          >
-            💪 Fitness Curvas
-          </button>
+        {/* BLOCO ÚNICO DE ADIÇÃO DE ELEMENTOS SENSUAIS EM POP-UP */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-[var(--line)]">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPromptTagsOpen(!promptTagsOpen);
+                setPromptMenuOpen(false);
+                setTopMoreMenuOpen(false);
+                setDriveCardMenuOpen(false);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-pink-950/70 hover:bg-pink-900/90 text-pink-200 border border-pink-500/40 text-[12px] font-[700] flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+            >
+              <span>➕</span>
+              <span>Adicionar Elementos Sensuais</span>
+              <span className="text-[10px] text-pink-300">▾</span>
+            </button>
+
+            {promptTagsOpen && (
+              <div
+                className="absolute left-0 bottom-full mb-2 w-80 rounded-xl bg-[var(--surface)] border border-pink-500/40 shadow-2xl p-2.5 z-50 enter flex flex-col gap-1 text-[12px]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between pb-1.5 border-b border-[var(--line)] text-pink-300 font-bold text-[11.5px]">
+                  <span>✨ Clique para acrescentar ao prompt:</span>
+                  <span className="text-[10px] font-mono text-[var(--muted)]">Acumulativo</span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-1 max-h-64 overflow-y-auto pt-1 font-mono text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => handleAppendPromptTag("destacando decote profundo, olhar penetrante e atitude picante")}
+                    className="w-full text-left p-2 rounded-lg hover:bg-pink-950/50 hover:text-pink-200 flex items-start gap-2 border border-transparent hover:border-pink-500/30 cursor-pointer"
+                  >
+                    <span>🔥</span>
+                    <div>
+                      <strong className="block text-[var(--ink)]">Decote & Provocante</strong>
+                      <span className="text-[var(--muted)] text-[10px]">decote profundo, olhar sedutor e atitude picante</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAppendPromptTag("lingerie rendada com transparência e clima misterioso de quarto")}
+                    className="w-full text-left p-2 rounded-lg hover:bg-purple-950/50 hover:text-purple-200 flex items-start gap-2 border border-transparent hover:border-purple-500/30 cursor-pointer"
+                  >
+                    <span>😈</span>
+                    <div>
+                      <strong className="block text-[var(--ink)]">Lingerie & Renda</strong>
+                      <span className="text-[var(--muted)] text-[10px]">lingerie rendada, transparência e clima intimista</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAppendPromptTag("biquíni cavado na praia valorizando marquinha de sol e bumbum empinado")}
+                    className="w-full text-left p-2 rounded-lg hover:bg-amber-950/50 hover:text-amber-200 flex items-start gap-2 border border-transparent hover:border-amber-500/30 cursor-pointer"
+                  >
+                    <span>👙</span>
+                    <div>
+                      <strong className="block text-[var(--ink)]">Praia & Biquíni</strong>
+                      <span className="text-[var(--muted)] text-[10px]">biquíni cavado, marquinha de sol e curvas de praia</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAppendPromptTag("pose envolvente no espelho do provador, selfie com ar misterioso")}
+                    className="w-full text-left p-2 rounded-lg hover:bg-sky-950/50 hover:text-sky-200 flex items-start gap-2 border border-transparent hover:border-sky-500/30 cursor-pointer"
+                  >
+                    <span>🪞</span>
+                    <div>
+                      <strong className="block text-[var(--ink)]">Provador & Espelho</strong>
+                      <span className="text-[var(--muted)] text-[10px]">pose no espelho, selfie no quarto e segredo</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAppendPromptTag("valorizando cintura fina, quadril desenhado e silhueta feminina irresistível")}
+                    className="w-full text-left p-2 rounded-lg hover:bg-emerald-950/50 hover:text-emerald-200 flex items-start gap-2 border border-transparent hover:border-emerald-500/30 cursor-pointer"
+                  >
+                    <span>🍑</span>
+                    <div>
+                      <strong className="block text-[var(--ink)]">Cintura & Curvas</strong>
+                      <span className="text-[var(--muted)] text-[10px]">cintura fina, quadril e silhueta perfeita</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAppendPromptTag("com chamada irresistível no final convidando pro direct e link na bio 🔥")}
+                    className="w-full text-left p-2 rounded-lg hover:bg-rose-950/50 hover:text-rose-200 flex items-start gap-2 border border-transparent hover:border-rose-500/30 cursor-pointer"
+                  >
+                    <span>💬</span>
+                    <div>
+                      <strong className="block text-[var(--ink)]">Convite VIP / Direct</strong>
+                      <span className="text-[var(--muted)] text-[10px]">chamada irresistível pro VIP e direct</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <span className="text-[11.5px] text-[var(--muted)] font-mono">
+            💡 Os elementos clicados são adicionados diretamente à diretriz sem apagar seu texto atual.
+          </span>
         </div>
       </section>
 
@@ -1679,7 +1925,7 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
               {loadingPool ? (
                 <div className="p-12 text-center space-y-3">
                   <div className="size-8 border-3 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto" />
-                  <p className="text-[13px] text-[var(--ink-2)]">Carregando acervo completo de 74+ mídias da pasta July...</p>
+                  <p className="text-[13px] text-[var(--ink-2)]">Carregando acervo completo de mídias da pasta July...</p>
                 </div>
               ) : libraryPool.length === 0 ? (
                 <div className="p-12 text-center text-[var(--muted)] text-[13px]">

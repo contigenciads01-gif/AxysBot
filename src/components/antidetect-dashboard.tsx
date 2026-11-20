@@ -819,30 +819,34 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             ⏰ Ritmo & Pausas
           </button>
 
-          {/* CONTROLE SEPARADO: POSTAR VÍDEOS DO DRIVE (LIGAR / DESLIGAR) */}
+          {/* INTERRUPTOR CLARO: POSTAR MÍDIAS DO DRIVE */}
           <button
             type="button"
             onClick={toggleDrivePosting}
             disabled={busy === "toggle_drive_posting"}
-            className={`px-3 py-1.5 rounded-full text-[12px] font-[650] flex items-center gap-1.5 border transition-all cursor-pointer shadow-sm select-none ${
+            className={`px-3.5 py-1.5 rounded-xl text-[12px] font-[700] flex items-center gap-2 border transition-all cursor-pointer shadow-md select-none ${
               drivePostingEnabled
-                ? "bg-purple-950/40 border-purple-500/50 text-purple-300 hover:bg-purple-900/50"
-                : "bg-amber-950/40 border-amber-500/50 text-amber-300 hover:bg-amber-900/50"
+                ? "bg-emerald-950/60 border-emerald-500/60 text-emerald-300 hover:bg-emerald-900/70 shadow-emerald-950/30"
+                : "bg-zinc-900/90 border-amber-500/50 text-amber-300 hover:bg-zinc-800"
             }`}
-            title={
-              drivePostingEnabled
-                ? "Postagens de vídeo ativas. Clique para pausar e apenas aquecer a conta."
-                : "Postagens de vídeo pausadas. O bot apenas aquece a conta sem postar."
-            }
+            title="Clique para alternar entre publicar fotos/vídeos do Drive ou apenas aquecer a conta"
           >
+            <span className="text-[13px]">{drivePostingEnabled ? "▶️" : "⏸️"}</span>
+            <div className="flex flex-col text-left leading-none">
+              <span className="text-[9.5px] text-[var(--muted)] uppercase tracking-wider font-mono">
+                Mídias Drive
+              </span>
+              <span className="text-[11.5px] font-[750]">
+                {drivePostingEnabled ? "Postar: Ligado" : "Postar: Pausado"}
+              </span>
+            </div>
             <span
               className={`size-2 rounded-full transition-all ${
                 drivePostingEnabled
-                  ? "bg-purple-400 shadow-[0_0_8px_#c084fc] animate-pulse"
-                  : "bg-amber-400 shadow-[0_0_8px_#fbbf24]"
+                  ? "bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse"
+                  : "bg-amber-400 shadow-[0_0_6px_#f59e0b]"
               }`}
             />
-            <span>{drivePostingEnabled ? "Postar Vídeos: Ligado" : "Postar Vídeos: Pausado"}</span>
           </button>
 
           {/* BOTÃO COMPACTO ARREDONDADO (LIGADO / DESLIGADO) */}

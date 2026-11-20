@@ -108,6 +108,21 @@ export function Shell({ children, username }: { children: React.ReactNode; usern
               </span>
             </Link>
 
+            {/* Limpar Metadados da Biblioteca */}
+            <Link
+              href="/drive?modal=library"
+              className="flex items-center justify-between rounded-[var(--radius)] px-2.5 h-[34px] text-[12.5px] font-[500] text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--sunken)] transition-colors group mt-0.5"
+              title="Abrir Biblioteca Completa e Higienizar Metadados (EXIF/GPS/IA)"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <span className="text-[14px]">🛡️</span>
+                <span className="truncate">Limpar Metadados</span>
+              </div>
+              <span className="text-[9px] font-mono px-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/25">
+                EXIF/IA
+              </span>
+            </Link>
+
             {/* ChatGPT com Logo e Texto Animado */}
             <a
               href="https://chatgpt.com"
@@ -180,7 +195,7 @@ export function Shell({ children, username }: { children: React.ReactNode; usern
         </div>
       </header>
 
-      <main id="conteudo" tabIndex={-1} className="min-w-0 outline-none px-4 md:px-7 py-5 md:py-7 pb-24 md:pb-10 max-w-[1240px] w-full">
+      <main id="conteudo" tabIndex={-1} className="min-w-0 outline-none px-4 md:px-8 py-5 md:py-7 pb-24 md:pb-10 w-full max-w-full overflow-x-hidden">
         {children}
       </main>
 

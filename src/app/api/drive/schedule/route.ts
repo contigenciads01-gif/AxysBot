@@ -37,9 +37,10 @@ export async function POST(req: Request) {
       const item = items[i];
       const scheduledTime = new Date(baseTime.getTime() + i * intervalHours * 60 * 60 * 1000);
 
-      // Monta o texto do post com legenda, hashtags e anexo de mídia
+      // Monta o texto do post com legenda, hashtags e anexo de mídia congelada
       const tagsString = (item.hashtags || []).join(" ");
-      const postText = `${item.caption}\n\n${tagsString}`.trim();
+      const mediaTag = item.previewUrl ? `\n\n[midia:${item.previewUrl}|tipo:${item.type}]` : "";
+      const postText = `${item.caption}\n\n${tagsString}${mediaTag}`.trim();
 
       // Cria na tabela posts
       const postId = await createPost(acc.id, {

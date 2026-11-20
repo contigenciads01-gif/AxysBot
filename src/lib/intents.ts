@@ -32,8 +32,9 @@ export function parsePostRef(input: string): PostRef | null {
 
 /** Tela de novo post do X ja preenchida. Com inReplyTo vira resposta. */
 export function postIntent(text: string, inReplyTo?: string | null): string {
+  const clean = text.replace(/\[(?:midia|media):[^\]]+\]/gi, "").trim();
   const u = new URL(`${X}/intent/tweet`);
-  u.searchParams.set("text", text);
+  u.searchParams.set("text", clean);
   if (inReplyTo) u.searchParams.set("in_reply_to", inReplyTo);
   return u.toString();
 }

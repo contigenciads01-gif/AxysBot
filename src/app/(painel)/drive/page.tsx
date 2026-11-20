@@ -54,6 +54,8 @@ export default function DriveMediaPage() {
   const [driveCardMenuOpen, setDriveCardMenuOpen] = useState(false);
   const [promptMenuOpen, setPromptMenuOpen] = useState(false);
   const [promptTagsOpen, setPromptTagsOpen] = useState(false);
+  const [mediaSectionMenuOpen, setMediaSectionMenuOpen] = useState(false);
+  const [bulkSingleCaption, setBulkSingleCaption] = useState("");
 
   useEffect(() => {
     function handleClose() {
@@ -63,6 +65,7 @@ export default function DriveMediaPage() {
       setDriveCardMenuOpen(false);
       setPromptMenuOpen(false);
       setPromptTagsOpen(false);
+      setMediaSectionMenuOpen(false);
     }
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -72,6 +75,7 @@ export default function DriveMediaPage() {
         setDriveCardMenuOpen(false);
         setPromptMenuOpen(false);
         setPromptTagsOpen(false);
+        setMediaSectionMenuOpen(false);
       }
     }
     window.addEventListener("click", handleClose);
@@ -253,7 +257,7 @@ export default function DriveMediaPage() {
     }
   }
 
-  // Aplicar edição em massa
+  // Aplicar legenda programável em massa (legenda única ou sufixo + hashtags para todas as mídias)
   function handleApplyBulk(e: React.FormEvent) {
     e.preventDefault();
     if (!drive) return;
@@ -263,15 +267,24 @@ export default function DriveMediaPage() {
       .map((t) => (t.startsWith("#") ? t : `#${t}`))
       .filter((t) => t.length > 1);
 
-    const updated = drive.items.map((item) => ({
-      ...item,
-      hashtags: tags,
-      caption: bulkSuffix ? `${item.caption.replace(/ -.*$/, "")}\n\n${bulkSuffix}`.trim() : item.caption,
-    }));
+    const singleCaption = bulkSingleCaption.trim();
+
+    const updated = drive.items.map((item) => {
+      let baseCaption = singleCaption ? singleCaption : item.caption.replace(/ -.*$/, "");
+      if (bulkSuffix) {
+        baseCaption = `${baseCaption}\n\n${bulkSuffix}`.trim();
+      }
+      return {
+        ...item,
+        hashtags: tags,
+        caption: baseCaption,
+      };
+    });
 
     setDrive({ ...drive, items: updated });
+    handleSaveReadyItems(updated);
     setBulkModalOpen(false);
-    toast.show("⚡ Edição em massa aplicada a todas as mídias!");
+    toast.show("⚡ Legenda em massa aplicada e salva para todas as fotos com sucesso!");
   }
 
   // Salvar pasta e sincronizar
@@ -385,7 +398,13 @@ export default function DriveMediaPage() {
 
       setDrive({ ...drive, items: analyzedItems });
 
-      // 2. Agenda os posts com as legendas dedicadas
+      // 2. Salva permanentemente as legendas e agenda os posts com desduplicação estrita
+      await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: analyzedItems, customPrompt }),
+      });
+
       const res = await fetch("/api/drive/schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -402,8 +421,10 @@ export default function DriveMediaPage() {
       // Marca itens como agendados
       const updated = analyzedItems.map((i) => ({ ...i, status: "scheduled" as const }));
       setDrive({ ...drive, items: updated });
+      setItemsSaved(true);
+      setTimeout(() => setItemsSaved(false), 4000);
 
-      toast.show(`🚀 ${data.count} posts programados a ${postsPerDay} posts/dia com legendas dedicadas na Agenda do X!`);
+      toast.show(`🚀 ${data.count} posts salvos e sincronizados na Agenda do X sem nenhuma duplicidade!`);
     } catch (e) {
       toast.show(e instanceof Error ? e.message : "Erro ao programar posts.");
     } finally {
@@ -764,16 +785,6 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
             />
           </button>
 
-          {/* BOTÃO PRINCIPAL EM DESTAQUE: GERAR COM IA */}
-          <button
-            type="button"
-            className="btn btn-primary flex items-center gap-1.5 shadow-md shadow-sky-500/20 font-[700] px-4 py-2 cursor-pointer"
-            onClick={handleGenerateCaptions}
-            disabled={busy !== null}
-          >
-            <span>✨</span> {busy === "generate" ? "Gerando com IA..." : "Gerar com IA"}
-          </button>
-
           {/* MENU COMPACTO DE TRÊS PONTINHOS (⋯) PARA DESPOLUIR A BARRA */}
           <div className="relative">
             <button
@@ -1046,15 +1057,11 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
             </select>
           </div>
 
-          <div className="self-end flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn btn-primary bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 h-9 px-4 text-[12.5px] font-[750] flex items-center gap-1.5 shadow-md shadow-sky-950/50 hover:brightness-110 cursor-pointer"
-              onClick={handleScheduleAll}
-              disabled={busy !== null || drive.items.length === 0}
-            >
-              <span>📅</span> {busy === "schedule_all" ? "Programando..." : `Programar Lote (${drive.items.length})`}
-            </button>
+          <div className="self-end flex items-center gap-2">
+            <span className="text-[11.5px] font-mono text-sky-300 bg-sky-950/60 border border-sky-500/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+              <span className="size-1.5 rounded-full bg-sky-400 animate-pulse" />
+              Ritmo: <strong className="text-white">{postsPerDay} posts/dia</strong>
+            </span>
           </div>
         </div>
       </div>
@@ -1330,19 +1337,116 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
             )}
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* BOTÃO ÚNICO MESTRE: SALVAR & PROGRAMAR NO X SEM DUPLICIDADES */}
             <button
               type="button"
-              onClick={() => handleSaveReadyItems()}
-              disabled={savingItems}
-              className="btn btn-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 text-white font-[750] border border-emerald-400/40 flex items-center gap-1.5 shadow-sm cursor-pointer"
-              title="Salva permanentemente no servidor todas as alterações feitas nas legendas e hashtags"
+              onClick={() => handleScheduleAll()}
+              disabled={busy !== null || drive.items.length === 0}
+              className="btn btn-sm bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 hover:brightness-110 text-white font-[750] border border-emerald-400/40 flex items-center gap-2 shadow-md shadow-emerald-950/40 cursor-pointer"
+              title="Salva as legendas e programa na Agenda do X com ritmo humano inteligente (Sem duplicar nenhuma mídia)"
             >
-              <span>💾</span>
-              <span>{savingItems ? "Salvando..." : "Salvar Posts Editados"}</span>
+              <span>🚀</span>
+              <span>{busy === "schedule_all" ? "Salvando & Programando..." : `Salvar & Programar no X (${drive.items.length})`}</span>
             </button>
-            <Link href="/agenda" className="text-[12.5px] font-[600] text-[var(--accent)] hover:underline">
-              Ver Posts na Agenda ➔
+
+            {/* BOTÃO AO LADO: GERAR LEGENDAS COM IA */}
+            <button
+              type="button"
+              onClick={handleGenerateCaptions}
+              disabled={busy !== null || drive.items.length === 0}
+              className="btn btn-sm bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 hover:brightness-110 text-white font-[750] border border-pink-400/40 flex items-center gap-1.5 shadow-sm cursor-pointer"
+              title="Gera legendas e hashtags focadas no lado sexy, decote, lingerie e curvas usando IA"
+            >
+              <span>✨</span>
+              <span>{busy === "generate" ? "Gerando com IA..." : "Gerar Legendas com IA"}</span>
+            </button>
+
+            {/* TRÊS PONTINHOS (⋯): LEGENDA PROGRAMÁVEL EM MASSA E MAIS AÇÕES */}
+            <div className="relative">
+              <button
+                type="button"
+                className={`btn btn-sm btn-ghost px-2.5 font-bold text-[18px] leading-none transition-all cursor-pointer border border-[var(--line)] hover:bg-[var(--sunken)] ${
+                  mediaSectionMenuOpen ? "bg-[var(--sunken)] ring-1 ring-[var(--accent)]" : ""
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMediaSectionMenuOpen(!mediaSectionMenuOpen);
+                  setTopMoreMenuOpen(false);
+                  setDriveCardMenuOpen(false);
+                  setPromptMenuOpen(false);
+                  setPromptTagsOpen(false);
+                }}
+                title="Legenda Programável em Massa e Ações do Acervo"
+                aria-label="Mais opções de mídias"
+              >
+                ⋯
+              </button>
+
+              {mediaSectionMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1.5 w-68 rounded-xl bg-[var(--surface)] border border-[var(--line)] shadow-2xl p-1.5 z-50 enter flex flex-col gap-0.5 text-[12px]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 font-[650] text-[var(--ink)] cursor-pointer"
+                    onClick={() => {
+                      setBulkModalOpen(true);
+                      setMediaSectionMenuOpen(false);
+                    }}
+                  >
+                    <span>📝</span>
+                    <div>
+                      <strong className="block text-[12px]">Legenda Programável em Massa</strong>
+                      <span className="text-[10px] text-[var(--muted)]">Definir uma legenda/sufixo único para todas as fotos</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 text-[var(--ink)] cursor-pointer"
+                    onClick={() => {
+                      handleInterleave();
+                      setMediaSectionMenuOpen(false);
+                    }}
+                  >
+                    <span>🔀</span>
+                    <span>Intercalar Foto / Vídeo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--sunken)] flex items-center gap-2 text-emerald-400 cursor-pointer font-medium"
+                    onClick={() => {
+                      handleCleanMetadata();
+                      setMediaSectionMenuOpen(false);
+                    }}
+                  >
+                    <span>🛡️</span>
+                    <span>Limpar Metadados EXIF/GPS</span>
+                  </button>
+
+                  <div className="my-1 border-t border-[var(--line)]" />
+
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--bad)]/15 text-[var(--bad)] flex items-center gap-2 font-[650] cursor-pointer"
+                    onClick={() => {
+                      setDrive({ ...drive, items: [] });
+                      toast.show("🧹 Mídias liberadas da esteira ativa.");
+                      setMediaSectionMenuOpen(false);
+                    }}
+                  >
+                    <span>🗑️</span>
+                    <span>Descartar Todas da Memória</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <Link href="/agenda" className="text-[12px] font-[600] text-[var(--accent)] hover:underline ml-1">
+              Ver na Agenda ➔
             </Link>
           </div>
         </div>
@@ -1680,17 +1784,17 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
         )}
       </section>
 
-      {/* 5. MODAL DE EDIÇÃO EM MASSA */}
+      {/* 5. MODAL DE LEGENDA PROGRAMÁVEL EM MASSA */}
       {bulkModalOpen && (
         <dialog open className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4 w-full h-full">
-          <div className="bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl max-w-[500px] w-full p-5 space-y-4 shadow-2xl enter">
+          <div className="bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl max-w-[540px] w-full p-5 space-y-4 shadow-2xl enter">
             <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
               <h3 className="font-[750] text-[16px] flex items-center gap-2">
-                <span>📝</span> Edição em Massa de Legendas & Hashtags
+                <span>📝</span> Legenda Programável em Massa
               </h3>
               <button
                 type="button"
-                className="btn btn-ghost btn-xs text-[14px]"
+                className="btn btn-ghost btn-xs text-[14px] cursor-pointer"
                 onClick={() => setBulkModalOpen(false)}
               >
                 ✕
@@ -1699,8 +1803,23 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
 
             <form onSubmit={handleApplyBulk} className="space-y-3.5">
               <div>
+                <label className="text-[12px] font-[650] text-[var(--ink)] block mb-1">
+                  Legenda Única para Todas as Fotos (Opcional):
+                </label>
+                <textarea
+                  className="input text-[12.5px] h-20 leading-relaxed resize-none"
+                  value={bulkSingleCaption}
+                  onChange={(e) => setBulkSingleCaption(e.target.value)}
+                  placeholder="Se quiser deixar uma legenda só para todas as fotos de uma vez, digite aqui..."
+                />
+                <span className="text-[11px] text-[var(--muted)] block mt-1">
+                  💡 Se preenchido, esta legenda substituirá a de todas as fotos anexadas. Se deixar em branco, as legendas individuais serão mantidas.
+                </span>
+              </div>
+
+              <div>
                 <label className="text-[12px] font-[600] text-[var(--ink-2)] block mb-1">
-                  Hashtags para aplicar em todos os posts:
+                  Hashtags para aplicar em todas as mídias:
                 </label>
                 <input
                   type="text"
@@ -1714,7 +1833,7 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
 
               <div>
                 <label className="text-[12px] font-[600] text-[var(--ink-2)] block mb-1">
-                  Sufixo padrão de legenda (opcional):
+                  Sufixo / Chamada no final da legenda (opcional):
                 </label>
                 <input
                   type="text"
@@ -1731,13 +1850,13 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--line)]">
                 <button
                   type="button"
-                  className="btn btn-ghost"
+                  className="btn btn-ghost cursor-pointer"
                   onClick={() => setBulkModalOpen(false)}
                 >
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  Aplicar a Todos
+                <button type="submit" className="btn btn-primary font-[700] cursor-pointer">
+                  Aplicar em Todas as Mídias
                 </button>
               </div>
             </form>

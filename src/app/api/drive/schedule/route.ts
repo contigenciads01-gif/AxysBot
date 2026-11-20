@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSession, fail } from "@/lib/http";
 import { getAccount } from "@/lib/data";
 import { db } from "@/lib/supabase";
-import { DriveMediaItem } from "../route";
+import { DriveMediaItem, driveStore, GOOGLE_DRIVE_FOLDER_POOL } from "../route";
 
 // Horários de pico humano durante o dia (fuso horário biológico natural)
 const HUMAN_DAILY_SLOTS: Record<number, { h: number; m: number }[]> = {
@@ -69,16 +69,36 @@ export async function POST(req: Request) {
     if (Number.isNaN(baseDate.getTime())) baseDate = new Date();
 
     const supabase = db();
-    const createdIds: string[] = [];
 
-    // Prepara os dados calculados para inserção em lote de alta performance
-    const postsToInsert: {
-      account_id: string;
-      status: "agendado";
+    // 1. Busca todos os posts ativos existentes na conta para DESDUPLICAÇÃO ESTRITA
+    const { data: existingPostsRaw } = await supabase
+      .from("posts")
+      .select("id, status, scheduled_for, items:post_items(id, position, body)")
+      .eq("account_id", acc.id)
+      .in("status", ["agendado", "publicando", "rascunho"]);
+
+    const existingPosts = (existingPostsRaw || []) as {
+      id: string;
+      status: string;
       scheduled_for: string;
-    }[] = [];
+      items: { id: string; position: number; body: string }[];
+    }[];
 
-    const postTexts: string[] = [];
+    function matchPostMedia(post: typeof existingPosts[0], it: DriveMediaItem): boolean {
+      const pUrl = (it.previewUrl || "").toLowerCase().trim();
+      const rawUrl = (it.url || "").toLowerCase().trim();
+      const title = (it.title || "").toLowerCase().trim();
+
+      return post.items.some((pi) => {
+        const b = (pi.body || "").toLowerCase();
+        if (pUrl && b.includes(pUrl)) return true;
+        if (rawUrl && b.includes(rawUrl)) return true;
+        if (title && b.includes(title)) return true;
+        return false;
+      });
+    }
+
+    const processedIds: string[] = [];
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -105,53 +125,90 @@ export async function POST(req: Request) {
       const mediaTag = item.previewUrl ? `\n\n[midia:${item.previewUrl}|tipo:${item.type}]` : "";
       const postText = `${item.caption}\n\n${tagsString}${mediaTag}`.trim();
 
-      postsToInsert.push({
-        account_id: acc.id,
-        status: "agendado",
-        scheduled_for: scheduledTime.toISOString(),
-      });
-      postTexts.push(postText);
+      // Procura se já existe post cadastrado para esta mesma mídia (DESDUPLICAÇÃO)
+      const matchingPosts = existingPosts.filter((p) => matchPostMedia(p, item));
+
+      if (matchingPosts.length > 0) {
+        // Atualiza o post existente em vez de duplicar
+        const primaryPost = matchingPosts[0];
+        await supabase
+          .from("posts")
+          .update({
+            scheduled_for: scheduledTime.toISOString(),
+            status: "agendado",
+            error: null,
+            attempts: 0,
+            claimed_at: null,
+          })
+          .eq("id", primaryPost.id);
+
+        if (primaryPost.items && primaryPost.items.length > 0) {
+          await supabase
+            .from("post_items")
+            .update({ body: postText })
+            .eq("id", primaryPost.items[0].id);
+        } else {
+          await supabase
+            .from("post_items")
+            .insert({ post_id: primaryPost.id, position: 0, body: postText });
+        }
+
+        processedIds.push(primaryPost.id);
+
+        // Se haviam duplicatas anteriores antigas para essa mesma mídia, remove-as
+        for (const dup of matchingPosts.slice(1)) {
+          await supabase.from("posts").delete().eq("id", dup.id);
+        }
+      } else {
+        // Insere novo post único
+        const { data: newP, error: postErr } = await supabase
+          .from("posts")
+          .insert({
+            account_id: acc.id,
+            status: "agendado",
+            scheduled_for: scheduledTime.toISOString(),
+          })
+          .select("id")
+          .single<{ id: string }>();
+
+        if (postErr || !newP) {
+          console.error("Erro ao inserir post único:", postErr);
+          throw postErr || new Error("Falha ao criar post na agenda");
+        }
+
+        const { error: itemErr } = await supabase
+          .from("post_items")
+          .insert({ post_id: newP.id, position: 0, body: postText });
+
+        if (itemErr) {
+          console.error("Erro ao inserir post_item:", itemErr);
+          throw itemErr;
+        }
+
+        processedIds.push(newP.id);
+      }
     }
 
-    // Inserção em lotes de 20 para evitar limites de tamanho e garantir velocidade instantânea
-    const CHUNK_SIZE = 25;
-    for (let i = 0; i < postsToInsert.length; i += CHUNK_SIZE) {
-      const chunkPosts = postsToInsert.slice(i, i + CHUNK_SIZE);
-      const chunkTexts = postTexts.slice(i, i + CHUNK_SIZE);
-
-      const { data: insertedPosts, error: postErr } = await supabase
-        .from("posts")
-        .insert(chunkPosts)
-        .select("id");
-
-      if (postErr || !insertedPosts) {
-        console.error("Erro na inserção de posts em lote:", postErr);
-        throw postErr || new Error("Falha ao criar posts na agenda");
-      }
-
-      const itemsToInsert = insertedPosts.map((p, idx) => ({
-        post_id: p.id,
-        position: 0,
-        body: chunkTexts[idx],
-      }));
-
-      const { error: itemErr } = await supabase.from("post_items").insert(itemsToInsert);
-      if (itemErr) {
-        console.error("Erro na inserção de post_items em lote:", itemErr);
-        throw itemErr;
-      }
-
-      for (const p of insertedPosts) {
-        createdIds.push(p.id);
+    // Sincroniza estado em memória
+    driveStore.items = items.map((it) => ({ ...it, status: "scheduled" as const }));
+    for (const it of items) {
+      const pIdx = GOOGLE_DRIVE_FOLDER_POOL.findIndex((p) => p.id === it.id);
+      if (pIdx !== -1) {
+        GOOGLE_DRIVE_FOLDER_POOL[pIdx] = {
+          ...GOOGLE_DRIVE_FOLDER_POOL[pIdx],
+          status: "scheduled",
+          caption: it.caption,
+          hashtags: it.hashtags,
+        };
       }
     }
 
     return NextResponse.json({
       ok: true,
-      count: createdIds.length,
-      postIds: createdIds,
+      count: processedIds.length,
+      postIds: processedIds,
       postsPerDay,
-      daysCovered: Math.ceil(createdIds.length / postsPerDay),
+      daysCovered: Math.ceil(processedIds.length / postsPerDay),
     });
   } catch (e) {
     return fail(e);

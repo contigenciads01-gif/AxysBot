@@ -38,6 +38,14 @@ export default function DriveMediaPage() {
   const [selectedLibraryIds, setSelectedLibraryIds] = useState<Set<string>>(new Set());
   const [libraryFilter, setLibraryFilter] = useState<"all" | "photos" | "videos" | "cleaned" | "active">("all");
 
+  // Estados de Prompt Persistente da IA (Lado Sexy) e Salvamento de Posts
+  const [customPrompt, setCustomPrompt] = useState(
+    "Tom provocante, picante e sexy da modelo July, destacando decote, lingerie/biquíni, olhar sedutor e curvas femininas, com chamada irresistível para a bio e direct 🔥"
+  );
+  const [promptSaved, setPromptSaved] = useState(false);
+  const [savingItems, setSavingItems] = useState(false);
+  const [itemsSaved, setItemsSaved] = useState(false);
+
   async function handlePostsPerDayChange(n: number) {
     setPostsPerDay(n);
     if (drive) setDrive({ ...drive, postsPerDay: n });
@@ -63,6 +71,12 @@ export default function DriveMediaPage() {
         setDrive(data.drive);
         if (data.drive.postsPerDay) {
           setPostsPerDay(data.drive.postsPerDay);
+        }
+        if (data.drive.customPrompt) {
+          setCustomPrompt(data.drive.customPrompt);
+        } else {
+          const cached = typeof window !== "undefined" ? localStorage.getItem("axys_custom_prompt") : null;
+          if (cached) setCustomPrompt(cached);
         }
       }
     } catch {
@@ -106,9 +120,55 @@ export default function DriveMediaPage() {
       return item;
     });
     setDrive({ ...drive, items: updated });
+    setItemsSaved(false);
   }
 
-  // Gerar legendas e hashtags com IA
+  // Salvar alterações de posts e legendas em Mídias Prontas
+  async function handleSaveReadyItems(itemsToSave?: DriveMediaItem[]) {
+    if (!drive) return;
+    const toSave = itemsToSave || drive.items;
+    try {
+      setSavingItems(true);
+      const res = await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: toSave, customPrompt }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setItemsSaved(true);
+        setTimeout(() => setItemsSaved(false), 3000);
+        toast.show("💾 Mídias prontas e legendas salvas permanentemente com sucesso!");
+      }
+    } catch {
+      toast.show("Erro ao salvar alterações no servidor.");
+    } finally {
+      setSavingItems(false);
+    }
+  }
+
+  // Salvar o Prompt Customizado (Lado Sexy) da IA
+  async function handleSaveCustomPrompt(newPrompt?: string) {
+    const text = (newPrompt !== undefined ? newPrompt : customPrompt).trim();
+    setCustomPrompt(text);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("axys_custom_prompt", text);
+    }
+    try {
+      await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customPrompt: text }),
+      });
+      setPromptSaved(true);
+      setTimeout(() => setPromptSaved(false), 3000);
+      toast.show("🧠 Prompt de estilo e lado sexy salvo com sucesso!");
+    } catch {
+      // Silencioso
+    }
+  }
+
+  // Gerar legendas e hashtags com IA focadas no Lado Sexy
   async function handleGenerateCaptions() {
     if (!drive || drive.items.length === 0) return;
     setBusy("generate");
@@ -116,13 +176,18 @@ export default function DriveMediaPage() {
       const res = await fetch("/api/drive/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: drive.items, customHashtags: bulkHashtags }),
+        body: JSON.stringify({
+          items: drive.items,
+          customPrompt,
+          customHashtags: bulkHashtags,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
       setDrive({ ...drive, items: data.items });
-      toast.show("✨ Legendas e hashtags geradas com IA para todo o acervo!");
+      setItemsSaved(true);
+      toast.show("✨ Legendas sensuais geradas com IA e salvas permanentemente!");
     } catch (e) {
       toast.show(e instanceof Error ? e.message : "Erro ao gerar legendas.");
     } finally {
@@ -929,15 +994,118 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
         );
       })()}
 
-      {/* 4. LISTA DE ITENS INTERCALADOS (EDIÇÃO 1 A 1) */}
+      {/* 3.8. PROMPT DE ESTILO IA & LADO SEXY PERSISTENTE */}
+      <section className="liquid-glass glass-card panel-pad space-y-3.5 border border-pink-500/40 rounded-2xl bg-gradient-to-r from-pink-950/25 via-zinc-950/50 to-purple-950/25 shadow-lg shadow-pink-950/20" data-glass>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[22px]">🧠</span>
+            <div>
+              <h3 className="font-[800] text-[15.5px] text-[var(--ink)] flex items-center gap-2">
+                Prompt de Estilo da IA · Lado Sexy & Sensualidade Persistente
+              </h3>
+              <p className="text-[12px] text-[var(--ink-2)] mt-0.5">
+                Gravado permanentemente no sistema: cada análise de foto ou vídeo da July seguirá essa diretriz destacando o lado sexy, decote, lingerie e curvas.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {promptSaved && (
+              <span className="text-[11.5px] font-mono text-emerald-400 font-bold flex items-center gap-1.5 bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-500/40">
+                <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                Prompt Gravado & Ativo
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => handleSaveCustomPrompt()}
+              className="btn btn-sm bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 hover:brightness-110 text-white font-[750] px-4 shadow-md shadow-pink-950/50 border border-pink-400/40 flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>💾</span> Salvar Prompt
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[12px] font-[650] text-pink-300 flex items-center justify-between">
+            <span>Diretriz do Prompt para a IA gerar legendas dedicadas:</span>
+            <span className="text-[11px] font-mono text-[var(--muted)]">Salva automaticamente ao sair do campo</span>
+          </label>
+          <textarea
+            className="input text-[12.5px] h-[78px] resize-none leading-relaxed font-sans border-pink-500/30 focus:border-pink-400"
+            value={customPrompt}
+            onChange={(e) => {
+              setCustomPrompt(e.target.value);
+              setPromptSaved(false);
+            }}
+            onBlur={() => handleSaveCustomPrompt()}
+            placeholder="Escreva a instrução de estilo e sensualidade para a IA..."
+          />
+        </div>
+
+        {/* Presets Rápidos do Lado Sexy */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[var(--line)]">
+          <span className="text-[11px] font-mono text-[var(--muted)] mr-1">Presets do Lado Sexy:</span>
+          <button
+            type="button"
+            onClick={() => handleSaveCustomPrompt("Tom altamente provocante e sexy da modelo July, destacando decote, lingerie rendada, olhar penetrante e curvas femininas, instigando a curiosidade e convidando pro VIP 🔥")}
+            className="px-2.5 py-1 rounded-lg text-[11px] bg-pink-950/60 hover:bg-pink-900/80 text-pink-300 border border-pink-500/40 font-mono transition-all cursor-pointer font-semibold"
+          >
+            🔥 Sexy & Decote
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSaveCustomPrompt("Vibe íntima de quarto e provador, destacando transparência, marquinha de sol, poses no espelho e clima misterioso com convite na DM 😈")}
+            className="px-2.5 py-1 rounded-lg text-[11px] bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-500/40 font-mono transition-all cursor-pointer font-semibold"
+          >
+            😈 Intimista & Lingerie
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSaveCustomPrompt("Sensualidade solar na praia, biquíni cavado valorizando cintura fina e bumbum empinado, com tom leve, quente e provocador ☀️🌊")}
+            className="px-2.5 py-1 rounded-lg text-[11px] bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/40 font-mono transition-all cursor-pointer font-semibold"
+          >
+            👙 Praia & Biquíni
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSaveCustomPrompt("Mulher fitness gostosa, shortinho coladinho desenhando curvas pós-treino, energia quente e provocação esportiva 💪🔥")}
+            className="px-2.5 py-1 rounded-lg text-[11px] bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 font-mono transition-all cursor-pointer font-semibold"
+          >
+            💪 Fitness Curvas
+          </button>
+        </div>
+      </section>
+
+      {/* 4. LISTA DE ITENS INTERCALADOS (EDIÇÃO 1 A 1 COM SALVAMENTO PERMANENTE) */}
       <section className="space-y-3.5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[16px] font-[750] text-[var(--ink)] flex items-center gap-2">
-            <span>📸</span> Mídias Prontas para Publicação ({drive.items.length})
-          </h2>
-          <Link href="/agenda" className="text-[12.5px] font-[600] text-[var(--accent)] hover:underline">
-            Ver Posts na Agenda ➔
-          </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-[16px] font-[750] text-[var(--ink)] flex items-center gap-2">
+              <span>📸</span> Mídias Prontas para Publicação ({drive.items.length})
+            </h2>
+            {itemsSaved && (
+              <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 animate-fade-in">
+                <span className="size-1.5 rounded-full bg-emerald-400" /> Alterações Salvas!
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => handleSaveReadyItems()}
+              disabled={savingItems}
+              className="btn btn-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 text-white font-[750] border border-emerald-400/40 flex items-center gap-1.5 shadow-sm cursor-pointer"
+              title="Salva permanentemente no servidor todas as alterações feitas nas legendas e hashtags"
+            >
+              <span>💾</span>
+              <span>{savingItems ? "Salvando..." : "Salvar Posts Editados"}</span>
+            </button>
+            <Link href="/agenda" className="text-[12.5px] font-[600] text-[var(--accent)] hover:underline">
+              Ver Posts na Agenda ➔
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1037,6 +1205,7 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
                         className="input text-[12px] h-[68px] resize-none leading-relaxed mt-0.5"
                         value={item.caption}
                         onChange={(e) => handleItemChange(item.id, "caption", e.target.value)}
+                        onBlur={() => handleSaveReadyItems()}
                         placeholder="Escreva a legenda desse post..."
                       />
                     </div>
@@ -1048,6 +1217,7 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
                         className="input text-[11.5px] h-8 font-mono text-sky-400 mt-0.5"
                         value={(item.hashtags || []).join(" ")}
                         onChange={(e) => handleItemChange(item.id, "hashtags", e.target.value)}
+                        onBlur={() => handleSaveReadyItems()}
                         placeholder="#hashtag1 #hashtag2..."
                       />
                     </div>
@@ -1066,7 +1236,7 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
                         type="button"
                         onClick={() => handleAnalyzeItem(item.id)}
                         disabled={busy !== null}
-                        className="text-xs text-[var(--muted)] hover:text-sky-400 underline font-mono ml-1"
+                        className="text-xs text-[var(--muted)] hover:text-sky-400 underline font-mono ml-1 cursor-pointer"
                       >
                         Reanalisar 👁️
                       </button>
@@ -1074,6 +1244,16 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveReadyItems()}
+                      disabled={savingItems}
+                      className="text-[10.5px] text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1 font-mono cursor-pointer font-bold"
+                      title="Salvar alterações de legenda e hashtags deste post"
+                    >
+                      <span>💾</span> Salvar
+                    </button>
+                    <span className="text-zinc-600">·</span>
                     <button
                       type="button"
                       onClick={() => handleDiscardItem(item.id)}

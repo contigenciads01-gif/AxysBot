@@ -33,95 +33,96 @@ export interface DriveConfig {
   totalInDrive: number; // Total salvo no Google Drive (ex: 74 mídias)
   discardedCount: number; // Descartados da memória após publicação
   postsPerDay: number; // Quantidade de posts por dia (padrão 4)
+  customPrompt?: string; // Prompt persistente do estilo e lado sexy da IA
   items: DriveMediaItem[]; // Lote ativo de 6 mídias na memória
 }
 
 const JULY_THEMES = [
   {
-    theme: "Streetwear Grafite",
-    scenario: "Muro com grafite urbano colorido",
-    outfit: "Blusa preta justa e calça streetwear",
-    pose: "Em pé confiante de frente com olhar marcante",
-    mood: "Urbana estilosa e magnética",
-    caption: "A energia das cores da rua e esse look preto básico... O que acharam desse clique? 🎨🖤",
-    hashtags: ["#streetwear", "#grafite", "#ensaio", "#lookdodia", "#lifestyle"],
+    theme: "Streetwear Grafite Sexy",
+    scenario: "Muro urbano grafitado com iluminação de recorte",
+    outfit: "Top cropped preto justo decotado e calça streetwear cintura baixa",
+    pose: "Em pé provocante com olhar penetrante e mão na cintura",
+    mood: "Sensualidade urbana, ousada e magnética",
+    caption: "Aquele cropped preto coladinho que não esconde nada... O que achou desse decote? Comenta antes que eu apague 🔥👀",
+    hashtags: ["#streetwear", "#sexy", "#decote", "#ensaio", "#lifestyle", "#vip"],
     preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80",
     isVideo: false,
   },
   {
-    theme: "Top Branco Estúdio",
-    scenario: "Mural artístico street art contemporâneo",
-    outfit: "Top tomara que caia branco suave",
-    pose: "Leve inclinação de cabeça com cabelos ondulados soltos",
-    mood: "Charmosa, descontraída e envolvente",
-    caption: "Top branco tomara que caia e aquele olhar que não precisa de legenda... Gostam mais de vídeo ou foto minha? 🎬✨",
-    hashtags: ["#reels", "#bastidores", "#topbranco", "#exclusivo", "#preview"],
+    theme: "Top Branco Estúdio Ousado",
+    scenario: "Estúdio intimista com iluminação suave",
+    outfit: "Top tomara que caia branco justo sem sutiã",
+    pose: "Leve inclinação sensual de cabeça com lábios entreabertos e cabelos ondulados soltos",
+    mood: "Provocante, íntima e cheia de desejo",
+    caption: "Top tomara que caia bem justinho e aquele olhar que dispensa legenda... O que você faria se eu te mandasse esse vídeo na DM agora? 🎬🔥 Conteúdo completo no link da bio!",
+    hashtags: ["#reels", "#bastidores", "#topbranco", "#exclusivo", "#preview", "#sensual"],
     preview: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80",
     isVideo: true,
   },
   {
-    theme: "Natureza & Lago",
-    scenario: "Beira de lago com árvores e luz natural de fim de tarde",
-    outfit: "Regata preta e boné esportivo branco",
-    pose: "Sentada de lado olhando por cima do ombro",
-    mood: "Aventureira, esportiva e solar",
-    caption: "Tarde tranquila na beira do lago. Boné, regata e natureza... De 0 a 10, que nota você dá pra essa paz? 🌿☀️",
-    hashtags: ["#natureza", "#lago", "#bone", "#vibeboa", "#summer"],
+    theme: "Natureza & Biquíni Lago",
+    scenario: "Beira de lago com luz natural quente dourando a pele",
+    outfit: "Regata decotada cavada e biquíni preto por baixo",
+    pose: "Sentada de lado valorizando a curvatura do quadril e olhar sedutor por cima do ombro",
+    mood: "Sensual solar, livre e provocante",
+    caption: "Dourada pelo sol e essa vibe que valorizou cada centímetro... De frente ou de costas, qual foto desse ensaio te desconcentrou mais? ☀️🔥",
+    hashtags: ["#natureza", "#lago", "#sensual", "#summer", "#bikini", "#curvas"],
     preview: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80",
     isVideo: false,
   },
   {
-    theme: "Parque Casaco Jeans",
-    scenario: "Parque ao ar livre com fundo verde natural",
-    outfit: "Casaco jeans aberto e boné",
-    pose: "Em pé interagindo com a câmera com sorriso sutil",
-    mood: "Casual chic e espontânea",
-    caption: "Aqueles 15 segundos de vídeo ao ar livre que prendem a atenção... O conteúdo completo tá te esperando no link da bio 🔥",
-    hashtags: ["#preview", "#video", "#reels", "#vip", "#novidades"],
+    theme: "Parque Casaco Jeans & Decote",
+    scenario: "Parque natural ao ar livre com fundo desfocado",
+    outfit: "Casaco jeans aberto mostrando lingerie rendada preta",
+    pose: "Em pé provocante entreabrindo o casaco com sorriso misterioso",
+    mood: "Ousada, provocante e irresistível",
+    caption: "Aqueles 15 segundos de vídeo com esse casaco aberto que vão te fazer pausar várias vezes... O que tem por baixo tá sem censura no link da bio 😈🔥",
+    hashtags: ["#preview", "#video", "#reels", "#vip", "#lingerie", "#exclusivo"],
     preview: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
     isVideo: true,
   },
   {
-    theme: "Selfie Provador",
-    scenario: "Espelho de provador de loja com iluminação suave",
-    outfit: "Look casual moderno com celular na mão",
-    pose: "Selfie no espelho mostrando silhueta",
-    mood: "Próxima, íntima e espontânea",
-    caption: "Selfie despretensiosa no espelho do provador. Provando looks novos pra próxima viagem... Aprovado? 👀👗",
-    hashtags: ["#selfienoespelho", "#provador", "#look", "#fashion", "#style"],
+    theme: "Selfie Provador Lingerie Sexy",
+    scenario: "Espelho de provador com iluminação suave direcionada",
+    outfit: "Look provocante com decote profundo e transparência",
+    pose: "Selfie sensual no espelho marcando silhueta de corpo inteiro e curvas",
+    mood: "Safada, íntima e irresistível",
+    caption: "Confesso que esse espelho entrega mais do que deveria... Essa transparência e esse ângulo que vocês não cansam de pedir na DM 🔥 O que achou desse decote? 👀",
+    hashtags: ["#selfienoespelho", "#provador", "#sexy", "#lingerie", "#vip", "#corpo"],
     preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
     isVideo: false,
   },
   {
-    theme: "Noite Urbana Luzes",
-    scenario: "Cenário noturno urbano com luzes desfocadas",
-    outfit: "Regata cropped cinza escuro",
-    pose: "Olhar sedutor por cima do ombro",
-    mood: "Sensual misteriosa e magnética",
-    caption: "As luzes da cidade à noite combinam demais com essa vibe... Sextou da melhor forma! 🌃🖤",
-    hashtags: ["#noite", "#nightout", "#cidade", "#sensual", "#vip"],
+    theme: "Noite Urbana Sensualidade Fatal",
+    scenario: "Cenário noturno com luzes da cidade e penumbra sedutora",
+    outfit: "Vestido curto preto justo com fenda lateral e decote acentuado",
+    pose: "Olhar fatal e sedutor por cima do ombro com costas nuas",
+    mood: "Sensual misteriosa, magnética e picante",
+    caption: "As luzes da cidade à noite e esse pretinho que marca absolutamente tudo... Sextou daquele jeito bem safado 🌃🔥 Quer ver a versão pro feed VIP?",
+    hashtags: ["#noite", "#nightout", "#sensual", "#vestidocurto", "#vip", "#mulhergostosa"],
     preview: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80",
     isVideo: true,
   },
   {
-    theme: "Fitness Treino",
-    scenario: "Academia moderna com aparelhos de musculação",
-    outfit: "Top fitness e legging de treino",
-    pose: "Postura pós-treino destacando definição",
-    mood: "Determinada e focada",
-    caption: "Treino pago com sucesso! A endorfina bateu forte hoje 💪 Quem já treinou comenta um fogo 🔥",
-    hashtags: ["#fitness", "#gymgirl", "#treinofeminino", "#shape", "#foco"],
+    theme: "Fitness Treino Curvas & Bumbum",
+    scenario: "Academia moderna com iluminação dramática",
+    outfit: "Top decotado justo e shortinho de lycra coladinho",
+    pose: "Pose pós-treino destacando cintura fina, bumbum empinado e pernas torneadas",
+    mood: "Gostosa, sarada e provocante",
+    caption: "Treino pago, shape encaixado e esse shortinho fitness desenhando tudo... O calor aqui subiu de verdade 🔥 Quem aí ama uma mulher sarada e gostosa?",
+    hashtags: ["#fitness", "#gymgirl", "#shape", "#bumbumnanuca", "#sexy", "#foco"],
     preview: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=400&q=80",
     isVideo: true,
   },
   {
-    theme: "Golden Hour Sunset",
-    scenario: "Luz dourada do pôr do sol ao ar livre",
-    outfit: "Vestido leve e cabelos ao vento",
-    pose: "Sorriso leve olhando para o horizonte",
-    mood: "Solar, radiante e apaixonante",
-    caption: "A luz das 17h sempre entrega tudo... Dias dourados merecem ficar gravados ☀️✨",
-    hashtags: ["#goldenhour", "#sunset", "#luznatural", "#lifestyle", "#beauty"],
+    theme: "Golden Hour Pôr do Sol Transparência",
+    scenario: "Luz dourada do pôr do sol tocando a pele suavemente",
+    outfit: "Vestido leve com transparência e decote generoso",
+    pose: "Olhar sedutor sorrindo de lado com vento levantando o vestido",
+    mood: "Solar, altamente sensual e apaixonante",
+    caption: "A luz das 17h iluminando minhas curvas e esse tecido leve transparente... Dias quentes merecem pouca roupa ☀️🔥 De 0 a 10, que nota você dá pra essa visão?",
+    hashtags: ["#goldenhour", "#sunset", "#luznatural", "#transparencia", "#sexy", "#curvas"],
     preview: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
     isVideo: false,
   },
@@ -172,6 +173,7 @@ export let driveStore: DriveConfig = {
   totalInDrive: 74,
   discardedCount: 0,
   postsPerDay: 4, // Padrão ajustado para 4 posts por dia
+  customPrompt: "Tom provocante, picante e sexy da modelo July, destacando decote, lingerie/biquíni, olhar sedutor e curvas femininas, com chamada irresistível para a bio e direct 🔥",
   // Mantém apenas o lote de 6 em memória ativa
   items: GOOGLE_DRIVE_FOLDER_POOL.slice(0, 6).map((i) => ({ ...i, inMemory: true })),
 };
@@ -304,13 +306,30 @@ export async function POST(req: Request) {
     if (body.postsPerDay !== undefined) {
       driveStore.postsPerDay = Math.max(1, Math.min(12, Number(body.postsPerDay)));
     }
+    if (body.customPrompt !== undefined) {
+      driveStore.customPrompt = String(body.customPrompt).trim();
+    }
     if (Array.isArray(body.items)) {
       driveStore.items = body.items.slice(0, 6);
+      // Persiste as alterações de legenda, hashtags e status no acervo permanente
+      for (const updatedItem of body.items) {
+        const poolIdx = GOOGLE_DRIVE_FOLDER_POOL.findIndex((p) => p.id === updatedItem.id);
+        if (poolIdx !== -1) {
+          GOOGLE_DRIVE_FOLDER_POOL[poolIdx] = {
+            ...GOOGLE_DRIVE_FOLDER_POOL[poolIdx],
+            caption: updatedItem.caption,
+            hashtags: updatedItem.hashtags,
+            status: updatedItem.status || GOOGLE_DRIVE_FOLDER_POOL[poolIdx].status,
+            visualAnalysis: updatedItem.visualAnalysis || GOOGLE_DRIVE_FOLDER_POOL[poolIdx].visualAnalysis,
+          };
+        }
+      }
     }
 
     return NextResponse.json({
       ok: true,
       drive: driveStore,
+      message: "Configurações e posts salvos com sucesso.",
     });
   } catch (e) {
     return fail(e);

@@ -16,6 +16,7 @@ export interface DriveMediaItem {
   inMemory: boolean; // Indica se está na memória ativa do bot
   metadataCleaned?: boolean; // Indica se passou pelo limpador de metadados EXIF/GPS
   visualAnalysis?: {
+    scenarioId?: string;
     scenario: string;
     outfit: string;
     pose: string;

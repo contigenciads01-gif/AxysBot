@@ -346,24 +346,54 @@ export default function DriveMediaPage() {
   // Analisar Cenário, Roupa e Posição de um item individual com Visão IA
   async function handleAnalyzeItem(id: string) {
     if (!drive) return;
-    const item = drive.items.find((i) => i.id === id);
-    if (!item) return;
+    const idx = drive.items.findIndex((i) => i.id === id);
+    if (idx === -1) return;
+    const item = drive.items[idx];
 
     setBusy(`analyze_${id}`);
     try {
       const res = await fetch("/api/drive/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ item }),
+        body: JSON.stringify({ item, fallbackIndex: idx }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
       const updated = drive.items.map((i) => (i.id === id ? data.item : i));
       setDrive({ ...drive, items: updated });
-      toast.show(`👁️ Visão IA: Cenário e Roupa analisados! Legenda dedicada pronta.`);
+      handleSaveReadyItems(updated);
+      toast.show(`👁️ Visão IA: Cenário analisado e legenda dedicada pronta!`);
     } catch (e) {
       toast.show(e instanceof Error ? e.message : "Erro na análise visual.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Alternar cenário específico da foto com 1 clique e gerar legenda correspondente
+  async function handleSwitchScenario(id: string, scenarioId: string) {
+    if (!drive) return;
+    const idx = drive.items.findIndex((i) => i.id === id);
+    if (idx === -1) return;
+    const item = drive.items[idx];
+
+    setBusy(`analyze_${id}`);
+    try {
+      const res = await fetch("/api/drive/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item, scenarioId, fallbackIndex: idx }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      const updated = drive.items.map((i) => (i.id === id ? data.item : i));
+      setDrive({ ...drive, items: updated });
+      handleSaveReadyItems(updated);
+      toast.show(`✨ Cenário ajustado para "${data.analysis.scenario}" com legenda atualizada!`);
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Erro ao alterar cenário da foto.");
     } finally {
       setBusy(null);
     }
@@ -1645,34 +1675,48 @@ async function optimizeImageForUpload(file: File): Promise<File | Blob> {
 
                     {/* Edição de Legenda e Hashtags 1 a 1 */}
                     <div className="space-y-2">
-                      {item.visualAnalysis ? (
-                        <div className="p-2 rounded-lg bg-[var(--sunken)] border border-[var(--line)] text-[10.5px] space-y-1">
-                          <div className="flex items-center gap-1.5 text-sky-400 font-semibold truncate">
-                            <span>🏖️ Cenário:</span>
-                            <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.scenario}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-purple-400 font-semibold truncate">
-                            <span>👗 Roupa:</span>
-                            <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.outfit}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-amber-400 font-semibold truncate">
-                            <span>💃 Posição:</span>
-                            <span className="text-[var(--ink)] font-normal truncate">{item.visualAnalysis.pose}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between p-1.5 rounded-lg bg-[var(--sunken)]/50 border border-[var(--line)] text-[10.5px]">
-                          <span className="text-[var(--muted)]">Análise visual pendente</span>
-                          <button
-                            type="button"
-                            onClick={() => handleAnalyzeItem(item.id)}
-                            disabled={busy !== null}
-                            className="text-sky-400 font-[650] hover:underline flex items-center gap-1"
+                      <div className="p-2.5 rounded-xl bg-[var(--sunken)] border border-[var(--line)] text-[11px] space-y-1.5">
+                        <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                          <span className="text-sky-400 font-bold flex items-center gap-1.5 text-[11px]">
+                            <span>🎯</span> Cenário Visual:
+                          </span>
+
+                          {/* SELETOR 1-CLIQUE PARA TROCAR O CENÁRIO E GERAR A LEGENDA PERFEITA */}
+                          <select
+                            className="text-[11px] font-bold bg-zinc-900 text-sky-300 border border-sky-500/40 rounded-lg px-2 py-0.5 cursor-pointer hover:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400 transition-all"
+                            value={
+                              item.visualAnalysis?.scenarioId ||
+                              (idx === 2 ? "water" : idx === 3 ? "gym" : idx === 1 ? "mirror" : idx === 0 ? "street" : "close")
+                            }
+                            onChange={(e) => handleSwitchScenario(item.id, e.target.value)}
+                            title="Trocar cenário desta foto e gerar legenda correspondente"
                           >
-                            <span>👁️</span> {busy === `analyze_${item.id}` ? "Analisando..." : "Analisar Cenário & Roupa"}
-                          </button>
+                            <option value="water">🌊 Água & Pôr do Sol (Refrescar)</option>
+                            <option value="gym">💪 Academia & Treino (Danadinha suou)</option>
+                            <option value="mirror">🪞 Quarto & Espelho (Lingerie)</option>
+                            <option value="street">🎨 Muro & Grafite (Rua/Shorts)</option>
+                            <option value="close">🔥 Decote & Close Fatal</option>
+                          </select>
                         </div>
-                      )}
+
+                        {item.visualAnalysis ? (
+                          <div className="text-[10px] text-[var(--muted)] flex items-center justify-between border-t border-[var(--line)] pt-1 font-mono">
+                            <span className="truncate max-w-[200px]">👗 {item.visualAnalysis.outfit}</span>
+                            <span className="truncate max-w-[150px] text-amber-300/90 font-semibold">✨ {item.visualAnalysis.mood}</span>
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-[var(--muted)] border-t border-[var(--line)] pt-1 flex items-center justify-between">
+                            <span>Análise automática ativa</span>
+                            <button
+                              type="button"
+                              onClick={() => handleAnalyzeItem(item.id)}
+                              className="text-sky-400 hover:underline font-semibold"
+                            >
+                              Reanalisar 👁️
+                            </button>
+                          </div>
+                        )}
+                      </div>
 
                       <div>
                         <span className="text-[11px] font-[600] text-[var(--muted)] block">Legenda Dedicada:</span>

@@ -1,4 +1,4 @@
-export type PlatformType = 'x';
+export type PlatformType = 'x' | 'instagram' | 'tiktok';
 
 export type AccountStage = 'connecting' | 'monitoring' | 'operating' | 'scaling';
 
@@ -37,6 +37,9 @@ export interface PlatformAccount {
   ct0?: string | null;
   proxy?: string | null;
   proxy_active?: boolean;
+  two_factor_secret?: string | null;
+  session_cookies?: string | null;
+  warmup_strategy?: 'following' | 'hot_niche' | 'hybrid' | null;
   status?: string;
   current_action?: string | null;
   actions_today?: number;

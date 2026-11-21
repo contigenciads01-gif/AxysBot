@@ -23,6 +23,7 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => ({}))) as {
       action?: "oauth_url" | "manual_connect";
+      platform?: "x" | "instagram" | "tiktok";
       clientId?: string;
       redirectUri?: string;
       username?: string;
@@ -64,14 +65,15 @@ export async function POST(req: Request) {
 
     // 2. Conexão direta com tokens fornecidos
     if (body.action === "manual_connect" && body.username && body.accessToken) {
+      const platform = body.platform || "x";
       const handle = body.username.replace(/^@/, "").trim();
-      const userId = body.userId || `x_${handle.toLowerCase()}`;
+      const userId = body.userId || `${platform}_${handle.toLowerCase()}`;
 
       const { data: newAcc, error } = await db()
         .from("platform_accounts")
         .upsert(
           {
-            platform: "x",
+            platform,
             x_user_id: userId,
             username: handle,
             display_name: handle,

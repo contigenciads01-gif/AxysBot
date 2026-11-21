@@ -9,8 +9,10 @@ export async function POST(req: Request) {
 
   try {
     const body = (await req.json().catch(() => ({}))) as {
+      platform?: "x" | "instagram" | "tiktok";
       rawText?: string;
       accounts?: Array<{
+        platform?: "x" | "instagram" | "tiktok";
         username: string;
         password?: string;
         email?: string;
@@ -23,6 +25,7 @@ export async function POST(req: Request) {
     };
 
     const toInsert: Array<{
+      platform: "x" | "instagram" | "tiktok";
       username: string;
       account_password?: string;
       email?: string;
@@ -48,6 +51,7 @@ export async function POST(req: Request) {
           const proxy = parts[5] || undefined;
 
           toInsert.push({
+            platform: body.platform || "x",
             username,
             account_password: password,
             email,
@@ -61,6 +65,7 @@ export async function POST(req: Request) {
       for (const acc of body.accounts) {
         if (acc.username) {
           toInsert.push({
+            platform: acc.platform || body.platform || "x",
             username: acc.username.replace(/^@/, ""),
             account_password: acc.password,
             email: acc.email,
@@ -84,12 +89,13 @@ export async function POST(req: Request) {
     const inserted: string[] = [];
 
     for (const item of toInsert) {
-      const userId = `x_${item.username.toLowerCase()}`;
+      const platform = item.platform || "x";
+      const userId = `${platform}_${item.username.toLowerCase()}`;
       const { data: acc, error } = await db()
         .from("platform_accounts")
         .upsert(
           {
-            platform: "x",
+            platform,
             x_user_id: userId,
             username: item.username,
             display_name: item.username,

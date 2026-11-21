@@ -90,9 +90,14 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
   const [importOpen, setImportOpen] = useState(false);
   const [rawImportText, setRawImportText] = useState("");
 
+  // Plataforma Selecionada (Filtro) & Conta em Foco no Radar
+  const [selectedPlatformTab, setSelectedPlatformTab] = useState<"all" | "x" | "instagram" | "tiktok">("all");
+  const [focusedAccountId, setFocusedAccountId] = useState<string | null>(null);
+
   // Modal 3: Conexão Manual de Conta
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [manualForm, setManualForm] = useState({
+    platform: "x" as "x" | "instagram" | "tiktok",
     username: "",
     password: "",
     email: "",
@@ -101,6 +106,8 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     authToken: "",
     ct0: "",
     proxy: "",
+    twoFactorSecret: "",
+    warmupStrategy: "following" as "following" | "hot_niche" | "hybrid",
   });
 
   // Modal 4: Filtros de Alvo & Interação do Nicho
@@ -351,6 +358,10 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
 
   // Filtragem da tabela
   const filteredAccounts = accounts.filter((acc) => {
+    const platform = acc.platform || "x";
+    if (selectedPlatformTab !== "all" && platform !== selectedPlatformTab) {
+      return false;
+    }
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
@@ -620,8 +631,10 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          platform: manualForm.platform,
           accounts: [
             {
+              platform: manualForm.platform,
               username: manualForm.username,
               password: manualForm.password || undefined,
               email: manualForm.email || undefined,
@@ -640,6 +653,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       toast.show(`✅ Conta @${manualForm.username.replace(/^@/, "")} conectada com sucesso!`);
       setManualModalOpen(false);
       setManualForm({
+        platform: "x",
         username: "",
         password: "",
         email: "",
@@ -648,6 +662,8 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
         authToken: "",
         ct0: "",
         proxy: "",
+        twoFactorSecret: "",
+        warmupStrategy: "following",
       });
       await refresh();
     } catch (e) {
@@ -714,14 +730,29 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
     setCopySubmenuOpen(false);
   }
 
-  const activeAccount = accounts.find((a) => a.status === "warming") || accounts[0] || null;
-  const currentActionText = activeAccount?.current_action || (status.enabled ? "Inicializando esteira de aquecimento humano..." : "Robô pausado.");
+  const focusedAccount = focusedAccountId ? accounts.find((a) => a.id === focusedAccountId) || null : null;
+  const activeAccount = focusedAccount || accounts.find((a) => a.status === "warming") || accounts[0] || null;
+  const currentActionText = activeAccount?.current_action || (
+    status.enabled
+      ? (activeAccount?.platform === "instagram"
+          ? "Navegando no Instagram: assistindo stories de quem você segue..."
+          : activeAccount?.platform === "tiktok"
+            ? "Navegando no TikTok: assistindo 70% de vídeo na FYP com jitter..."
+            : "Inicializando esteira de aquecimento humano no X...")
+      : "Robô pausado."
+  );
 
   function getActionBadge(text: string) {
+    if (text.includes("Stories") || text.includes("Story")) {
+      return { label: "👁️ VENDO STORIES", bg: "bg-pink-500/20 text-pink-400 border-pink-500/40" };
+    }
+    if (text.includes("FYP") || text.includes("TikTok")) {
+      return { label: "🎵 ROLANDO FYP", bg: "bg-cyan-500/20 text-cyan-400 border-cyan-500/40" };
+    }
     if (text.includes("Rolando feed") || text.includes("Scroll")) {
       return { label: "📜 SCROLL FEED", bg: "bg-sky-500/20 text-sky-400 border-sky-500/40" };
     }
-    if (text.includes("Acessando perfil") || text.includes("Visitando")) {
+    if (text.includes("Acessando perfil") || text.includes("Visitando") || text.includes("Seguindo")) {
       return { label: "👀 VISITANDO PERFIL", bg: "bg-purple-500/20 text-purple-400 border-purple-500/40" };
     }
     if (text.includes("Lendo publicação")) {
@@ -890,6 +921,19 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             <h3 className="text-[15px] font-[750] tracking-tight text-[var(--ink)] flex items-center gap-2">
               <span>🖥️</span> Console de Missão do Bot — Ações em Tempo Real
             </h3>
+            {focusedAccount && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                <span>🎯</span> Foco: @{focusedAccount.username}
+                <button
+                  type="button"
+                  onClick={() => setFocusedAccountId(null)}
+                  className="ml-1 text-sky-400 hover:text-white"
+                  title="Voltar ao Radar Global Multicontas"
+                >
+                  ✕
+                </button>
+              </span>
+            )}
             <span className="liquid-glass-chip px-2.5 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
               {status.enabled ? "LIVE TELEMETRY" : "IDLE"}
             </span>
@@ -942,21 +986,48 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
           <div className="bg-[var(--sunken)]/60 rounded-xl p-3 border border-[var(--line)] flex flex-col justify-between">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
-                <span>Esteira Multi-Contas</span>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                  {accounts.length} {accounts.length === 1 ? "Perfil" : "Perfis em Massa"}
-                </span>
+                <span>{focusedAccount ? "🎯 Foco Exclusivo" : "Esteira Multi-Contas"}</span>
+                {focusedAccount ? (
+                  <button
+                    type="button"
+                    onClick={() => setFocusedAccountId(null)}
+                    className="text-[10px] font-mono text-sky-400 hover:underline cursor-pointer"
+                  >
+                    Voltar Global ✕
+                  </button>
+                ) : (
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                    {accounts.length} {accounts.length === 1 ? "Perfil" : "Perfis em Massa"}
+                  </span>
+                )}
               </div>
               <div className="mt-2 flex items-center gap-2.5">
-                <div className="size-9 rounded-full bg-[var(--surface)] border border-[var(--line)] flex items-center justify-center font-bold text-[13px] text-[var(--accent)]">
-                  {activeAccount ? activeAccount.username.slice(0, 2).toUpperCase() : "X"}
+                <div
+                  className={`size-9 rounded-full border flex items-center justify-center font-bold text-[13px] ${
+                    activeAccount?.platform === "instagram"
+                      ? "bg-gradient-to-tr from-purple-900 to-pink-900 border-pink-500/40 text-pink-300"
+                      : activeAccount?.platform === "tiktok"
+                        ? "bg-zinc-900 border-cyan-500/40 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.2)]"
+                        : "bg-[var(--surface)] border-[var(--line)] text-[var(--accent)]"
+                  }`}
+                >
+                  {activeAccount?.platform === "instagram"
+                    ? "📸"
+                    : activeAccount?.platform === "tiktok"
+                      ? "🎵"
+                      : (activeAccount ? activeAccount.username.slice(0, 2).toUpperCase() : "X")}
                 </div>
                 <div className="min-w-0">
-                  <div className="font-[700] text-[13.5px] truncate text-[var(--ink)]">
-                    {activeAccount ? `@${activeAccount.username}` : "Nenhuma conta"}
+                  <div className="font-[700] text-[13.5px] truncate text-[var(--ink)] flex items-center gap-1.5">
+                    <span>{activeAccount ? `@${activeAccount.username}` : "Nenhuma conta"}</span>
+                    <span className="text-[9.5px] uppercase font-mono px-1 rounded bg-[var(--surface)] border border-[var(--line)] text-[var(--muted)]">
+                      {activeAccount?.platform === "instagram" ? "Insta" : activeAccount?.platform === "tiktok" ? "TikTok" : "Twitter / X"}
+                    </span>
                   </div>
                   <div className="text-[11px] text-[var(--muted)] truncate">
-                    {accounts.length > 1 ? `Rotacionando com +${accounts.length - 1} contas no mesmo bot` : (activeAccount?.display_name || "Perfil Ativo")}
+                    {focusedAccount
+                      ? "Modo Ativo: Seguindo + Próprio Perfil (Anti-Ban)"
+                      : (accounts.length > 1 ? `Rotacionando com +${accounts.length - 1} contas no mesmo bot` : (activeAccount?.display_name || "Perfil Ativo"))}
                   </div>
                 </div>
               </div>
@@ -1054,33 +1125,117 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       </section>
 
       {/* ============================================================== */}
-      {/* 2. BARRA DE FERRAMENTAS: BUSCA + BADGES + BOTÕES               */}
+      {/* 1.8 RIBBON DE PLATAFORMAS & MÉTRICAS (Linear / Vercel Style) */}
       {/* ============================================================== */}
-      <div className="liquid-glass glass-card panel-pad w-full flex flex-wrap items-center justify-between gap-3" data-glass>
-        <div className="flex flex-wrap items-center gap-3 min-w-0">
-          <div className="relative w-[180px] sm:w-[220px]">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full">
+        <div className="liquid-glass rounded-xl p-3 border border-[var(--line)] flex items-center justify-between">
+          <div>
+            <div className="text-[10px] uppercase font-bold text-[var(--muted)] tracking-wider">Total de Perfis</div>
+            <div className="text-[19px] font-[800] text-[var(--ink)] mt-0.5">{totalCount}</div>
+          </div>
+          <div className="size-8 rounded-lg bg-[var(--sunken)] border border-[var(--line)] flex items-center justify-center text-[15px]">
+            🌐
+          </div>
+        </div>
+
+        <div className="liquid-glass rounded-xl p-3 border border-[var(--line)] flex items-center justify-between">
+          <div>
+            <div className="text-[10px] uppercase font-bold text-[var(--muted)] tracking-wider">Twitter / X</div>
+            <div className="text-[19px] font-[800] text-sky-400 mt-0.5">
+              {accounts.filter((a) => (a.platform || "x") === "x").length}
+            </div>
+          </div>
+          <div className="size-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-[14px] font-bold text-sky-400">
+            𝕏
+          </div>
+        </div>
+
+        <div className="liquid-glass rounded-xl p-3 border border-[var(--line)] flex items-center justify-between">
+          <div>
+            <div className="text-[10px] uppercase font-bold text-[var(--muted)] tracking-wider">Instagram</div>
+            <div className="text-[19px] font-[800] text-pink-400 mt-0.5">
+              {accounts.filter((a) => a.platform === "instagram").length}
+            </div>
+          </div>
+          <div className="size-8 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-[14px]">
+            📸
+          </div>
+        </div>
+
+        <div className="liquid-glass rounded-xl p-3 border border-[var(--line)] flex items-center justify-between">
+          <div>
+            <div className="text-[10px] uppercase font-bold text-[var(--muted)] tracking-wider">TikTok</div>
+            <div className="text-[19px] font-[800] text-cyan-400 mt-0.5">
+              {accounts.filter((a) => a.platform === "tiktok").length}
+            </div>
+          </div>
+          <div className="size-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-[14px]">
+            🎵
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* 2. BARRA DE FERRAMENTAS: BUSCA + PLATAFORMAS + BOTÕES          */}
+      {/* ============================================================== */}
+      <div className="liquid-glass glass-card panel-pad w-full flex flex-col sm:flex-row flex-wrap items-center justify-between gap-3" data-glass>
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          <div className="relative w-full sm:w-[220px]">
             <input
               type="text"
-              className="input h-9 text-[13px] pl-3"
-              placeholder="Search..."
+              className="input h-9 text-[13px] pl-3 w-full"
+              placeholder="Buscar conta ou proxy..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
-          <div className="flex items-center gap-1.5 text-[12px] font-[600]">
-            <span className="liquid-glass-chip px-2.5 py-1 text-[var(--accent)]">
-              Total: {totalCount}
-            </span>
-            <span className="liquid-glass-chip px-2.5 py-1 text-[var(--ok)]">
-              Live: {liveCount}
-            </span>
-            <span className="liquid-glass-chip px-2.5 py-1 text-[var(--bad)]">
-              Die: {dieCount}
-            </span>
-            <span className="liquid-glass-chip px-2.5 py-1 text-[var(--ink)]">
-              Selected: {selectedCount}
-            </span>
+          {/* SELETOR DE ABAS DE PLATAFORMAS */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--sunken)] border border-[var(--line)] overflow-x-auto max-w-full">
+            <button
+              type="button"
+              onClick={() => setSelectedPlatformTab("all")}
+              className={`px-3 py-1 rounded-lg text-[12px] font-[650] transition-all cursor-pointer whitespace-nowrap ${
+                selectedPlatformTab === "all"
+                  ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm border border-[var(--line)]"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              Todas ({accounts.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPlatformTab("x")}
+              className={`px-3 py-1 rounded-lg text-[12px] font-[650] transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                selectedPlatformTab === "x"
+                  ? "bg-zinc-900 text-white shadow-sm border border-zinc-700"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              <span>𝕏</span> Twitter ({accounts.filter((a) => (a.platform || "x") === "x").length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPlatformTab("instagram")}
+              className={`px-3 py-1 rounded-lg text-[12px] font-[650] transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                selectedPlatformTab === "instagram"
+                  ? "bg-gradient-to-r from-purple-900 to-pink-900 text-pink-200 shadow-sm border border-pink-500/40"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              <span>📸</span> Instagram ({accounts.filter((a) => a.platform === "instagram").length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPlatformTab("tiktok")}
+              className={`px-3 py-1 rounded-lg text-[12px] font-[650] transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                selectedPlatformTab === "tiktok"
+                  ? "bg-zinc-900 text-cyan-300 shadow-sm border border-cyan-500/40"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              <span>🎵</span> TikTok ({accounts.filter((a) => a.platform === "tiktok").length})
+            </button>
           </div>
         </div>
 
@@ -1184,6 +1339,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                 </th>
                 <th className="p-3 w-12 text-center">STT</th>
                 <th className="p-3 w-14 text-center select-none" title="Dados e Diagnóstico da Conta">⋯</th>
+                <th className="p-3 min-w-[130px]">Plataforma</th>
                 <th className="p-3 min-w-[150px]">Username</th>
                 <th className="p-3 min-w-[130px]">Display Name</th>
                 <th className="p-3 min-w-[110px]">Phone</th>
@@ -1199,8 +1355,8 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             <tbody className="divide-y divide-[var(--line)]">
               {filteredAccounts.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="p-8 text-center text-[var(--ink-2)]">
-                    Nenhuma conta cadastrada. Clique em <strong>+ Conectar Manual</strong> para adicionar sua conta.
+                  <td colSpan={13} className="p-8 text-center text-[var(--ink-2)]">
+                    Nenhuma conta cadastrada nesta visualização. Clique em <strong>+ Conectar Manual</strong> para adicionar sua conta.
                   </td>
                 </tr>
               ) : (
@@ -1214,7 +1370,11 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                       key={acc.id}
                       onContextMenu={(e) => handleContextMenu(e, acc)}
                       className={`transition-colors hover:bg-[var(--sunken)] ${
-                        isSelected ? "bg-[color-mix(in_oklab,var(--accent)_8%,transparent)]" : ""
+                        focusedAccountId === acc.id
+                          ? "border-l-4 border-l-sky-500 bg-sky-950/20"
+                          : isSelected
+                            ? "bg-[color-mix(in_oklab,var(--accent)_8%,transparent)]"
+                            : ""
                       }`}
                     >
                       <td className="p-3 text-center">
@@ -1244,9 +1404,36 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                         </button>
                       </td>
 
+                      {/* PLATAFORMA BADGE */}
+                      <td className="p-3 whitespace-nowrap">
+                        {acc.platform === "instagram" ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-[700] bg-gradient-to-r from-purple-900/40 via-pink-900/40 to-amber-900/40 border border-pink-500/30 text-pink-300">
+                            <span>📸</span> Instagram
+                          </span>
+                        ) : acc.platform === "tiktok" ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-[700] bg-zinc-900 border border-cyan-500/40 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.15)]">
+                            <span>🎵</span> TikTok
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-[700] bg-zinc-900 border border-zinc-700 text-zinc-200">
+                            <span>𝕏</span> Twitter
+                          </span>
+                        )}
+                      </td>
+
                       <td className="p-3 font-[600] text-[var(--ink)]">
                         <div className="flex items-center gap-1.5">
-                          <span>@{acc.username}</span>
+                          <button
+                            type="button"
+                            onClick={() => setFocusedAccountId(focusedAccountId === acc.id ? null : acc.id)}
+                            className="hover:text-sky-400 font-[700] cursor-pointer flex items-center gap-1.5 transition-colors text-left"
+                            title="Clique para alternar o foco do Radar nesta conta"
+                          >
+                            <span>@{acc.username}</span>
+                            {focusedAccountId === acc.id && (
+                              <span className="size-2 rounded-full bg-sky-400 animate-pulse" title="Em foco no Radar" />
+                            )}
+                          </button>
                           {!acc.auth_token && acc.access_token === "placeholder" && (
                             <span
                               className="text-[10px] text-amber-400 font-normal cursor-pointer hover:underline"
@@ -1254,7 +1441,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                                 setEditingTokenAccount(acc);
                                 setTokenModalOpen(true);
                               }}
-                              title="Clique para adicionar auth_token e habilitar retweets reais"
+                              title="Clique para adicionar auth_token e habilitar ações reais"
                             >
                               [sem token]
                             </span>
@@ -2149,10 +2336,73 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
             </div>
 
             <form onSubmit={handleManualSubmit} className="mt-4 flex flex-col gap-3">
+              {/* ESCOLHA DA PLATAFORMA */}
+              <div>
+                <label className="label text-[11px] uppercase tracking-wider font-bold">
+                  Plataforma da Conta *
+                </label>
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setManualForm({ ...manualForm, platform: "x" })}
+                    className={`px-3 py-2 rounded-xl text-[12px] font-[650] border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      manualForm.platform === "x"
+                        ? "bg-zinc-900 border-zinc-600 text-white shadow-sm"
+                        : "bg-[var(--sunken)] border-[var(--line)] text-[var(--ink-2)] hover:text-[var(--ink)]"
+                    }`}
+                  >
+                    <span>𝕏</span> Twitter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setManualForm({ ...manualForm, platform: "instagram" })}
+                    className={`px-3 py-2 rounded-xl text-[12px] font-[650] border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      manualForm.platform === "instagram"
+                        ? "bg-gradient-to-r from-purple-900/60 to-pink-900/60 border-pink-500/50 text-pink-200 shadow-sm"
+                        : "bg-[var(--sunken)] border-[var(--line)] text-[var(--ink-2)] hover:text-[var(--ink)]"
+                    }`}
+                  >
+                    <span>📸</span> Instagram
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setManualForm({ ...manualForm, platform: "tiktok" })}
+                    className={`px-3 py-2 rounded-xl text-[12px] font-[650] border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      manualForm.platform === "tiktok"
+                        ? "bg-zinc-900 border-cyan-500/50 text-cyan-200 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+                        : "bg-[var(--sunken)] border-[var(--line)] text-[var(--ink-2)] hover:text-[var(--ink)]"
+                    }`}
+                  >
+                    <span>🎵</span> TikTok
+                  </button>
+                </div>
+              </div>
+
+              {/* ESTRATÉGIA DE AQUECIMENTO */}
+              <div>
+                <label className="label text-[11px] uppercase tracking-wider font-bold">
+                  Estratégia de Aquecimento Humano
+                </label>
+                <select
+                  className="input mt-1 text-[12.5px] cursor-pointer"
+                  value={manualForm.warmupStrategy}
+                  onChange={(e) =>
+                    setManualForm({
+                      ...manualForm,
+                      warmupStrategy: e.target.value as "following" | "hot_niche" | "hybrid",
+                    })
+                  }
+                >
+                  <option value="following">⭐ Seguindo + Próprio Perfil (Recomendado Anti-Ban)</option>
+                  <option value="hybrid">⚡ Híbrido (Seguindo + Nicho Hot Global)</option>
+                  <option value="hot_niche">🔥 Apenas Busca Nicho Hot</option>
+                </select>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label" htmlFor="m-user">
-                    Username / @ do X *
+                    Username / @ da Conta *
                   </label>
                   <input
                     id="m-user"
@@ -2166,7 +2416,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
 
                 <div>
                   <label className="label" htmlFor="m-pass">
-                    Senha do X
+                    Senha da Conta
                   </label>
                   <input
                     id="m-pass"
@@ -2234,30 +2484,54 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </div>
 
               <div className="border-t border-[var(--line)] pt-2.5 mt-1">
-                <span className="label text-[11.5px] text-[var(--accent)]">
-                  Login Instantâneo por Cookie (Opcional)
+                <span className="label text-[11.5px] text-[var(--accent)] font-semibold">
+                  {manualForm.platform === "instagram"
+                    ? "Cookies do Instagram & 2FA (Sessão Anti-Detect)"
+                    : manualForm.platform === "tiktok"
+                      ? "Cookies do TikTok (Sessão Anti-Detect)"
+                      : "Login Instantâneo por Cookie do X (Opcional)"}
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1.5">
                   <div>
                     <label className="label text-[11px]" htmlFor="m-token">
-                      auth_token (Cookie do X)
+                      {manualForm.platform === "instagram"
+                        ? "sessionid (Cookie Instagram)"
+                        : manualForm.platform === "tiktok"
+                          ? "sessionid (Cookie TikTok)"
+                          : "auth_token (Cookie do X)"}
                     </label>
                     <input
                       id="m-token"
                       className="input mt-1 text-[12px] font-mono"
-                      placeholder="40 caracteres hex..."
+                      placeholder={
+                        manualForm.platform === "instagram"
+                          ? "sessionid do Instagram..."
+                          : manualForm.platform === "tiktok"
+                            ? "sessionid do TikTok..."
+                            : "40 caracteres hex..."
+                      }
                       value={manualForm.authToken}
                       onChange={(e) => setManualForm({ ...manualForm, authToken: e.target.value })}
                     />
                   </div>
                   <div>
                     <label className="label text-[11px]" htmlFor="m-ct0">
-                      ct0 (CSRF token)
+                      {manualForm.platform === "instagram"
+                        ? "Chave Secreta 2FA (TOTP de 32 letras)"
+                        : manualForm.platform === "tiktok"
+                          ? "msToken (Token de Sessão TikTok)"
+                          : "ct0 (CSRF token)"}
                     </label>
                     <input
                       id="m-ct0"
                       className="input mt-1 text-[12px] font-mono"
-                      placeholder="160 caracteres..."
+                      placeholder={
+                        manualForm.platform === "instagram"
+                          ? "Ex: JBSWY3DPEHPK3PXP..."
+                          : manualForm.platform === "tiktok"
+                            ? "msToken..."
+                            : "160 caracteres..."
+                      }
                       value={manualForm.ct0}
                       onChange={(e) => setManualForm({ ...manualForm, ct0: e.target.value })}
                     />

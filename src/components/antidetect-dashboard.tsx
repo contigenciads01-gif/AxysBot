@@ -1823,10 +1823,10 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
         );
 
         return (
-          <dialog open className="sheet">
-            <div className="panel-pad max-w-[660px] w-full border-2 border-sky-500/40 shadow-2xl bg-[var(--surface)] text-[var(--ink)]">
-              {/* Topo / Header */}
-              <div className="flex items-center justify-between border-b border-[var(--line)] pb-3.5">
+          <dialog open className="sheet w-full max-w-[920px]">
+            <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)]">
+              {/* Topo / Header Fixo */}
+              <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="size-11 rounded-2xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center font-bold text-[18px]">
                     📊
@@ -1853,8 +1853,8 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                 </button>
               </div>
 
-              {/* Corpo com Métricas Principais */}
-              <div className="mt-4 flex flex-col gap-3.5 text-[13px] max-h-[75vh] overflow-y-auto pr-1">
+              {/* Corpo com Métricas Principais (Scroll Único) */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-[13px]">
                 {/* 1. Grade 4 Métricas de Desempenho e Aquecimento */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {/* Dias Aquecendo */}
@@ -2025,9 +2025,9 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                 </div>
               </div>
 
-              {/* Rodapé com Ações Rápidas */}
-              <div className="mt-4 pt-3 border-t border-[var(--line)] flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
+              {/* Rodapé com Ações Rápidas Fixo */}
+              <div className="p-4 border-t border-[var(--line)] bg-[var(--surface)] flex flex-wrap items-center justify-between gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -2074,11 +2074,11 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* 7. MODAL: FILTROS DE ALVO & INTERAÇÃO (NICHO)                  */}
       {/* ============================================================== */}
       {filtersOpen && (
-        <dialog open className="sheet">
-          <div className="panel-pad max-w-[620px] w-full">
-            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
+        <dialog open className="sheet w-full max-w-[820px]">
+          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+            <div className="flex items-center justify-between border-b border-[var(--line)] p-5 shrink-0">
               <div>
-                <h2 className="h2 text-[17px]">🎯 Filtros de Alvo & Interação do Nicho</h2>
+                <h2 className="text-[17.5px] font-[750]">🎯 Filtros de Alvo & Interação do Nicho</h2>
                 <p className="text-[12px] text-[var(--muted)] mt-0.5">
                   Configure quais assuntos e perfis o bot vai monitorar para curtir, salvar e interagir de forma humana.
                 </p>
@@ -2088,9 +2088,10 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </button>
             </div>
 
-            <form onSubmit={handleSaveFilters} className="mt-4 flex flex-col gap-3.5 text-[13px] max-h-[75vh] overflow-y-auto pr-1">
-              {/* Modo de Descoberta */}
-              <div className="p-3 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/60">
+            <form onSubmit={handleSaveFilters} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-[13px]">
+                {/* Modo de Descoberta */}
+                <div className="p-3.5 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/60">
                 <label className="label text-[12px] font-bold text-[var(--accent)]" htmlFor="f-mode">
                   Modo de Leitura e Descoberta de Alvos:
                 </label>
@@ -2237,8 +2238,10 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                   />
                 </div>
               )}
+              </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-[var(--line)] mt-2">
+              {/* Rodapé Fixo */}
+              <div className="p-4 sm:p-5 border-t border-[var(--line)] bg-[var(--surface)] flex items-center justify-end gap-2 shrink-0">
                 <button type="button" className="btn" onClick={() => setFiltersOpen(false)}>
                   Cancelar
                 </button>
@@ -2255,29 +2258,40 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* 8. MODAL: DISPARAR RETWEET REAL DE TESTE                       */}
       {/* ============================================================== */}
       {retweetModalOpen && retweetTargetAccount && (
-        <dialog open className="sheet">
-          <div className="panel-pad max-w-[500px] w-full border-2 border-[var(--accent)]">
-            <h2 className="h2 text-[var(--accent)]">🔁 Disparar Retweet Real Agora</h2>
-            <p className="text-[13px] text-[var(--ink-2)] mt-1">
-              Testar a execução real de um Retweet na conta <strong>@{retweetTargetAccount.username}</strong>:
-            </p>
-
-            <form onSubmit={handleExecuteRealRetweet} className="mt-4 flex flex-col gap-3">
+        <dialog open className="sheet w-full max-w-[560px]">
+          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+            <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
               <div>
-                <label className="label" htmlFor="r-url">
-                  Link ou ID do Tweet a ser Retweetado *
-                </label>
-                <input
-                  id="r-url"
-                  className="input mt-1"
-                  placeholder="https://x.com/elonmusk/status/1892837465..."
-                  value={targetTweetUrl}
-                  onChange={(e) => setTargetTweetUrl(e.target.value)}
-                  required
-                />
+                <h2 className="text-[17px] font-[750] text-[var(--accent)] flex items-center gap-2">
+                  <span>🔁</span> Disparar Retweet Real Agora
+                </h2>
+                <p className="text-[12px] text-[var(--muted)] mt-0.5">
+                  Testar execução real na conta <strong>@{retweetTargetAccount.username}</strong>
+                </p>
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRetweetModalOpen(false)}>
+                <IconX size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleExecuteRealRetweet} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                <div>
+                  <label className="label text-[12px]" htmlFor="r-url">
+                    Link ou ID do Tweet a ser Retweetado *
+                  </label>
+                  <input
+                    id="r-url"
+                    className="input mt-1"
+                    placeholder="https://x.com/elonmusk/status/1892837465..."
+                    value={targetTweetUrl}
+                    onChange={(e) => setTargetTweetUrl(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
 
-              <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-[var(--line)]">
+              <div className="p-4 border-t border-[var(--line)] bg-[var(--surface)] flex items-center justify-end gap-2 shrink-0">
                 <button type="button" className="btn" onClick={() => setRetweetModalOpen(false)}>
                   Cancelar
                 </button>
@@ -2294,42 +2308,53 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* 9. MODAL: EDITAR / INSERIR AUTH TOKEN DA CONTA                 */}
       {/* ============================================================== */}
       {tokenModalOpen && editingTokenAccount && (
-        <dialog open className="sheet">
-          <div className="panel-pad max-w-[500px] w-full">
-            <h2 className="h2">🔑 Inserir Auth Token de @{editingTokenAccount.username}</h2>
-            <p className="text-[12.5px] text-[var(--ink-2)] mt-1">
-              Cole o cookie <code>auth_token</code> da conta logada no seu navegador para permitir retweets e curtidas imediatas sem precisar de senha ou captcha.
-            </p>
-
-            <form onSubmit={handleSaveAuthToken} className="mt-4 flex flex-col gap-3">
+        <dialog open className="sheet w-full max-w-[560px]">
+          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+            <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
               <div>
-                <label className="label" htmlFor="t-token">
-                  auth_token (Cookie do X) *
-                </label>
-                <input
-                  id="t-token"
-                  className="input mt-1 font-mono text-[12px]"
-                  placeholder="Ex: a1b2c3d4e5f6..."
-                  value={inputAuthToken}
-                  onChange={(e) => setInputAuthToken(e.target.value)}
-                  required
-                />
+                <h2 className="text-[17px] font-[750] flex items-center gap-2">
+                  <span>🔑</span> Inserir Auth Token de @{editingTokenAccount.username}
+                </h2>
+                <p className="text-[12px] text-[var(--muted)] mt-0.5">
+                  Cole o cookie <code>auth_token</code> da conta para ações imediatas sem senha.
+                </p>
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setTokenModalOpen(false)}>
+                <IconX size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAuthToken} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                <div>
+                  <label className="label text-[12px]" htmlFor="t-token">
+                    auth_token (Cookie do X) *
+                  </label>
+                  <input
+                    id="t-token"
+                    className="input mt-1 font-mono text-[12px]"
+                    placeholder="Ex: a1b2c3d4e5f6..."
+                    value={inputAuthToken}
+                    onChange={(e) => setInputAuthToken(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label text-[12px]" htmlFor="t-ct0">
+                    ct0 (Opcional)
+                  </label>
+                  <input
+                    id="t-ct0"
+                    className="input mt-1 font-mono text-[12px]"
+                    placeholder="Ex: 1234567890abcdef..."
+                    value={inputCt0}
+                    onChange={(e) => setInputCt0(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="label" htmlFor="t-ct0">
-                  ct0 (Opcional)
-                </label>
-                <input
-                  id="t-ct0"
-                  className="input mt-1 font-mono text-[12px]"
-                  placeholder="Ex: 1234567890abcdef..."
-                  value={inputCt0}
-                  onChange={(e) => setInputCt0(e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-[var(--line)]">
+              <div className="p-4 border-t border-[var(--line)] bg-[var(--surface)] flex items-center justify-end gap-2 shrink-0">
                 <button type="button" className="btn" onClick={() => setTokenModalOpen(false)}>
                   Cancelar
                 </button>
@@ -2346,13 +2371,15 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* 10. MODAL: CONECTAR CONTA MANUAL                               */}
       {/* ============================================================== */}
       {manualModalOpen && (
-        <dialog open className="sheet">
-          <div className="panel-pad max-w-[580px] w-full">
-            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
+        <dialog open className="sheet w-full max-w-[840px]">
+          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+            <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
               <div>
-                <h2 className="h2">Conectar Conta Manualmente</h2>
+                <h2 className="text-[17.5px] font-[750] flex items-center gap-2">
+                  <span>➕</span> Conectar Conta Manualmente
+                </h2>
                 <p className="text-[12px] text-[var(--muted)] mt-0.5">
-                  Não precisa de Client ID nem de API Developer. Funciona direto com e-mail, senha ou token.
+                  Não precisa de Client ID nem de API Developer paga. Suporta X, Instagram e TikTok com Sessão Anti-Detect.
                 </p>
               </div>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setManualModalOpen(false)}>
@@ -2360,211 +2387,214 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </button>
             </div>
 
-            <form onSubmit={handleManualSubmit} className="mt-4 flex flex-col gap-3">
-              {/* ESCOLHA DA PLATAFORMA */}
-              <div>
-                <label className="label text-[11px] uppercase tracking-wider font-bold">
-                  Plataforma da Conta *
-                </label>
-                <div className="grid grid-cols-3 gap-2 mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setManualForm({ ...manualForm, platform: "x" })}
-                    className={`px-3 py-2 rounded-xl text-[12px] font-[650] border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      manualForm.platform === "x"
-                        ? "bg-zinc-900 border-zinc-600 text-white shadow-sm"
-                        : "bg-[var(--sunken)] border-[var(--line)] text-[var(--ink-2)] hover:text-[var(--ink)]"
-                    }`}
+            <form onSubmit={handleManualSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+                {/* ESCOLHA DA PLATAFORMA */}
+                <div>
+                  <label className="label text-[11px] uppercase tracking-wider font-bold">
+                    Plataforma da Conta *
+                  </label>
+                  <div className="grid grid-cols-3 gap-2 mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setManualForm({ ...manualForm, platform: "x" })}
+                      className={`px-3.5 py-2.5 rounded-xl text-[12.5px] font-[650] border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        manualForm.platform === "x"
+                          ? "bg-zinc-900 border-zinc-600 text-white shadow-sm ring-1 ring-zinc-500"
+                          : "bg-[var(--sunken)] border-[var(--line)] text-[var(--ink-2)] hover:text-[var(--ink)]"
+                      }`}
+                    >
+                      <span className="text-[14px]">𝕏</span> Twitter / X
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setManualForm({ ...manualForm, platform: "instagram" })}
+                      className={`px-3.5 py-2.5 rounded-xl text-[12.5px] font-[650] border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        manualForm.platform === "instagram"
+                          ? "bg-gradient-to-r from-purple-900/70 to-pink-900/70 border-pink-500/60 text-pink-200 shadow-sm ring-1 ring-pink-500/40"
+                          : "bg-[var(--sunken)] border-[var(--line)] text-[var(--ink-2)] hover:text-[var(--ink)]"
+                      }`}
+                    >
+                      <span className="text-[14px]">📸</span> Instagram
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setManualForm({ ...manualForm, platform: "tiktok" })}
+                      className={`px-3.5 py-2.5 rounded-xl text-[12.5px] font-[650] border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        manualForm.platform === "tiktok"
+                          ? "bg-zinc-900 border-cyan-500/60 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.25)] ring-1 ring-cyan-500/40"
+                          : "bg-[var(--sunken)] border-[var(--line)] text-[var(--ink-2)] hover:text-[var(--ink)]"
+                      }`}
+                    >
+                      <span className="text-[14px]">🎵</span> TikTok
+                    </button>
+                  </div>
+                </div>
+
+                {/* ESTRATÉGIA DE AQUECIMENTO */}
+                <div>
+                  <label className="label text-[11px] uppercase tracking-wider font-bold">
+                    Estratégia de Aquecimento Humano
+                  </label>
+                  <select
+                    className="input mt-1.5 text-[12.5px] cursor-pointer"
+                    value={manualForm.warmupStrategy}
+                    onChange={(e) =>
+                      setManualForm({
+                        ...manualForm,
+                        warmupStrategy: e.target.value as "following" | "hot_niche" | "hybrid",
+                      })
+                    }
                   >
-                    <span>𝕏</span> Twitter
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setManualForm({ ...manualForm, platform: "instagram" })}
-                    className={`px-3 py-2 rounded-xl text-[12px] font-[650] border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      manualForm.platform === "instagram"
-                        ? "bg-gradient-to-r from-purple-900/60 to-pink-900/60 border-pink-500/50 text-pink-200 shadow-sm"
-                        : "bg-[var(--sunken)] border-[var(--line)] text-[var(--ink-2)] hover:text-[var(--ink)]"
-                    }`}
-                  >
-                    <span>📸</span> Instagram
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setManualForm({ ...manualForm, platform: "tiktok" })}
-                    className={`px-3 py-2 rounded-xl text-[12px] font-[650] border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      manualForm.platform === "tiktok"
-                        ? "bg-zinc-900 border-cyan-500/50 text-cyan-200 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-                        : "bg-[var(--sunken)] border-[var(--line)] text-[var(--ink-2)] hover:text-[var(--ink)]"
-                    }`}
-                  >
-                    <span>🎵</span> TikTok
-                  </button>
-                </div>
-              </div>
-
-              {/* ESTRATÉGIA DE AQUECIMENTO */}
-              <div>
-                <label className="label text-[11px] uppercase tracking-wider font-bold">
-                  Estratégia de Aquecimento Humano
-                </label>
-                <select
-                  className="input mt-1 text-[12.5px] cursor-pointer"
-                  value={manualForm.warmupStrategy}
-                  onChange={(e) =>
-                    setManualForm({
-                      ...manualForm,
-                      warmupStrategy: e.target.value as "following" | "hot_niche" | "hybrid",
-                    })
-                  }
-                >
-                  <option value="following">⭐ Seguindo + Próprio Perfil (Recomendado Anti-Ban)</option>
-                  <option value="hybrid">⚡ Híbrido (Seguindo + Nicho Hot Global)</option>
-                  <option value="hot_niche">🔥 Apenas Busca Nicho Hot</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="label" htmlFor="m-user">
-                    Username / @ da Conta *
-                  </label>
-                  <input
-                    id="m-user"
-                    className="input mt-1"
-                    placeholder="@seuperfil"
-                    value={manualForm.username}
-                    onChange={(e) => setManualForm({ ...manualForm, username: e.target.value })}
-                    required
-                  />
+                    <option value="following">⭐ Seguindo + Próprio Perfil (Recomendado Anti-Ban)</option>
+                    <option value="hybrid">⚡ Híbrido (Seguindo + Nicho Hot Global)</option>
+                    <option value="hot_niche">🔥 Apenas Busca Nicho Hot</option>
+                  </select>
                 </div>
 
-                <div>
-                  <label className="label" htmlFor="m-pass">
-                    Senha da Conta
-                  </label>
-                  <input
-                    id="m-pass"
-                    type="password"
-                    className="input mt-1"
-                    placeholder="••••••••"
-                    value={manualForm.password}
-                    onChange={(e) => setManualForm({ ...manualForm, password: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="label" htmlFor="m-email">
-                    E-mail da Conta
-                  </label>
-                  <input
-                    id="m-email"
-                    type="email"
-                    className="input mt-1"
-                    placeholder="usuario@hotmail.com"
-                    value={manualForm.email}
-                    onChange={(e) => setManualForm({ ...manualForm, email: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="label" htmlFor="m-epass">
-                    Senha do E-mail (opcional)
-                  </label>
-                  <input
-                    id="m-epass"
-                    type="password"
-                    className="input mt-1"
-                    placeholder="••••••••"
-                    value={manualForm.emailPassword}
-                    onChange={(e) => setManualForm({ ...manualForm, emailPassword: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="label" htmlFor="m-phone">
-                    Telefone (opcional)
-                  </label>
-                  <input
-                    id="m-phone"
-                    className="input mt-1"
-                    placeholder="+55 11 9..."
-                    value={manualForm.phone}
-                    onChange={(e) => setManualForm({ ...manualForm, phone: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="label" htmlFor="m-proxy">
-                    Proxy Dedicada (opcional)
-                  </label>
-                  <input
-                    id="m-proxy"
-                    className="input mt-1"
-                    placeholder="http://user:pass@host:port"
-                    value={manualForm.proxy}
-                    onChange={(e) => setManualForm({ ...manualForm, proxy: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="border-t border-[var(--line)] pt-2.5 mt-1">
-                <span className="label text-[11.5px] text-[var(--accent)] font-semibold">
-                  {manualForm.platform === "instagram"
-                    ? "Cookies do Instagram & 2FA (Sessão Anti-Detect)"
-                    : manualForm.platform === "tiktok"
-                      ? "Cookies do TikTok (Sessão Anti-Detect)"
-                      : "Login Instantâneo por Cookie do X (Opcional)"}
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
-                    <label className="label text-[11px]" htmlFor="m-token">
-                      {manualForm.platform === "instagram"
-                        ? "sessionid (Cookie Instagram)"
-                        : manualForm.platform === "tiktok"
-                          ? "sessionid (Cookie TikTok)"
-                          : "auth_token (Cookie do X)"}
+                    <label className="label" htmlFor="m-user">
+                      Username / @ da Conta *
                     </label>
                     <input
-                      id="m-token"
-                      className="input mt-1 text-[12px] font-mono"
-                      placeholder={
-                        manualForm.platform === "instagram"
-                          ? "sessionid do Instagram..."
-                          : manualForm.platform === "tiktok"
-                            ? "sessionid do TikTok..."
-                            : "40 caracteres hex..."
-                      }
-                      value={manualForm.authToken}
-                      onChange={(e) => setManualForm({ ...manualForm, authToken: e.target.value })}
+                      id="m-user"
+                      className="input mt-1"
+                      placeholder="@seuperfil"
+                      value={manualForm.username}
+                      onChange={(e) => setManualForm({ ...manualForm, username: e.target.value })}
+                      required
                     />
                   </div>
+
                   <div>
-                    <label className="label text-[11px]" htmlFor="m-ct0">
-                      {manualForm.platform === "instagram"
-                        ? "Chave Secreta 2FA (TOTP de 32 letras)"
-                        : manualForm.platform === "tiktok"
-                          ? "msToken (Token de Sessão TikTok)"
-                          : "ct0 (CSRF token)"}
+                    <label className="label" htmlFor="m-pass">
+                      Senha da Conta
                     </label>
                     <input
-                      id="m-ct0"
-                      className="input mt-1 text-[12px] font-mono"
-                      placeholder={
-                        manualForm.platform === "instagram"
-                          ? "Ex: JBSWY3DPEHPK3PXP..."
-                          : manualForm.platform === "tiktok"
-                            ? "msToken..."
-                            : "160 caracteres..."
-                      }
-                      value={manualForm.ct0}
-                      onChange={(e) => setManualForm({ ...manualForm, ct0: e.target.value })}
+                      id="m-pass"
+                      type="password"
+                      className="input mt-1"
+                      placeholder="••••••••"
+                      value={manualForm.password}
+                      onChange={(e) => setManualForm({ ...manualForm, password: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label" htmlFor="m-email">
+                      E-mail da Conta
+                    </label>
+                    <input
+                      id="m-email"
+                      type="email"
+                      className="input mt-1"
+                      placeholder="usuario@hotmail.com"
+                      value={manualForm.email}
+                      onChange={(e) => setManualForm({ ...manualForm, email: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label" htmlFor="m-epass">
+                      Senha do E-mail (opcional)
+                    </label>
+                    <input
+                      id="m-epass"
+                      type="password"
+                      className="input mt-1"
+                      placeholder="••••••••"
+                      value={manualForm.emailPassword}
+                      onChange={(e) => setManualForm({ ...manualForm, emailPassword: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label" htmlFor="m-phone">
+                      Telefone (opcional)
+                    </label>
+                    <input
+                      id="m-phone"
+                      className="input mt-1"
+                      placeholder="+55 11 9..."
+                      value={manualForm.phone}
+                      onChange={(e) => setManualForm({ ...manualForm, phone: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label" htmlFor="m-proxy">
+                      Proxy Dedicada (opcional)
+                    </label>
+                    <input
+                      id="m-proxy"
+                      className="input mt-1"
+                      placeholder="http://user:pass@host:port"
+                      value={manualForm.proxy}
+                      onChange={(e) => setManualForm({ ...manualForm, proxy: e.target.value })}
                     />
                   </div>
                 </div>
+
+                <div className="border-t border-[var(--line)] pt-3">
+                  <span className="label text-[11.5px] text-[var(--accent)] font-semibold">
+                    {manualForm.platform === "instagram"
+                      ? "Cookies do Instagram & 2FA (Sessão Anti-Detect)"
+                      : manualForm.platform === "tiktok"
+                        ? "Cookies do TikTok (Sessão Anti-Detect)"
+                        : "Login Instantâneo por Cookie do X (Opcional)"}
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-2">
+                    <div>
+                      <label className="label text-[11px]" htmlFor="m-token">
+                        {manualForm.platform === "instagram"
+                          ? "sessionid (Cookie Instagram)"
+                          : manualForm.platform === "tiktok"
+                            ? "sessionid (Cookie TikTok)"
+                            : "auth_token (Cookie do X)"}
+                      </label>
+                      <input
+                        id="m-token"
+                        className="input mt-1 text-[12px] font-mono"
+                        placeholder={
+                          manualForm.platform === "instagram"
+                            ? "sessionid do Instagram..."
+                            : manualForm.platform === "tiktok"
+                              ? "sessionid do TikTok..."
+                              : "40 caracteres hex..."
+                        }
+                        value={manualForm.authToken}
+                        onChange={(e) => setManualForm({ ...manualForm, authToken: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="label text-[11px]" htmlFor="m-ct0">
+                        {manualForm.platform === "instagram"
+                          ? "Chave Secreta 2FA (TOTP de 32 letras)"
+                          : manualForm.platform === "tiktok"
+                            ? "msToken (Token de Sessão TikTok)"
+                            : "ct0 (CSRF token)"}
+                      </label>
+                      <input
+                        id="m-ct0"
+                        className="input mt-1 text-[12px] font-mono"
+                        placeholder={
+                          manualForm.platform === "instagram"
+                            ? "Ex: JBSWY3DPEHPK3PXP..."
+                            : manualForm.platform === "tiktok"
+                              ? "msToken..."
+                              : "160 caracteres..."
+                        }
+                        value={manualForm.ct0}
+                        onChange={(e) => setManualForm({ ...manualForm, ct0: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--line)]">
+              {/* Rodapé Fixo */}
+              <div className="p-4 sm:p-5 border-t border-[var(--line)] bg-[var(--surface)] flex items-center justify-end gap-2 shrink-0">
                 <button type="button" className="btn" onClick={() => setManualModalOpen(false)}>
                   Cancelar
                 </button>
@@ -2581,34 +2611,43 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* 11. MODAL: IMPORTAR EM LOTE                                    */}
       {/* ============================================================== */}
       {importOpen && (
-        <dialog open className="sheet">
-          <div className="panel-pad max-w-[560px] w-full">
-            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
-              <h2 className="h2">Importar Contas do X em Lote</h2>
+        <dialog open className="sheet w-full max-w-[780px]">
+          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+            <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
+              <div>
+                <h2 className="text-[17.5px] font-[750] flex items-center gap-2">
+                  <span>📥</span> Importar Contas em Lote
+                </h2>
+                <p className="text-[12px] text-[var(--muted)] mt-0.5">
+                  Adicione dezenas de perfis simultaneamente com credenciais e proxies.
+                </p>
+              </div>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setImportOpen(false)}>
                 <IconX size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleImportSubmit} className="mt-4 flex flex-col gap-3">
-              <p className="text-[12.5px] text-[var(--ink-2)]">
-                Cole uma conta por linha no formato:
-                <br />
-                <code className="text-[var(--accent)] font-mono text-[11.5px]">
-                  username|senha|email|senha_email|auth_token|proxy
-                </code>
-              </p>
+            <form onSubmit={handleImportSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+                <p className="text-[12.5px] text-[var(--ink-2)]">
+                  Cole uma conta por linha no formato:
+                  <br />
+                  <code className="text-[var(--accent)] font-mono text-[11.5px] bg-[var(--sunken)] px-2 py-0.5 rounded border border-[var(--line)] mt-1 inline-block">
+                    username|senha|email|senha_email|auth_token|proxy
+                  </code>
+                </p>
 
-              <textarea
-                className="textarea font-mono text-[12px]"
-                rows={8}
-                placeholder="hailongii_987_vn|Long123456|elvira-261@hotmail.com|PassEmail123|token_abc...|http://user:pass@185.220.101.5:8080&#10;turkan_turk|Accn8899|sorbyrkaramikc4@hotmail.com|PassEmail456||"
-                value={rawImportText}
-                onChange={(e) => setRawImportText(e.target.value)}
-                required
-              />
+                <textarea
+                  className="textarea font-mono text-[12px] h-64 leading-relaxed"
+                  placeholder="hailongii_987_vn|Long123456|elvira-261@hotmail.com|PassEmail123|token_abc...|http://user:pass@185.220.101.5:8080&#10;turkan_turk|Accn8899|sorbyrkaramikc4@hotmail.com|PassEmail456||"
+                  value={rawImportText}
+                  onChange={(e) => setRawImportText(e.target.value)}
+                  required
+                />
+              </div>
 
-              <div className="flex justify-end gap-2 mt-2">
+              {/* Rodapé Fixo */}
+              <div className="p-4 sm:p-5 border-t border-[var(--line)] bg-[var(--surface)] flex items-center justify-end gap-2 shrink-0">
                 <button type="button" className="btn" onClick={() => setImportOpen(false)}>
                   Cancelar
                 </button>
@@ -2625,34 +2664,41 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* 12. MODAL: SETTINGS (DRAGON TOOLS)                             */}
       {/* ============================================================== */}
       {settingsOpen && (
-        <dialog open className="sheet">
-          <div className="panel-pad max-w-[680px] w-full p-0 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--line)]">
-              <h2 className="text-[17px] font-[650]">Settings</h2>
+        <dialog open className="sheet w-full max-w-[880px]">
+          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--line)] shrink-0">
+              <div>
+                <h2 className="text-[17.5px] font-[750] flex items-center gap-2">
+                  <span>⚙️</span> Configurações Globais da Central (Dragon Tools)
+                </h2>
+                <p className="text-[12px] text-[var(--muted)] mt-0.5">
+                  Parâmetros de automação, fingerprints e proxies integradas.
+                </p>
+              </div>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingsOpen(false)}>
                 <IconX size={16} />
               </button>
             </div>
 
-            <div className="grid grid-cols-[200px_1fr] min-h-[340px]">
-              <div className="border-r border-[var(--line)] p-2 space-y-0.5 bg-[var(--sunken)] text-[13px]">
+            <div className="grid grid-cols-[220px_1fr] flex-1 overflow-hidden">
+              <div className="border-r border-[var(--line)] p-2.5 space-y-1 bg-[var(--sunken)] overflow-y-auto text-[13px]">
                 {[
                   { id: "system", label: "System settings", icon: "⚙️" },
-                  { id: "browser", label: "Browser", icon: "🌐" },
+                  { id: "browser", label: "Browser & Fingerprints", icon: "🌐" },
                   { id: "data", label: "Data settings", icon: "💾" },
-                  { id: "ai", label: "AI settings", icon: "🤖" },
+                  { id: "ai", label: "AI & Modelos", icon: "🤖" },
                   { id: "phone", label: "Phone rental API", icon: "📱" },
-                  { id: "captcha", label: "Captcha API", icon: "🧩" },
-                  { id: "cookie", label: "Cookie settings", icon: "🍪" },
+                  { id: "captcha", label: "Captcha Solver", icon: "🧩" },
+                  { id: "cookie", label: "Cookie & Proxy settings", icon: "🍪" },
                 ].map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => setSettingsTab(tab.id as any)}
-                    className={`w-full text-left px-3 py-2 rounded flex items-center gap-2 transition-colors ${
+                    className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
                       settingsTab === tab.id
-                        ? "liquid-glass-chip font-[600] text-[var(--ink)]"
-                        : "text-[var(--ink-2)] hover:bg-[var(--surface)]"
+                        ? "liquid-glass-chip font-[650] text-[var(--ink)] border border-[var(--line)]"
+                        : "text-[var(--ink-2)] hover:bg-[var(--surface)] hover:text-[var(--ink)]"
                     }`}
                   >
                     <span>{tab.icon}</span>
@@ -2661,7 +2707,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                 ))}
               </div>
 
-              <div className="p-5 flex flex-col justify-between">
+              <div className="p-5 sm:p-6 flex flex-col justify-between overflow-y-auto">
                 <div>
                   <div className="flex gap-4 border-b border-[var(--line)] pb-2 text-[13px] font-[600]">
                     <span className="text-[var(--accent)] border-b-2 border-[var(--accent)] pb-2">
@@ -2672,10 +2718,13 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
 
                   {settingsTab === "cookie" && (
                     <div className="mt-5 space-y-4 text-[13px]">
-                      <div className="flex items-center justify-between">
-                        <label className="cursor-pointer" htmlFor="toggle-auto-cookie">
-                          Automatically get account Cookie
-                        </label>
+                      <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                        <div>
+                          <label className="font-[600] cursor-pointer" htmlFor="toggle-auto-cookie">
+                            Extração Automática de Cookies
+                          </label>
+                          <p className="text-[11px] text-[var(--muted)]">Salva cookies a cada sessão concluída</p>
+                        </div>
                         <input
                           id="toggle-auto-cookie"
                           type="checkbox"
@@ -2685,10 +2734,13 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                         />
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <label className="cursor-pointer" htmlFor="toggle-login-cookie">
-                          Login with account Cookie
-                        </label>
+                      <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                        <div>
+                          <label className="font-[600] cursor-pointer" htmlFor="toggle-login-cookie">
+                            Login via Cookies de Sessão
+                          </label>
+                          <p className="text-[11px] text-[var(--muted)]">Ignora e-mail e senha quando o cookie estiver ativo</p>
+                        </div>
                         <input
                           id="toggle-login-cookie"
                           type="checkbox"
@@ -2698,10 +2750,13 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                         />
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <label className="cursor-pointer" htmlFor="toggle-login-token">
-                          Login with Auth Token
-                        </label>
+                      <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                        <div>
+                          <label className="font-[600] cursor-pointer" htmlFor="toggle-login-token">
+                            Login via Auth Token
+                          </label>
+                          <p className="text-[11px] text-[var(--muted)]">Autentica chamadas de API com o auth_token direto</p>
+                        </div>
                         <input
                           id="toggle-login-token"
                           type="checkbox"
@@ -2711,10 +2766,13 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                         />
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-[var(--line)]">
-                        <label className="cursor-pointer" htmlFor="toggle-proxy-global">
-                          Proxy Rotativa / Dedicada Ativa
-                        </label>
+                      <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                        <div>
+                          <label className="font-[600] cursor-pointer" htmlFor="toggle-proxy-global">
+                            Proxy Rotativa / Dedicada Global
+                          </label>
+                          <p className="text-[11px] text-[var(--muted)]">Roteia conexões por túnel para mascarar IP</p>
+                        </div>
                         <input
                           id="toggle-proxy-global"
                           type="checkbox"
@@ -2727,13 +2785,13 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                   )}
 
                   {settingsTab !== "cookie" && (
-                    <div className="mt-5 text-[13px] text-[var(--ink-2)]">
-                      Configurações avançadas de {settingsTab} ativas e sincronizadas com o motor de execução.
+                    <div className="mt-5 p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50 text-[13px] text-[var(--ink-2)]">
+                      Configurações avançadas de <strong>{settingsTab}</strong> sincronizadas com o banco de dados e ativas no motor de execução.
                     </div>
                   )}
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-[var(--line)] mt-6">
+                <div className="flex justify-end pt-4 border-t border-[var(--line)] mt-6 shrink-0">
                   <button
                     type="button"
                     className="btn btn-primary"
@@ -2742,7 +2800,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                       setSettingsOpen(false);
                     }}
                   >
-                    Save
+                    Salvar Alterações
                   </button>
                 </div>
               </div>
@@ -2755,11 +2813,11 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* 8. MODAL: RITMO HUMANO, INTERVALOS & PAUSAS BIOLÓGICAS        */}
       {/* ============================================================== */}
       {cadenceModalOpen && (
-        <dialog open className="sheet">
-          <div className="panel-pad max-w-[620px] w-full">
-            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
+        <dialog open className="sheet w-full max-w-[840px]">
+          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+            <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
               <div>
-                <h2 className="h2 text-[17px] flex items-center gap-2">
+                <h2 className="text-[17.5px] font-[750] flex items-center gap-2">
                   <span>⏰</span> Ritmo Humano, Intervalos & Pausas Biológicas
                 </h2>
                 <p className="text-[12px] text-[var(--muted)] mt-0.5">
@@ -2771,261 +2829,266 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </button>
             </div>
 
-            <form onSubmit={handleSaveCadence} className="mt-4 flex flex-col gap-4 text-[13px] max-h-[75vh] overflow-y-auto pr-1">
-              {/* Seção 1: Intervalos Quebrados Entre Ações */}
-              <div className="p-3.5 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
-                <div className="font-[700] text-[13.5px] text-[var(--ink)] flex items-center justify-between">
-                  <span>⏱️ Intervalos Quebrados entre Ações (Jitter)</span>
-                  <span className="text-[11px] font-mono text-emerald-400 font-semibold">Números Quebrados</span>
-                </div>
-                <p className="text-[11.5px] text-[var(--muted)] mt-0.5">
-                  Nenhum ser humano age de 30 em 30 segundos exatos. O bot varia com frações decimais orgânicas.
-                </p>
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <div>
-                    <label className="label text-[11.5px]">Intervalo Mínimo (segundos)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="5"
-                      max="60"
-                      className="input mt-1"
-                      value={cadence.actionJitterMinSeconds}
-                      onChange={(e) => setCadence({ ...cadence, actionJitterMinSeconds: parseFloat(e.target.value) || 10 })}
-                      required
-                    />
+            <form onSubmit={handleSaveCadence} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-[13px]">
+                {/* Seção 1: Intervalos Quebrados Entre Ações */}
+                <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                  <div className="font-[700] text-[13.5px] text-[var(--ink)] flex items-center justify-between">
+                    <span>⏱️ Intervalos Quebrados entre Ações (Jitter)</span>
+                    <span className="text-[11px] font-mono text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      Números Quebrados Orgânicos
+                    </span>
                   </div>
-                  <div>
-                    <label className="label text-[11.5px]">Intervalo Máximo (segundos)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="10"
-                      max="120"
-                      className="input mt-1"
-                      value={cadence.actionJitterMaxSeconds}
-                      onChange={(e) => setCadence({ ...cadence, actionJitterMaxSeconds: parseFloat(e.target.value) || 25 })}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Seção 2: Cadência de Curtidas e Retweets */}
-              <div className="p-3.5 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
-                <div className="font-[700] text-[13.5px] text-[var(--ink)]">
-                  🎯 Frequência de Curtidas & Retweets
-                </div>
-                <p className="text-[11.5px] text-[var(--muted)] mt-0.5">
-                  Tempo espaçado entre cada like e repost para evitar bloqueios do algoritmo do X.
-                </p>
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <div>
-                    <label className="label text-[11.5px]">Curtir a cada (minutos)</label>
-                    <div className="flex items-center gap-1.5 mt-1">
+                  <p className="text-[11.5px] text-[var(--muted)] mt-1">
+                    Nenhum ser humano age de 30 em 30 segundos exatos. O bot varia com frações decimais orgânicas.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3.5 mt-3">
+                    <div>
+                      <label className="label text-[11.5px]">Intervalo Mínimo (segundos)</label>
                       <input
                         type="number"
                         step="0.1"
-                        min="1"
-                        className="input"
-                        value={cadence.likeCadenceMinMinutes}
-                        onChange={(e) => setCadence({ ...cadence, likeCadenceMinMinutes: parseFloat(e.target.value) || 3 })}
-                        placeholder="Mín"
-                        required
-                      />
-                      <span className="text-[var(--muted)] text-[11px]">até</span>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="2"
-                        className="input"
-                        value={cadence.likeCadenceMaxMinutes}
-                        onChange={(e) => setCadence({ ...cadence, likeCadenceMaxMinutes: parseFloat(e.target.value) || 8 })}
-                        placeholder="Máx"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="label text-[11.5px]">Retweet a cada (minutos)</label>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="10"
-                        className="input"
-                        value={cadence.retweetCadenceMinMinutes}
-                        onChange={(e) => setCadence({ ...cadence, retweetCadenceMinMinutes: parseFloat(e.target.value) || 25 })}
-                        placeholder="Mín"
-                        required
-                      />
-                      <span className="text-[var(--muted)] text-[11px]">até</span>
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="20"
-                        className="input"
-                        value={cadence.retweetCadenceMaxMinutes}
-                        onChange={(e) => setCadence({ ...cadence, retweetCadenceMaxMinutes: parseFloat(e.target.value) || 60 })}
-                        placeholder="Máx"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Seção 3: Sessões de Uso (Burst & Cooldown) */}
-              <div className="p-3.5 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
-                <div className="font-[700] text-[13.5px] text-[var(--ink)]">
-                  📱 Sessões de Uso & Celular no Bolso
-                </div>
-                <p className="text-[11.5px] text-[var(--muted)] mt-0.5">
-                  Simula o ato natural de abrir o app por alguns minutos e depois guardar o aparelho.
-                </p>
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <div>
-                    <label className="label text-[11.5px]">Sessão Ativa (minutos na mão)</label>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="3"
-                        className="input"
-                        value={cadence.sessionDurationMinMinutes}
-                        onChange={(e) => setCadence({ ...cadence, sessionDurationMinMinutes: parseFloat(e.target.value) || 7 })}
-                        required
-                      />
-                      <span className="text-[var(--muted)] text-[11px]">a</span>
-                      <input
-                        type="number"
-                        step="0.5"
                         min="5"
-                        className="input"
-                        value={cadence.sessionDurationMaxMinutes}
-                        onChange={(e) => setCadence({ ...cadence, sessionDurationMaxMinutes: parseFloat(e.target.value) || 14 })}
+                        max="60"
+                        className="input mt-1"
+                        value={cadence.actionJitterMinSeconds}
+                        onChange={(e) => setCadence({ ...cadence, actionJitterMinSeconds: parseFloat(e.target.value) || 10 })}
                         required
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="label text-[11.5px]">Pausa no Bolso (minutos de descanso)</label>
-                    <div className="flex items-center gap-1.5 mt-1">
+                    <div>
+                      <label className="label text-[11.5px]">Intervalo Máximo (segundos)</label>
                       <input
                         type="number"
-                        step="0.5"
+                        step="0.1"
                         min="10"
-                        className="input"
-                        value={cadence.pocketCooldownMinMinutes}
-                        onChange={(e) => setCadence({ ...cadence, pocketCooldownMinMinutes: parseFloat(e.target.value) || 18 })}
+                        max="120"
+                        className="input mt-1"
+                        value={cadence.actionJitterMaxSeconds}
+                        onChange={(e) => setCadence({ ...cadence, actionJitterMaxSeconds: parseFloat(e.target.value) || 25 })}
                         required
                       />
-                      <span className="text-[var(--muted)] text-[11px]">a</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seção 2: Cadência de Curtidas e Retweets */}
+                <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                  <div className="font-[700] text-[13.5px] text-[var(--ink)]">
+                    🎯 Frequência de Curtidas & Retweets
+                  </div>
+                  <p className="text-[11.5px] text-[var(--muted)] mt-1">
+                    Tempo espaçado entre cada like e repost para evitar bloqueios do algoritmo.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3.5 mt-3">
+                    <div>
+                      <label className="label text-[11.5px]">Curtir a cada (minutos)</label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="1"
+                          className="input"
+                          value={cadence.likeCadenceMinMinutes}
+                          onChange={(e) => setCadence({ ...cadence, likeCadenceMinMinutes: parseFloat(e.target.value) || 3 })}
+                          placeholder="Mín"
+                          required
+                        />
+                        <span className="text-[var(--muted)] text-[11px]">até</span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="2"
+                          className="input"
+                          value={cadence.likeCadenceMaxMinutes}
+                          onChange={(e) => setCadence({ ...cadence, likeCadenceMaxMinutes: parseFloat(e.target.value) || 8 })}
+                          placeholder="Máx"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="label text-[11.5px]">Retweet a cada (minutos)</label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="10"
+                          className="input"
+                          value={cadence.retweetCadenceMinMinutes}
+                          onChange={(e) => setCadence({ ...cadence, retweetCadenceMinMinutes: parseFloat(e.target.value) || 25 })}
+                          placeholder="Mín"
+                          required
+                        />
+                        <span className="text-[var(--muted)] text-[11px]">até</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="20"
+                          className="input"
+                          value={cadence.retweetCadenceMaxMinutes}
+                          onChange={(e) => setCadence({ ...cadence, retweetCadenceMaxMinutes: parseFloat(e.target.value) || 60 })}
+                          placeholder="Máx"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seção 3: Sessões de Uso (Burst & Cooldown) */}
+                <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                  <div className="font-[700] text-[13.5px] text-[var(--ink)]">
+                    📱 Sessões de Uso & Celular no Bolso
+                  </div>
+                  <p className="text-[11.5px] text-[var(--muted)] mt-1">
+                    Simula o ato natural de abrir o app por alguns minutos e depois guardar o aparelho.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3.5 mt-3">
+                    <div>
+                      <label className="label text-[11.5px]">Sessão Ativa (minutos na mão)</label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="3"
+                          className="input"
+                          value={cadence.sessionDurationMinMinutes}
+                          onChange={(e) => setCadence({ ...cadence, sessionDurationMinMinutes: parseFloat(e.target.value) || 7 })}
+                          required
+                        />
+                        <span className="text-[var(--muted)] text-[11px]">a</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="5"
+                          className="input"
+                          value={cadence.sessionDurationMaxMinutes}
+                          onChange={(e) => setCadence({ ...cadence, sessionDurationMaxMinutes: parseFloat(e.target.value) || 14 })}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="label text-[11.5px]">Pausa no Bolso (minutos de descanso)</label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="10"
+                          className="input"
+                          value={cadence.pocketCooldownMinMinutes}
+                          onChange={(e) => setCadence({ ...cadence, pocketCooldownMinMinutes: parseFloat(e.target.value) || 18 })}
+                          required
+                        />
+                        <span className="text-[var(--muted)] text-[11px]">a</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="15"
+                          className="input"
+                          value={cadence.pocketCooldownMaxMinutes}
+                          onChange={(e) => setCadence({ ...cadence, pocketCooldownMaxMinutes: parseFloat(e.target.value) || 45 })}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seção 4: Pausas Biológicas (Almoço & Sono Noturno) */}
+                <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
+                  <div className="font-[700] text-[13.5px] text-[var(--ink)]">
+                    🍽️ Pausas Biológicas Humanas
+                  </div>
+
+                  {/* Pausa de Almoço */}
+                  <div className="mt-3 p-3.5 rounded-lg bg-[var(--surface)] border border-[var(--line)]">
+                    <div className="flex items-center justify-between">
+                      <label className="font-[600] text-[12.5px] flex items-center gap-2 cursor-pointer" htmlFor="toggle-lunch">
+                        <span>🍽️</span> Pausa de Almoço
+                      </label>
                       <input
-                        type="number"
-                        step="0.5"
-                        min="15"
-                        className="input"
-                        value={cadence.pocketCooldownMaxMinutes}
-                        onChange={(e) => setCadence({ ...cadence, pocketCooldownMaxMinutes: parseFloat(e.target.value) || 45 })}
-                        required
+                        id="toggle-lunch"
+                        type="checkbox"
+                        checked={cadence.lunchPause.enabled}
+                        onChange={(e) => setCadence({ ...cadence, lunchPause: { ...cadence.lunchPause, enabled: e.target.checked } })}
+                        className="size-4 cursor-pointer"
                       />
                     </div>
+                    {cadence.lunchPause.enabled && (
+                      <div className="grid grid-cols-2 gap-3 mt-2.5 pt-2 border-t border-[var(--line)]">
+                        <div>
+                          <span className="text-[11px] text-[var(--muted)]">Início do Almoço</span>
+                          <input
+                            type="time"
+                            className="input mt-1"
+                            value={cadence.lunchPause.start}
+                            onChange={(e) => setCadence({ ...cadence, lunchPause: { ...cadence.lunchPause, start: e.target.value } })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[11px] text-[var(--muted)]">Fim do Almoço</span>
+                          <input
+                            type="time"
+                            className="input mt-1"
+                            value={cadence.lunchPause.end}
+                            onChange={(e) => setCadence({ ...cadence, lunchPause: { ...cadence.lunchPause, end: e.target.value } })}
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sono Noturno */}
+                  <div className="mt-3 p-3.5 rounded-lg bg-[var(--surface)] border border-[var(--line)]">
+                    <div className="flex items-center justify-between">
+                      <label className="font-[600] text-[12.5px] flex items-center gap-2 cursor-pointer" htmlFor="toggle-sleep">
+                        <span>🌙</span> Sono Noturno (Conta Dormindo)
+                      </label>
+                      <input
+                        id="toggle-sleep"
+                        type="checkbox"
+                        checked={cadence.nightSleep.enabled}
+                        onChange={(e) => setCadence({ ...cadence, nightSleep: { ...cadence.nightSleep, enabled: e.target.checked } })}
+                        className="size-4 cursor-pointer"
+                      />
+                    </div>
+                    {cadence.nightSleep.enabled && (
+                      <div className="grid grid-cols-2 gap-3 mt-2.5 pt-2 border-t border-[var(--line)]">
+                        <div>
+                          <span className="text-[11px] text-[var(--muted)]">Horário de Dormir</span>
+                          <input
+                            type="time"
+                            className="input mt-1"
+                            value={cadence.nightSleep.start}
+                            onChange={(e) => setCadence({ ...cadence, nightSleep: { ...cadence.nightSleep, start: e.target.value } })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[11px] text-[var(--muted)]">Horário de Acordar</span>
+                          <input
+                            type="time"
+                            className="input mt-1"
+                            value={cadence.nightSleep.end}
+                            onChange={(e) => setCadence({ ...cadence, nightSleep: { ...cadence.nightSleep, end: e.target.value } })}
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Seção 4: Pausas Biológicas (Almoço & Sono Noturno) */}
-              <div className="p-3.5 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50">
-                <div className="font-[700] text-[13.5px] text-[var(--ink)]">
-                  🍽️ Pausas Biológicas Humanas
-                </div>
-
-                {/* Pausa de Almoço */}
-                <div className="mt-3 p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)]">
-                  <div className="flex items-center justify-between">
-                    <label className="font-[600] text-[12.5px] flex items-center gap-2 cursor-pointer" htmlFor="toggle-lunch">
-                      <span>🍽️</span> Pausa de Almoço
-                    </label>
-                    <input
-                      id="toggle-lunch"
-                      type="checkbox"
-                      checked={cadence.lunchPause.enabled}
-                      onChange={(e) => setCadence({ ...cadence, lunchPause: { ...cadence.lunchPause, enabled: e.target.checked } })}
-                      className="size-4 cursor-pointer"
-                    />
-                  </div>
-                  {cadence.lunchPause.enabled && (
-                    <div className="grid grid-cols-2 gap-3 mt-2.5 pt-2 border-t border-[var(--line)]">
-                      <div>
-                        <span className="text-[11px] text-[var(--muted)]">Início do Almoço</span>
-                        <input
-                          type="time"
-                          className="input mt-1"
-                          value={cadence.lunchPause.start}
-                          onChange={(e) => setCadence({ ...cadence, lunchPause: { ...cadence.lunchPause, start: e.target.value } })}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[11px] text-[var(--muted)]">Fim do Almoço</span>
-                        <input
-                          type="time"
-                          className="input mt-1"
-                          value={cadence.lunchPause.end}
-                          onChange={(e) => setCadence({ ...cadence, lunchPause: { ...cadence.lunchPause, end: e.target.value } })}
-                          required
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Sono Noturno */}
-                <div className="mt-3 p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)]">
-                  <div className="flex items-center justify-between">
-                    <label className="font-[600] text-[12.5px] flex items-center gap-2 cursor-pointer" htmlFor="toggle-sleep">
-                      <span>🌙</span> Sono Noturno (Conta Dormindo)
-                    </label>
-                    <input
-                      id="toggle-sleep"
-                      type="checkbox"
-                      checked={cadence.nightSleep.enabled}
-                      onChange={(e) => setCadence({ ...cadence, nightSleep: { ...cadence.nightSleep, enabled: e.target.checked } })}
-                      className="size-4 cursor-pointer"
-                    />
-                  </div>
-                  {cadence.nightSleep.enabled && (
-                    <div className="grid grid-cols-2 gap-3 mt-2.5 pt-2 border-t border-[var(--line)]">
-                      <div>
-                        <span className="text-[11px] text-[var(--muted)]">Horário de Dormir</span>
-                        <input
-                          type="time"
-                          className="input mt-1"
-                          value={cadence.nightSleep.start}
-                          onChange={(e) => setCadence({ ...cadence, nightSleep: { ...cadence.nightSleep, start: e.target.value } })}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[11px] text-[var(--muted)]">Horário de Acordar</span>
-                        <input
-                          type="time"
-                          className="input mt-1"
-                          value={cadence.nightSleep.end}
-                          onChange={(e) => setCadence({ ...cadence, nightSleep: { ...cadence.nightSleep, end: e.target.value } })}
-                          required
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-3 border-t border-[var(--line)] mt-2">
-                <span className="text-[11px] text-[var(--muted)]">
+              {/* Rodapé Fixo */}
+              <div className="p-4 sm:p-5 border-t border-[var(--line)] bg-[var(--surface)] flex items-center justify-between gap-3 shrink-0">
+                <span className="text-[11.5px] text-[var(--muted)] font-mono">
                   Fuso horário ativo: <strong>{cadence.timezone}</strong>
                 </span>
                 <div className="flex items-center gap-2">
@@ -3046,12 +3109,12 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* 11. MODAL: CÉREBRO COGNITIVO & APRENDIZADO DE MÁQUINA (AI BRAIN) */}
       {/* ============================================================== */}
       {brainModalAccount && (
-        <dialog open className="sheet">
-          <div className="panel-pad max-w-[1040px] w-full border-2 border-purple-500/40 shadow-2xl bg-[var(--surface)] text-[var(--ink)] max-h-[92vh] overflow-y-auto enter">
-            {/* Header do Cérebro */}
-            <div className="flex flex-wrap items-center justify-between border-b border-[var(--line)] pb-3 gap-3">
+        <dialog open className="sheet w-full max-w-[1140px]">
+          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+            {/* Header do Cérebro Fixo */}
+            <div className="p-5 border-b border-[var(--line)] flex flex-wrap items-center justify-between gap-3 shrink-0 bg-[var(--surface)]">
               <div className="flex items-center gap-3">
-                <div className="size-11 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center text-[22px] shadow-[0_0_15px_rgba(168,85,247,0.35)]">
+                <div className="size-11 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center text-[22px] shadow-[0_0_15px_rgba(168,85,247,0.35)] shrink-0">
                   🧠
                 </div>
                 <div>
@@ -3116,305 +3179,317 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </div>
             </div>
 
-            {/* SEÇÃO 1: A BOLA CENTRAL HOLOGRÁFICA & CONHECIMENTO ORBITAL */}
-            <div className="mt-4 p-5 rounded-2xl bg-gradient-to-b from-purple-950/20 via-[var(--surface)] to-[var(--sunken)] border border-purple-500/30 relative overflow-hidden">
-              <div className="text-center mb-3">
-                <span className="text-[10.5px] uppercase tracking-wider font-bold text-purple-300 font-mono">
-                  ÓRBITA COGNITIVA · O QUE O BOT APRENDEU NESTE CICLO
-                </span>
-                <p className="text-[12px] text-[var(--muted)]">
-                  Estudo em tempo real da publicação de alto engajamento interagida pelo bot (@alicezinhak · 1.500 likes · 10.000 views)
-                </p>
+            {/* Corpo do Cérebro (Scroll Único e Amplo) */}
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
+              {/* SEÇÃO 1: A BOLA CENTRAL HOLOGRÁFICA & CONHECIMENTO ORBITAL */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-b from-purple-950/20 via-[var(--surface)] to-[var(--sunken)] border border-purple-500/30 relative overflow-hidden">
+                <div className="text-center mb-4">
+                  <span className="text-[10.5px] uppercase tracking-wider font-bold text-purple-300 font-mono">
+                    ÓRBITA COGNITIVA · O QUE O BOT APRENDEU NESTE CICLO
+                  </span>
+                  <p className="text-[12px] text-[var(--muted)] mt-0.5">
+                    Estudo em tempo real da publicação de alto engajamento interagida pelo bot (@alicezinhak · 1.500 likes · 10.000 views)
+                  </p>
+                </div>
+
+                {/* Layout: Satélites em Volta da Bola */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
+                  {/* Satélites da Esquerda: Estilo Visual & Janela de Horário */}
+                  <div className="flex flex-col gap-3">
+                    {/* Satélite 1: Estilo de Imagem */}
+                    <div className="p-3.5 rounded-xl border border-purple-500/30 bg-[var(--surface)]/90 shadow-md relative group hover:border-purple-400 transition-all">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-purple-300 mb-1">
+                        <span>📸 ESTILO VISUAL & ENQUADRAMENTO</span>
+                        <span className="font-mono text-emerald-400">15.0% RETENÇÃO</span>
+                      </div>
+                      <div className="text-[13px] font-[750] text-[var(--ink)]">
+                        Espelho + Lingerie / Luz Suave
+                      </div>
+                      <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
+                        O bot identificou que poses de reflexo de costas no espelho com iluminação quente geraram <strong>1.500 curtidas</strong> contra apenas 120 da média de fotos estáticas de rosto (<strong>3.8x superior</strong>).
+                      </p>
+                      <div className="mt-2 text-[10.5px] font-mono text-purple-300 flex items-center gap-1.5">
+                        <span>⚡ Decisão da IA:</span> Recomendar fotos de espelho no acervo.
+                      </div>
+                    </div>
+
+                    {/* Satélite 2: Janela Temporal */}
+                    <div className="p-3.5 rounded-xl border border-sky-500/30 bg-[var(--surface)]/90 shadow-md relative group hover:border-sky-400 transition-all">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-sky-400 mb-1">
+                        <span>⏱️ JANELA TEMPORAL VIRAL</span>
+                        <span className="font-mono text-sky-300">PICO NOTURNO</span>
+                      </div>
+                      <div className="text-[13px] font-[750] text-[var(--ink)]">
+                        20h45 às 23h30 (Horário de Brasília)
+                      </div>
+                      <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
+                        O post analisado foi publicado às 21h10 e atingiu <strong>10.000 visualizações</strong> em menos de 3 horas. Maior concentração ativa de público consumidor de nicho hot no Brasil.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* BOLA CENTRAL HOLOGRÁFICA (O NÚCLEO COGNITIVO COM REDE NEURAL) */}
+                  <div className="flex flex-col items-center justify-center py-6 relative">
+                    {/* Linhas de Sinapse em SVG de Fundo */}
+                    <svg className="absolute inset-0 size-full pointer-events-none opacity-30 text-purple-500" viewBox="0 0 300 240">
+                      <circle cx="150" cy="120" r="90" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" />
+                      <line x1="40" y1="50" x2="150" y2="120" stroke="currentColor" strokeWidth="1.5" />
+                      <line x1="40" y1="190" x2="150" y2="120" stroke="currentColor" strokeWidth="1.5" />
+                      <line x1="260" y1="50" x2="150" y2="120" stroke="currentColor" strokeWidth="1.5" />
+                      <line x1="260" y1="190" x2="150" y2="120" stroke="currentColor" strokeWidth="1.5" />
+                    </svg>
+
+                    {/* Anel Externo Giratório */}
+                    <div className="size-52 rounded-full border border-purple-500/30 animate-[spin_14s_linear_infinite] absolute flex items-center justify-center">
+                      <span className="size-2 rounded-full bg-purple-400 absolute top-0 shadow-[0_0_8px_#c084fc]" />
+                      <span className="size-2 rounded-full bg-sky-400 absolute bottom-0 shadow-[0_0_8px_#38bdf8]" />
+                    </div>
+
+                    {/* Anel Médio Giratório Reverso */}
+                    <div className="size-40 rounded-full border border-sky-400/40 animate-[spin_9s_linear_infinite_reverse] absolute flex items-center justify-center">
+                      <span className="size-1.5 rounded-full bg-emerald-400 absolute left-0 shadow-[0_0_6px_#34d399]" />
+                      <span className="size-1.5 rounded-full bg-pink-400 absolute right-0 shadow-[0_0_6px_#f472b6]" />
+                    </div>
+
+                    {/* ESFERA CENTRAL COM PULSO E GLOW */}
+                    <div className="size-32 rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-sky-500 shadow-[0_0_50px_rgba(168,85,247,0.7)] flex flex-col items-center justify-center text-white relative z-10 select-none animate-pulse">
+                      <span className="text-[32px]">🧠</span>
+                      <span className="text-[11px] font-black uppercase tracking-wider mt-0.5">QI CICLO: 148</span>
+                      <span className="text-[9.5px] font-mono text-purple-200">94.6% Treinado</span>
+                    </div>
+
+                    <div className="mt-3 text-center relative z-10">
+                      <span className="text-[11px] font-mono font-bold text-emerald-400 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                        ● 1.420 Sinapses Ativas
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Satélites da Direita: Copywriting & Comportamento */}
+                  <div className="flex flex-col gap-3">
+                    {/* Satélite 3: Copy & Legenda */}
+                    <div className="p-3.5 rounded-xl border border-pink-500/30 bg-[var(--surface)]/90 shadow-md relative group hover:border-pink-400 transition-all">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-pink-300 mb-1">
+                        <span>✍️ ENGENHARIA DE COPY & LEGENDA</span>
+                        <span className="font-mono text-pink-300">GATILHO VIRAL</span>
+                      </div>
+                      <div className="text-[13px] font-[750] text-[var(--ink)]">
+                        &quot;How old do you think I am?&quot; (Adivinhação)
+                      </div>
+                      <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
+                        Perguntas provocativas curtas de idade ou reflexo geraram <strong>480 comentários</strong>. Cada comentário faz o algoritmo do X e Instagram distribuir a foto para mais 20 novos feeds.
+                      </p>
+                      <div className="mt-2 text-[10.5px] font-mono text-pink-300 flex items-center gap-1.5">
+                        <span>⚡ Decisão da IA:</span> Aplicar perguntas curtas nas próximas fotos.
+                      </div>
+                    </div>
+
+                    {/* Satélite 4: Comportamento do Público */}
+                    <div className="p-3.5 rounded-xl border border-amber-500/30 bg-[var(--surface)]/90 shadow-md relative group hover:border-amber-400 transition-all">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-amber-300 mb-1">
+                        <span>👥 COMPORTAMENTO DO PÚBLICO</span>
+                        <span className="font-mono text-amber-300">SALVAMENTOS</span>
+                      </div>
+                      <div className="text-[13px] font-[750] text-[var(--ink)]">
+                        82% Salvaram / Compartilharam em DM
+                      </div>
+                      <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
+                        No nicho hot, o usuário tem vergonha de retweetar publicamente, mas salva na pasta particular ou envia para amigos. O algoritmo valoriza bookmarks como engajamento VIP.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Layout: Satélites em Volta da Bola */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                {/* Satélites da Esquerda: Estilo Visual & Janela de Horário */}
-                <div className="flex flex-col gap-3">
-                  {/* Satélite 1: Estilo de Imagem */}
-                  <div className="p-3.5 rounded-xl border border-purple-500/30 bg-[var(--surface)]/80 shadow-md relative group hover:border-purple-400 transition-all">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-purple-300 mb-1">
-                      <span>📸 ESTILO VISUAL & ENQUADRAMENTO</span>
-                      <span className="font-mono text-emerald-400">15.0% RETENÇÃO</span>
+              {/* SEÇÃO 2: GRÁFICOS DETALHADOS & BENCHMARK VIRAL */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                {/* Gráfico 1: Performance de Estilos de Foto */}
+                <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50 flex flex-col justify-between">
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                      <span>📊 Eficácia de Estilos de Foto</span>
+                      <span className="text-purple-400 font-mono text-[10px]">RANKING</span>
                     </div>
-                    <div className="text-[12.5px] font-[700] text-[var(--ink)]">
-                      Espelho + Lingerie / Luz Suave
+                    <div className="mt-3 space-y-2.5">
+                      <div>
+                        <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
+                          <span>🪞 Espelho & Lingerie</span>
+                          <span className="font-mono text-purple-400">46% (Score 9.6)</span>
+                        </div>
+                        <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+                          <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full w-[46%]" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
+                          <span>🏖️ Praia, Biquíni & Sol</span>
+                          <span className="font-mono text-sky-400">28% (Score 8.4)</span>
+                        </div>
+                        <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+                          <div className="bg-gradient-to-r from-sky-500 to-cyan-400 h-full rounded-full w-[28%]" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
+                          <span>🏋️‍♀️ Academia & Fitness</span>
+                          <span className="font-mono text-emerald-400">16% (Score 7.2)</span>
+                        </div>
+                        <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+                          <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full w-[16%]" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
+                          <span>🛏️ Cama & Casual</span>
+                          <span className="font-mono text-amber-400">10% (Score 6.0)</span>
+                        </div>
+                        <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+                          <div className="bg-gradient-to-r from-amber-500 to-orange-400 h-full rounded-full w-[10%]" />
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
-                      O bot identificou que poses de reflexo de costas no espelho com iluminação quente geraram <strong>1.500 curtidas</strong> contra apenas 120 da média de fotos estáticas de rosto (<strong>3.8x superior</strong>).
-                    </p>
-                    <div className="mt-2 text-[10px] font-mono text-purple-300 flex items-center gap-1.5">
-                      <span>⚡ Decisão da IA:</span> Recomendar fotos de espelho no acervo.
-                    </div>
-                  </div>
-
-                  {/* Satélite 2: Janela Temporal */}
-                  <div className="p-3.5 rounded-xl border border-sky-500/30 bg-[var(--surface)]/80 shadow-md relative group hover:border-sky-400 transition-all">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-sky-400 mb-1">
-                      <span>⏱️ JANELA TEMPORAL VIRAL</span>
-                      <span className="font-mono text-sky-300">PICO NOTURNO</span>
-                    </div>
-                    <div className="text-[12.5px] font-[700] text-[var(--ink)]">
-                      20h45 às 23h30 (Horário de Brasília)
-                    </div>
-                    <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
-                      O post analisado foi publicado às 21h10 e atingiu <strong>10.000 visualizações</strong> em menos de 3 horas. Maior concentração ativa de público consumidor de nicho hot no Brasil.
-                    </p>
-                  </div>
-                </div>
-
-                {/* BOLA CENTRAL HOLOGRÁFICA (O NÚCLEO COGNITIVO) */}
-                <div className="flex flex-col items-center justify-center py-4 relative">
-                  {/* Anel Externo Giratório */}
-                  <div className="size-48 rounded-full border border-purple-500/30 animate-[spin_14s_linear_infinite] absolute flex items-center justify-center">
-                    <span className="size-2 rounded-full bg-purple-400 absolute top-0 shadow-[0_0_8px_#c084fc]" />
-                    <span className="size-2 rounded-full bg-sky-400 absolute bottom-0 shadow-[0_0_8px_#38bdf8]" />
-                  </div>
-
-                  {/* Anel Médio Giratório Reverso */}
-                  <div className="size-38 rounded-full border border-sky-400/40 animate-[spin_9s_linear_infinite_reverse] absolute flex items-center justify-center">
-                    <span className="size-1.5 rounded-full bg-emerald-400 absolute left-0 shadow-[0_0_6px_#34d399]" />
-                    <span className="size-1.5 rounded-full bg-pink-400 absolute right-0 shadow-[0_0_6px_#f472b6]" />
-                  </div>
-
-                  {/* ESFERA CENTRAL COM PULSO E GLOW */}
-                  <div className="size-28 rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-sky-500 shadow-[0_0_40px_rgba(168,85,247,0.6)] flex flex-col items-center justify-center text-white relative z-10 select-none animate-pulse">
-                    <span className="text-[28px]">🧠</span>
-                    <span className="text-[10px] font-black uppercase tracking-wider mt-0.5">QI CICLO: 148</span>
-                    <span className="text-[9px] font-mono text-purple-200">94.6% Treinado</span>
-                  </div>
-
-                  <div className="mt-3 text-center">
-                    <span className="text-[11px] font-mono font-bold text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                      ● 1.420 Sinapses Ativas
-                    </span>
                   </div>
                 </div>
 
-                {/* Satélites da Direita: Copywriting & Comportamento */}
-                <div className="flex flex-col gap-3">
-                  {/* Satélite 3: Copy & Legenda */}
-                  <div className="p-3.5 rounded-xl border border-pink-500/30 bg-[var(--surface)]/80 shadow-md relative group hover:border-pink-400 transition-all">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-pink-300 mb-1">
-                      <span>✍️ ENGENHARIA DE COPY & LEGENDA</span>
-                      <span className="font-mono text-pink-300">GATILHO VIRAL</span>
+                {/* Gráfico 2: Relação Likes vs. Visualizações */}
+                <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50 flex flex-col justify-between">
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                      <span>📈 Conversão: Views vs. Likes</span>
+                      <span className="text-emerald-400 font-mono text-[10px]">BENCHMARK</span>
                     </div>
-                    <div className="text-[12.5px] font-[700] text-[var(--ink)]">
-                      &quot;How old do you think I am?&quot; (Adivinhação)
-                    </div>
-                    <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
-                      Perguntas provocativas curtas de idade ou reflexo geraram <strong>480 comentários</strong>. Cada comentário faz o algoritmo do X e Instagram distribuir a foto para mais 20 novos feeds.
-                    </p>
-                    <div className="mt-2 text-[10px] font-mono text-pink-300 flex items-center gap-1.5">
-                      <span>⚡ Decisão da IA:</span> Aplicar perguntas curtas nas próximas fotos.
+
+                    <div className="mt-3 space-y-3">
+                      <div className="p-2.5 rounded-lg bg-[var(--surface)] border border-emerald-500/30">
+                        <div className="flex items-center justify-between text-[11.5px]">
+                          <span className="font-semibold text-emerald-400">Post Analisado (@alicezinhak)</span>
+                          <span className="font-mono font-bold text-white">15.0% Conversão</span>
+                        </div>
+                        <div className="mt-1.5 flex items-center justify-between text-[10.5px] text-[var(--muted)] font-mono">
+                          <span>10.000 Visualizações</span>
+                          <span>1.500 Curtidas 🔥</span>
+                        </div>
+                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden mt-1">
+                          <div className="bg-emerald-400 h-full w-[75%]" />
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-[var(--surface)] border border-[var(--line)]">
+                        <div className="flex items-center justify-between text-[11.5px]">
+                          <span className="font-semibold text-[var(--ink-2)]">Média Comum do Nicho</span>
+                          <span className="font-mono font-bold text-[var(--muted)]">3.2% Conversão</span>
+                        </div>
+                        <div className="mt-1.5 flex items-center justify-between text-[10.5px] text-[var(--muted)] font-mono">
+                          <span>10.000 Visualizações</span>
+                          <span>320 Curtidas</span>
+                        </div>
+                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden mt-1">
+                          <div className="bg-zinc-600 h-full w-[16%]" />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Satélite 4: Comportamento do Público */}
-                  <div className="p-3.5 rounded-xl border border-amber-500/30 bg-[var(--surface)]/80 shadow-md relative group hover:border-amber-400 transition-all">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-amber-300 mb-1">
-                      <span>👥 COMPORTAMENTO DO PÚBLICO</span>
-                      <span className="font-mono text-amber-300">SALVAMENTOS</span>
+                  <div className="mt-2 text-[10.5px] text-emerald-400 font-mono">
+                    ✨ O post analisado converteu <strong>4.7x mais</strong> que a média graças ao gancho de copy.
+                  </div>
+                </div>
+
+                {/* Gráfico 3: Gatilhos Psicológicos de Copywriting */}
+                <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50 flex flex-col justify-between">
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                      <span>💡 Gatilhos de Copy da Legenda</span>
+                      <span className="text-pink-400 font-mono text-[10px]">PSICOLOGIA</span>
                     </div>
-                    <div className="text-[12.5px] font-[700] text-[var(--ink)]">
-                      82% Salvaram / Compartilharam em DM
+
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
+                        <span>Curiosidade / Adivinhação</span>
+                        <span className="font-mono text-purple-400 font-bold">92%</span>
+                      </div>
+                      <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
+                        <span>Pergunta Direta no Final</span>
+                        <span className="font-mono text-sky-400 font-bold">86%</span>
+                      </div>
+                      <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
+                        <span>Frases Curtas (&lt; 12 palavras)</span>
+                        <span className="font-mono text-emerald-400 font-bold">84%</span>
+                      </div>
+                      <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
+                        <span>Emojis Provocativos (🔥 / 👀)</span>
+                        <span className="font-mono text-pink-400 font-bold">78%</span>
+                      </div>
                     </div>
-                    <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
-                      No nicho hot, o usuário tem vergonha de retweetar publicamente, mas salva na pasta particular ou envia para amigos. O algoritmo valoriza bookmarks como engajamento VIP.
+                  </div>
+
+                  <div className="mt-2 text-[10.5px] text-[var(--muted)]">
+                    Legendas longas são ignoradas. O público foca na foto e responde à pergunta direta.
+                  </div>
+                </div>
+              </div>
+
+              {/* SEÇÃO 3: O QUE FAZER PARA FAZER O QUE FUNCIONA (PLAYBOOK DE AÇÃO PRÁTICA) */}
+              <div className="p-4 rounded-xl border-2 border-emerald-500/40 bg-emerald-950/20 text-emerald-200">
+                <div className="flex items-center justify-between">
+                  <div className="font-[750] text-[14px] flex items-center gap-2 text-emerald-300">
+                    <span>🚀</span> O QUE FAZER PARA FAZER O QUE FUNCIONA (PRÓXIMO CICLO DE @{brainModalAccount.username})
+                  </div>
+                  <span className="text-[10px] font-mono uppercase bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30 font-bold">
+                    PLANO GERADO PELA IA
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-3 text-[12px]">
+                  <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
+                    <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
+                      1. Mídia a Selecionar
+                    </div>
+                    <div className="font-semibold text-purple-400">Espelho + Lingerie / Luz Quente</div>
+                    <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
+                      Escolha uma foto do Acervo IA no Drive com reflexo e silhueta definida.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
+                    <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
+                      2. Copy Sugerida
+                    </div>
+                    <div className="font-semibold text-pink-400">&quot;Quantos anos você me dá? 👀🔥&quot;</div>
+                    <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
+                      Gera debate imediato nos comentários e impulsiona a entrega algorítmica.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
+                    <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
+                      3. Horário do Disparo
+                    </div>
+                    <div className="font-semibold text-sky-400">Hoje às 21h15 (SP GMT-3)</div>
+                    <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
+                      Com delay aleatório de 6.4 minutos para blindagem contra filtros robóticos.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
+                    <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
+                      4. Pré-Aquecimento
+                    </div>
+                    <div className="font-semibold text-emerald-400">Curtir 3 perfis afins</div>
+                    <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
+                      O bot curte perfis que você segue 15 min antes de postar para alertar os feeds.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* SEÇÃO 2: GRÁFICOS DETALHADOS & BENCHMARK VIRAL */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mt-4">
-              {/* Gráfico 1: Performance de Estilos de Foto */}
-              <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50 flex flex-col justify-between">
-                <div>
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
-                    <span>📊 Eficácia de Estilos de Foto</span>
-                    <span className="text-purple-400 font-mono text-[10px]">RANKING</span>
-                  </div>
-                  <div className="mt-3 space-y-2.5">
-                    <div>
-                      <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
-                        <span>🪞 Espelho & Lingerie</span>
-                        <span className="font-mono text-purple-400">46% (Score 9.6)</span>
-                      </div>
-                      <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
-                        <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full w-[46%]" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
-                        <span>🏖️ Praia, Biquíni & Sol</span>
-                        <span className="font-mono text-sky-400">28% (Score 8.4)</span>
-                      </div>
-                      <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
-                        <div className="bg-gradient-to-r from-sky-500 to-cyan-400 h-full rounded-full w-[28%]" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
-                        <span>🏋️‍♀️ Academia & Fitness</span>
-                        <span className="font-mono text-emerald-400">16% (Score 7.2)</span>
-                      </div>
-                      <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
-                        <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full w-[16%]" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
-                        <span>🛏️ Cama & Casual</span>
-                        <span className="font-mono text-amber-400">10% (Score 6.0)</span>
-                      </div>
-                      <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
-                        <div className="bg-gradient-to-r from-amber-500 to-orange-400 h-full rounded-full w-[10%]" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Gráfico 2: Relação Likes vs. Visualizações */}
-              <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50 flex flex-col justify-between">
-                <div>
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
-                    <span>📈 Conversão: Views vs. Likes</span>
-                    <span className="text-emerald-400 font-mono text-[10px]">BENCHMARK</span>
-                  </div>
-
-                  <div className="mt-3 space-y-3">
-                    <div className="p-2.5 rounded-lg bg-[var(--surface)] border border-emerald-500/30">
-                      <div className="flex items-center justify-between text-[11.5px]">
-                        <span className="font-semibold text-emerald-400">Post Analisado (@alicezinhak)</span>
-                        <span className="font-mono font-bold text-white">15.0% Conversão</span>
-                      </div>
-                      <div className="mt-1.5 flex items-center justify-between text-[10.5px] text-[var(--muted)] font-mono">
-                        <span>10.000 Visualizações</span>
-                        <span>1.500 Curtidas 🔥</span>
-                      </div>
-                      <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden mt-1">
-                        <div className="bg-emerald-400 h-full w-[75%]" />
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 rounded-lg bg-[var(--surface)] border border-[var(--line)]">
-                      <div className="flex items-center justify-between text-[11.5px]">
-                        <span className="font-semibold text-[var(--ink-2)]">Média Comum do Nicho</span>
-                        <span className="font-mono font-bold text-[var(--muted)]">3.2% Conversão</span>
-                      </div>
-                      <div className="mt-1.5 flex items-center justify-between text-[10.5px] text-[var(--muted)] font-mono">
-                        <span>10.000 Visualizações</span>
-                        <span>320 Curtidas</span>
-                      </div>
-                      <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden mt-1">
-                        <div className="bg-zinc-600 h-full w-[16%]" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2 text-[10.5px] text-emerald-400 font-mono">
-                  ✨ O post analisado converteu <strong>4.7x mais</strong> que a média graças ao gancho de copy.
-                </div>
-              </div>
-
-              {/* Gráfico 3: Gatilhos Psicológicos de Copywriting */}
-              <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50 flex flex-col justify-between">
-                <div>
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
-                    <span>💡 Gatilhos de Copy da Legenda</span>
-                    <span className="text-pink-400 font-mono text-[10px]">PSICOLOGIA</span>
-                  </div>
-
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
-                      <span>Curiosidade / Adivinhação</span>
-                      <span className="font-mono text-purple-400 font-bold">92%</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
-                      <span>Pergunta Direta no Final</span>
-                      <span className="font-mono text-sky-400 font-bold">86%</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
-                      <span>Frases Curtas (&lt; 12 palavras)</span>
-                      <span className="font-mono text-emerald-400 font-bold">84%</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
-                      <span>Emojis Provocativos (🔥 / 👀)</span>
-                      <span className="font-mono text-pink-400 font-bold">78%</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2 text-[10.5px] text-[var(--muted)]">
-                  Legendas longas são ignoradas. O público foca na foto e responde à pergunta direta.
-                </div>
-              </div>
-            </div>
-
-            {/* SEÇÃO 3: O QUE FAZER PARA FAZER O QUE FUNCIONA (PLAYBOOK DE AÇÃO PRÁTICA) */}
-            <div className="mt-4 p-4 rounded-xl border-2 border-emerald-500/40 bg-emerald-950/20 text-emerald-200">
-              <div className="flex items-center justify-between">
-                <div className="font-[750] text-[14px] flex items-center gap-2 text-emerald-300">
-                  <span>🚀</span> O QUE FAZER PARA FAZER O QUE FUNCIONA (PRÓXIMO CICLO DE @{brainModalAccount.username})
-                </div>
-                <span className="text-[10px] font-mono uppercase bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30 font-bold">
-                  PLANO GERADO PELA IA
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-3 text-[12px]">
-                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
-                  <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
-                    1. Mídia a Selecionar
-                  </div>
-                  <div className="font-semibold text-purple-400">Espelho + Lingerie / Luz Quente</div>
-                  <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
-                    Escolha uma foto do Acervo IA no Drive com reflexo e silhueta definida.
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
-                  <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
-                    2. Copy Sugerida
-                  </div>
-                  <div className="font-semibold text-pink-400">&quot;Quantos anos você me dá? 👀🔥&quot;</div>
-                  <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
-                    Gera debate imediato nos comentários e impulsiona a entrega algorítmica.
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
-                  <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
-                    3. Horário do Disparo
-                  </div>
-                  <div className="font-semibold text-sky-400">Hoje às 21h15 (SP GMT-3)</div>
-                  <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
-                    Com delay aleatório de 6.4 minutos para blindagem contra filtros robóticos.
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
-                  <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
-                    4. Pré-Aquecimento
-                  </div>
-                  <div className="font-semibold text-emerald-400">Curtir 3 perfis afins</div>
-                  <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
-                    O bot curte perfis que você segue 15 min antes de postar para alertar os feeds.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Rodapé do Modal */}
-            <div className="mt-4 pt-3 border-t border-[var(--line)] flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+            {/* Rodapé do Modal Fixo */}
+            <div className="p-4 border-t border-[var(--line)] bg-[var(--surface)] flex flex-wrap items-center justify-between gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   className="btn btn-sm btn-primary bg-purple-600 hover:bg-purple-500 text-white font-[700] shadow-md shadow-purple-600/30 flex items-center gap-1.5"

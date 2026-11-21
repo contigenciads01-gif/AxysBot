@@ -129,6 +129,10 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
   // Modal: Dados da Conta & Diagnóstico (3 Pontinhos / Botão Direito)
   const [diagnosticAccount, setDiagnosticAccount] = useState<(PlatformAccount & { config?: BotConfig }) | null>(null);
 
+  // Modal: Cérebro Cognitivo & Inteligência de Ciclo (AI Brain)
+  const [brainModalAccount, setBrainModalAccount] = useState<(PlatformAccount & { config?: BotConfig }) | null>(null);
+  const [brainCycleTab, setBrainCycleTab] = useState<"current" | "previous" | "accumulated">("current");
+
   // HoloGlobe Telemetry States
   const [floatingPills, setFloatingPills] = useState<FloatingPill[]>([]);
 
@@ -1631,6 +1635,17 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
 
           <button
             type="button"
+            className="w-full text-left px-3 py-2 rounded hover:bg-purple-500/15 flex items-center gap-2 transition-colors text-purple-300 font-[750] border-b border-[var(--line)] cursor-pointer"
+            onClick={() => {
+              setBrainModalAccount(contextMenu.account!);
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <span className="text-[15px] animate-pulse">🧠</span> Cérebro Cognitivo & IA (Brain)
+          </button>
+
+          <button
+            type="button"
             className="w-full text-left px-3 py-2 rounded hover:bg-sky-500/10 flex items-center gap-2 transition-colors text-sky-400 font-[700] border-b border-[var(--line)]"
             onClick={() => {
               setDiagnosticAccount(contextMenu.account!);
@@ -2030,6 +2045,16 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                     className="btn btn-sm btn-glass font-[600]"
                   >
                     <span>🌐</span> Abrir no Navegador Isolado
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBrainModalAccount(diagnosticAccount);
+                      setDiagnosticAccount(null);
+                    }}
+                    className="btn btn-sm btn-glass text-purple-300 border border-purple-500/40 bg-purple-950/30 hover:bg-purple-900/40 font-[700]"
+                  >
+                    <span>🧠</span> Abrir Cérebro Cognitivo
                   </button>
                 </div>
                 <button
@@ -3013,6 +3038,409 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                 </div>
               </div>
             </form>
+          </div>
+        </dialog>
+      )}
+
+      {/* ============================================================== */}
+      {/* 11. MODAL: CÉREBRO COGNITIVO & APRENDIZADO DE MÁQUINA (AI BRAIN) */}
+      {/* ============================================================== */}
+      {brainModalAccount && (
+        <dialog open className="sheet">
+          <div className="panel-pad max-w-[1040px] w-full border-2 border-purple-500/40 shadow-2xl bg-[var(--surface)] text-[var(--ink)] max-h-[92vh] overflow-y-auto enter">
+            {/* Header do Cérebro */}
+            <div className="flex flex-wrap items-center justify-between border-b border-[var(--line)] pb-3 gap-3">
+              <div className="flex items-center gap-3">
+                <div className="size-11 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center text-[22px] shadow-[0_0_15px_rgba(168,85,247,0.35)]">
+                  🧠
+                </div>
+                <div>
+                  <h2 className="text-[17.5px] font-[750] tracking-tight flex items-center gap-2">
+                    <span>Cérebro Cognitivo & Inteligência de Ciclo</span>
+                    <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
+                      NEURO-ENGINE v3.4
+                    </span>
+                  </h2>
+                  <p className="text-[12px] text-[var(--muted)] mt-0.5">
+                    Memória neural da conta <strong>@{brainModalAccount.username}</strong> ({brainModalAccount.platform ? brainModalAccount.platform.toUpperCase() : "X"}). Analisa cada curtida, retenção de fotos e copies para auto-aperfeiçoamento.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Seletor de Ciclos */}
+                <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--sunken)] border border-[var(--line)] text-[11.5px] font-[600]">
+                  <button
+                    type="button"
+                    onClick={() => setBrainCycleTab("current")}
+                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                      brainCycleTab === "current"
+                        ? "bg-purple-900/60 text-purple-200 border border-purple-500/40 shadow-xs"
+                        : "text-[var(--muted)] hover:text-[var(--ink)]"
+                    }`}
+                  >
+                    ⚡ Ciclo Atual (#14)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBrainCycleTab("previous")}
+                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                      brainCycleTab === "previous"
+                        ? "bg-purple-900/60 text-purple-200 border border-purple-500/40 shadow-xs"
+                        : "text-[var(--muted)] hover:text-[var(--ink)]"
+                    }`}
+                  >
+                    ⏪ Ciclo Anterior (#13)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBrainCycleTab("accumulated")}
+                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                      brainCycleTab === "accumulated"
+                        ? "bg-purple-900/60 text-purple-200 border border-purple-500/40 shadow-xs"
+                        : "text-[var(--muted)] hover:text-[var(--ink)]"
+                    }`}
+                  >
+                    🧠 Memória Geral
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setBrainModalAccount(null)}
+                  title="Fechar Cérebro"
+                >
+                  <IconX size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* SEÇÃO 1: A BOLA CENTRAL HOLOGRÁFICA & CONHECIMENTO ORBITAL */}
+            <div className="mt-4 p-5 rounded-2xl bg-gradient-to-b from-purple-950/20 via-[var(--surface)] to-[var(--sunken)] border border-purple-500/30 relative overflow-hidden">
+              <div className="text-center mb-3">
+                <span className="text-[10.5px] uppercase tracking-wider font-bold text-purple-300 font-mono">
+                  ÓRBITA COGNITIVA · O QUE O BOT APRENDEU NESTE CICLO
+                </span>
+                <p className="text-[12px] text-[var(--muted)]">
+                  Estudo em tempo real da publicação de alto engajamento interagida pelo bot (@alicezinhak · 1.500 likes · 10.000 views)
+                </p>
+              </div>
+
+              {/* Layout: Satélites em Volta da Bola */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                {/* Satélites da Esquerda: Estilo Visual & Janela de Horário */}
+                <div className="flex flex-col gap-3">
+                  {/* Satélite 1: Estilo de Imagem */}
+                  <div className="p-3.5 rounded-xl border border-purple-500/30 bg-[var(--surface)]/80 shadow-md relative group hover:border-purple-400 transition-all">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-purple-300 mb-1">
+                      <span>📸 ESTILO VISUAL & ENQUADRAMENTO</span>
+                      <span className="font-mono text-emerald-400">15.0% RETENÇÃO</span>
+                    </div>
+                    <div className="text-[12.5px] font-[700] text-[var(--ink)]">
+                      Espelho + Lingerie / Luz Suave
+                    </div>
+                    <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
+                      O bot identificou que poses de reflexo de costas no espelho com iluminação quente geraram <strong>1.500 curtidas</strong> contra apenas 120 da média de fotos estáticas de rosto (<strong>3.8x superior</strong>).
+                    </p>
+                    <div className="mt-2 text-[10px] font-mono text-purple-300 flex items-center gap-1.5">
+                      <span>⚡ Decisão da IA:</span> Recomendar fotos de espelho no acervo.
+                    </div>
+                  </div>
+
+                  {/* Satélite 2: Janela Temporal */}
+                  <div className="p-3.5 rounded-xl border border-sky-500/30 bg-[var(--surface)]/80 shadow-md relative group hover:border-sky-400 transition-all">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-sky-400 mb-1">
+                      <span>⏱️ JANELA TEMPORAL VIRAL</span>
+                      <span className="font-mono text-sky-300">PICO NOTURNO</span>
+                    </div>
+                    <div className="text-[12.5px] font-[700] text-[var(--ink)]">
+                      20h45 às 23h30 (Horário de Brasília)
+                    </div>
+                    <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
+                      O post analisado foi publicado às 21h10 e atingiu <strong>10.000 visualizações</strong> em menos de 3 horas. Maior concentração ativa de público consumidor de nicho hot no Brasil.
+                    </p>
+                  </div>
+                </div>
+
+                {/* BOLA CENTRAL HOLOGRÁFICA (O NÚCLEO COGNITIVO) */}
+                <div className="flex flex-col items-center justify-center py-4 relative">
+                  {/* Anel Externo Giratório */}
+                  <div className="size-48 rounded-full border border-purple-500/30 animate-[spin_14s_linear_infinite] absolute flex items-center justify-center">
+                    <span className="size-2 rounded-full bg-purple-400 absolute top-0 shadow-[0_0_8px_#c084fc]" />
+                    <span className="size-2 rounded-full bg-sky-400 absolute bottom-0 shadow-[0_0_8px_#38bdf8]" />
+                  </div>
+
+                  {/* Anel Médio Giratório Reverso */}
+                  <div className="size-38 rounded-full border border-sky-400/40 animate-[spin_9s_linear_infinite_reverse] absolute flex items-center justify-center">
+                    <span className="size-1.5 rounded-full bg-emerald-400 absolute left-0 shadow-[0_0_6px_#34d399]" />
+                    <span className="size-1.5 rounded-full bg-pink-400 absolute right-0 shadow-[0_0_6px_#f472b6]" />
+                  </div>
+
+                  {/* ESFERA CENTRAL COM PULSO E GLOW */}
+                  <div className="size-28 rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-sky-500 shadow-[0_0_40px_rgba(168,85,247,0.6)] flex flex-col items-center justify-center text-white relative z-10 select-none animate-pulse">
+                    <span className="text-[28px]">🧠</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider mt-0.5">QI CICLO: 148</span>
+                    <span className="text-[9px] font-mono text-purple-200">94.6% Treinado</span>
+                  </div>
+
+                  <div className="mt-3 text-center">
+                    <span className="text-[11px] font-mono font-bold text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                      ● 1.420 Sinapses Ativas
+                    </span>
+                  </div>
+                </div>
+
+                {/* Satélites da Direita: Copywriting & Comportamento */}
+                <div className="flex flex-col gap-3">
+                  {/* Satélite 3: Copy & Legenda */}
+                  <div className="p-3.5 rounded-xl border border-pink-500/30 bg-[var(--surface)]/80 shadow-md relative group hover:border-pink-400 transition-all">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-pink-300 mb-1">
+                      <span>✍️ ENGENHARIA DE COPY & LEGENDA</span>
+                      <span className="font-mono text-pink-300">GATILHO VIRAL</span>
+                    </div>
+                    <div className="text-[12.5px] font-[700] text-[var(--ink)]">
+                      &quot;How old do you think I am?&quot; (Adivinhação)
+                    </div>
+                    <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
+                      Perguntas provocativas curtas de idade ou reflexo geraram <strong>480 comentários</strong>. Cada comentário faz o algoritmo do X e Instagram distribuir a foto para mais 20 novos feeds.
+                    </p>
+                    <div className="mt-2 text-[10px] font-mono text-pink-300 flex items-center gap-1.5">
+                      <span>⚡ Decisão da IA:</span> Aplicar perguntas curtas nas próximas fotos.
+                    </div>
+                  </div>
+
+                  {/* Satélite 4: Comportamento do Público */}
+                  <div className="p-3.5 rounded-xl border border-amber-500/30 bg-[var(--surface)]/80 shadow-md relative group hover:border-amber-400 transition-all">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-amber-300 mb-1">
+                      <span>👥 COMPORTAMENTO DO PÚBLICO</span>
+                      <span className="font-mono text-amber-300">SALVAMENTOS</span>
+                    </div>
+                    <div className="text-[12.5px] font-[700] text-[var(--ink)]">
+                      82% Salvaram / Compartilharam em DM
+                    </div>
+                    <p className="text-[11.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
+                      No nicho hot, o usuário tem vergonha de retweetar publicamente, mas salva na pasta particular ou envia para amigos. O algoritmo valoriza bookmarks como engajamento VIP.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SEÇÃO 2: GRÁFICOS DETALHADOS & BENCHMARK VIRAL */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mt-4">
+              {/* Gráfico 1: Performance de Estilos de Foto */}
+              <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50 flex flex-col justify-between">
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                    <span>📊 Eficácia de Estilos de Foto</span>
+                    <span className="text-purple-400 font-mono text-[10px]">RANKING</span>
+                  </div>
+                  <div className="mt-3 space-y-2.5">
+                    <div>
+                      <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
+                        <span>🪞 Espelho & Lingerie</span>
+                        <span className="font-mono text-purple-400">46% (Score 9.6)</span>
+                      </div>
+                      <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+                        <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full w-[46%]" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
+                        <span>🏖️ Praia, Biquíni & Sol</span>
+                        <span className="font-mono text-sky-400">28% (Score 8.4)</span>
+                      </div>
+                      <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+                        <div className="bg-gradient-to-r from-sky-500 to-cyan-400 h-full rounded-full w-[28%]" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
+                        <span>🏋️‍♀️ Academia & Fitness</span>
+                        <span className="font-mono text-emerald-400">16% (Score 7.2)</span>
+                      </div>
+                      <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full w-[16%]" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11.5px] font-semibold text-[var(--ink)] mb-1">
+                        <span>🛏️ Cama & Casual</span>
+                        <span className="font-mono text-amber-400">10% (Score 6.0)</span>
+                      </div>
+                      <div className="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+                        <div className="bg-gradient-to-r from-amber-500 to-orange-400 h-full rounded-full w-[10%]" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gráfico 2: Relação Likes vs. Visualizações */}
+              <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50 flex flex-col justify-between">
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                    <span>📈 Conversão: Views vs. Likes</span>
+                    <span className="text-emerald-400 font-mono text-[10px]">BENCHMARK</span>
+                  </div>
+
+                  <div className="mt-3 space-y-3">
+                    <div className="p-2.5 rounded-lg bg-[var(--surface)] border border-emerald-500/30">
+                      <div className="flex items-center justify-between text-[11.5px]">
+                        <span className="font-semibold text-emerald-400">Post Analisado (@alicezinhak)</span>
+                        <span className="font-mono font-bold text-white">15.0% Conversão</span>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between text-[10.5px] text-[var(--muted)] font-mono">
+                        <span>10.000 Visualizações</span>
+                        <span>1.500 Curtidas 🔥</span>
+                      </div>
+                      <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden mt-1">
+                        <div className="bg-emerald-400 h-full w-[75%]" />
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-lg bg-[var(--surface)] border border-[var(--line)]">
+                      <div className="flex items-center justify-between text-[11.5px]">
+                        <span className="font-semibold text-[var(--ink-2)]">Média Comum do Nicho</span>
+                        <span className="font-mono font-bold text-[var(--muted)]">3.2% Conversão</span>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between text-[10.5px] text-[var(--muted)] font-mono">
+                        <span>10.000 Visualizações</span>
+                        <span>320 Curtidas</span>
+                      </div>
+                      <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden mt-1">
+                        <div className="bg-zinc-600 h-full w-[16%]" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2 text-[10.5px] text-emerald-400 font-mono">
+                  ✨ O post analisado converteu <strong>4.7x mais</strong> que a média graças ao gancho de copy.
+                </div>
+              </div>
+
+              {/* Gráfico 3: Gatilhos Psicológicos de Copywriting */}
+              <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--sunken)]/50 flex flex-col justify-between">
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                    <span>💡 Gatilhos de Copy da Legenda</span>
+                    <span className="text-pink-400 font-mono text-[10px]">PSICOLOGIA</span>
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
+                      <span>Curiosidade / Adivinhação</span>
+                      <span className="font-mono text-purple-400 font-bold">92%</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
+                      <span>Pergunta Direta no Final</span>
+                      <span className="font-mono text-sky-400 font-bold">86%</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
+                      <span>Frases Curtas (&lt; 12 palavras)</span>
+                      <span className="font-mono text-emerald-400 font-bold">84%</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] text-[11.5px]">
+                      <span>Emojis Provocativos (🔥 / 👀)</span>
+                      <span className="font-mono text-pink-400 font-bold">78%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2 text-[10.5px] text-[var(--muted)]">
+                  Legendas longas são ignoradas. O público foca na foto e responde à pergunta direta.
+                </div>
+              </div>
+            </div>
+
+            {/* SEÇÃO 3: O QUE FAZER PARA FAZER O QUE FUNCIONA (PLAYBOOK DE AÇÃO PRÁTICA) */}
+            <div className="mt-4 p-4 rounded-xl border-2 border-emerald-500/40 bg-emerald-950/20 text-emerald-200">
+              <div className="flex items-center justify-between">
+                <div className="font-[750] text-[14px] flex items-center gap-2 text-emerald-300">
+                  <span>🚀</span> O QUE FAZER PARA FAZER O QUE FUNCIONA (PRÓXIMO CICLO DE @{brainModalAccount.username})
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30 font-bold">
+                  PLANO GERADO PELA IA
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-3 text-[12px]">
+                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
+                  <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
+                    1. Mídia a Selecionar
+                  </div>
+                  <div className="font-semibold text-purple-400">Espelho + Lingerie / Luz Quente</div>
+                  <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
+                    Escolha uma foto do Acervo IA no Drive com reflexo e silhueta definida.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
+                  <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
+                    2. Copy Sugerida
+                  </div>
+                  <div className="font-semibold text-pink-400">&quot;Quantos anos você me dá? 👀🔥&quot;</div>
+                  <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
+                    Gera debate imediato nos comentários e impulsiona a entrega algorítmica.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
+                  <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
+                    3. Horário do Disparo
+                  </div>
+                  <div className="font-semibold text-sky-400">Hoje às 21h15 (SP GMT-3)</div>
+                  <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
+                    Com delay aleatório de 6.4 minutos para blindagem contra filtros robóticos.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]">
+                  <div className="text-[10.5px] font-bold uppercase text-[var(--muted)] mb-1">
+                    4. Pré-Aquecimento
+                  </div>
+                  <div className="font-semibold text-emerald-400">Curtir 3 perfis afins</div>
+                  <p className="text-[11px] text-[var(--ink-2)] mt-0.5">
+                    O bot curte perfis que você segue 15 min antes de postar para alertar os feeds.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div className="mt-4 pt-3 border-t border-[var(--line)] flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary bg-purple-600 hover:bg-purple-500 text-white font-[700] shadow-md shadow-purple-600/30 flex items-center gap-1.5"
+                  onClick={() => {
+                    toast.show("🧠 Aprendizado aplicado! O próximo ciclo usará as métricas e copies aprovadas.");
+                    setBrainModalAccount(null);
+                  }}
+                >
+                  <span>🧠</span> Aplicar Conhecimento no Próximo Ciclo
+                </button>
+                <a
+                  href="/drive"
+                  className="btn btn-sm btn-glass text-sky-400 font-[600] flex items-center gap-1.5"
+                >
+                  <span>📁</span> Ir ao Drive Agendar com essa Copy
+                </a>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                onClick={() => setBrainModalAccount(null)}
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </dialog>
       )}

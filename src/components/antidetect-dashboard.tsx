@@ -1823,8 +1823,8 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
         );
 
         return (
-          <dialog open className="sheet w-full max-w-[920px]">
-            <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)]">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-hidden enter">
+            <div className="w-full max-w-[920px] max-h-[calc(100dvh-48px)] flex flex-col bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl shadow-2xl overflow-hidden">
               {/* Topo / Header Fixo */}
               <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
@@ -2066,7 +2066,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
                 </button>
               </div>
             </div>
-          </dialog>
+          </div>
         );
       })()}
 
@@ -2074,8 +2074,8 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
       {/* 7. MODAL: FILTROS DE ALVO & INTERAÇÃO (NICHO)                  */}
       {/* ============================================================== */}
       {filtersOpen && (
-        <dialog open className="sheet w-full max-w-[820px]">
-          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-hidden enter">
+          <div className="w-full max-w-[840px] max-h-[calc(100dvh-48px)] flex flex-col bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--line)] p-5 shrink-0">
               <div>
                 <h2 className="text-[17.5px] font-[750]">🎯 Filtros de Alvo & Interação do Nicho</h2>
@@ -2251,15 +2251,15 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </div>
             </form>
           </div>
-        </dialog>
+        </div>
       )}
 
       {/* ============================================================== */}
       {/* 8. MODAL: DISPARAR RETWEET REAL DE TESTE                       */}
       {/* ============================================================== */}
       {retweetModalOpen && retweetTargetAccount && (
-        <dialog open className="sheet w-full max-w-[560px]">
-          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-hidden enter">
+          <div className="w-full max-w-[560px] max-h-[calc(100dvh-48px)] flex flex-col bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl shadow-2xl overflow-hidden">
             <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
               <div>
                 <h2 className="text-[17px] font-[750] text-[var(--accent)] flex items-center gap-2">
@@ -2301,15 +2301,15 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </div>
             </form>
           </div>
-        </dialog>
+        </div>
       )}
 
       {/* ============================================================== */}
       {/* 9. MODAL: EDITAR / INSERIR AUTH TOKEN DA CONTA                 */}
       {/* ============================================================== */}
       {tokenModalOpen && editingTokenAccount && (
-        <dialog open className="sheet w-full max-w-[560px]">
-          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-hidden enter">
+          <div className="w-full max-w-[560px] max-h-[calc(100dvh-48px)] flex flex-col bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl shadow-2xl overflow-hidden">
             <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
               <div>
                 <h2 className="text-[17px] font-[750] flex items-center gap-2">
@@ -2364,15 +2364,15 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </div>
             </form>
           </div>
-        </dialog>
+        </div>
       )}
 
       {/* ============================================================== */}
       {/* 10. MODAL: CONECTAR CONTA MANUAL                               */}
       {/* ============================================================== */}
       {manualModalOpen && (
-        <dialog open className="sheet w-full max-w-[840px]">
-          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-hidden enter">
+          <div className="w-full max-w-[840px] max-h-[calc(100dvh-48px)] flex flex-col bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl shadow-2xl overflow-hidden">
             <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
               <div>
                 <h2 className="text-[17.5px] font-[750] flex items-center gap-2">
@@ -2604,15 +2604,15 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </div>
             </form>
           </div>
-        </dialog>
+        </div>
       )}
 
       {/* ============================================================== */}
       {/* 11. MODAL: IMPORTAR EM LOTE                                    */}
       {/* ============================================================== */}
       {importOpen && (
-        <dialog open className="sheet w-full max-w-[780px]">
-          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-hidden enter">
+          <div className="w-full max-w-[780px] max-h-[calc(100dvh-48px)] flex flex-col bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl shadow-2xl overflow-hidden">
             <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
               <div>
                 <h2 className="text-[17.5px] font-[750] flex items-center gap-2">
@@ -2657,15 +2657,15 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </div>
             </form>
           </div>
-        </dialog>
+        </div>
       )}
 
       {/* ============================================================== */}
       {/* 12. MODAL: SETTINGS (DRAGON TOOLS)                             */}
       {/* ============================================================== */}
       {settingsOpen && (
-        <dialog open className="sheet w-full max-w-[880px]">
-          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-hidden enter">
+          <div className="w-full max-w-[880px] max-h-[calc(100dvh-48px)] flex flex-col bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--line)] shrink-0">
               <div>
                 <h2 className="text-[17.5px] font-[750] flex items-center gap-2">
@@ -2806,15 +2806,15 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </div>
             </div>
           </div>
-        </dialog>
+        </div>
       )}
 
       {/* ============================================================== */}
       {/* 8. MODAL: RITMO HUMANO, INTERVALOS & PAUSAS BIOLÓGICAS        */}
       {/* ============================================================== */}
       {cadenceModalOpen && (
-        <dialog open className="sheet w-full max-w-[840px]">
-          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-hidden enter">
+          <div className="w-full max-w-[840px] max-h-[calc(100dvh-48px)] flex flex-col bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl shadow-2xl overflow-hidden">
             <div className="p-5 border-b border-[var(--line)] flex items-center justify-between shrink-0">
               <div>
                 <h2 className="text-[17.5px] font-[750] flex items-center gap-2">
@@ -3102,15 +3102,15 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </div>
             </form>
           </div>
-        </dialog>
+        </div>
       )}
 
       {/* ============================================================== */}
       {/* 11. MODAL: CÉREBRO COGNITIVO & APRENDIZADO DE MÁQUINA (AI BRAIN) */}
       {/* ============================================================== */}
       {brainModalAccount && (
-        <dialog open className="sheet w-full max-w-[1140px]">
-          <div className="flex flex-col h-full max-h-[calc(100dvh-48px)] overflow-hidden bg-[var(--surface)] text-[var(--ink)] enter">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md overflow-hidden enter">
+          <div className="w-full max-w-[1140px] max-h-[calc(100dvh-48px)] flex flex-col bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] rounded-2xl shadow-2xl overflow-hidden">
             {/* Header do Cérebro Fixo */}
             <div className="p-5 border-b border-[var(--line)] flex flex-wrap items-center justify-between gap-3 shrink-0 bg-[var(--surface)]">
               <div className="flex items-center gap-3">
@@ -3517,7 +3517,7 @@ export function AntidetectDashboard({ initialAccounts, initialStatus }: Props) {
               </button>
             </div>
           </div>
-        </dialog>
+        </div>
       )}
 
       {toast.node}
